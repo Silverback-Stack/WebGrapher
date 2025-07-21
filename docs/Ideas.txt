@@ -1,0 +1,14 @@
+
+
+At start of each Lecture:
+
+	- Preview end product...
+	- Architure design
+	- Component design
+
+	- Visual Studio...
+	- Service setup
+	- Directory structure
+	- Namespace naming
+
+

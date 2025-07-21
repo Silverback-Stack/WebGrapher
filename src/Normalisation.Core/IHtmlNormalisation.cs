@@ -1,0 +1,21 @@
+﻿
+using Events.Core.Bus;
+
+namespace Normalisation.Core
+{
+    public interface IHtmlNormalisation : IEventBusLifecycle
+    {
+        public string NormaliseTitle(string text);
+
+        public string NormaliseContent(string text);
+        
+        public string NormaliseKeywords(string text);
+
+        IEnumerable<string> NormaliseLinks(
+            IEnumerable<string> links, 
+            Uri baseUrl, 
+            bool allowExternal, 
+            bool removeQueryStrings,
+            IEnumerable<string> pathFilters);
+    }
+}
