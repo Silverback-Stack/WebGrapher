@@ -11,9 +11,13 @@ namespace Events.Core.Bus
 {
     public abstract class BaseEventBus : IEventBus
     {
-        internal readonly ILogger _logger = LoggingFactory.Create(LoggingOptions.File, nameof(BaseEventBus));
+        internal readonly IAppLogger _logger;
 
-        
+        public BaseEventBus(IAppLogger logger)
+        {
+            _logger = logger;
+        }
+
         public abstract void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class;
         public abstract Task PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default) where TEvent : class;
         public abstract Task StartAsync();

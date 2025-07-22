@@ -12,12 +12,12 @@ namespace ScraperService
 {
     public abstract class BaseScraper : IScraper
     {
-        internal readonly ILogger _logger;
+        internal readonly IAppLogger _appLogger;
         private readonly IEventBus _eventBus;
 
-        public BaseScraper(IEventBus eventBus)
+        public BaseScraper(IAppLogger appLogger, IEventBus eventBus)
         {
-            _logger = LoggingFactory.Create(LoggingOptions.File, nameof(BaseScraper));
+            _appLogger = appLogger;
             _eventBus = eventBus;
             RegisterEvents();
         }
@@ -62,7 +62,7 @@ namespace ScraperService
             }
         }
 
-        public abstract Task<ResponseDto> GetAsync(Uri url, string userAgent, string clientAccept);
+        public abstract Task<ScrapeResponse> GetAsync(Uri url, string userAgent, string clientAccept);
 
         public void Dispose()
         {

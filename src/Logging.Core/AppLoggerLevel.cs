@@ -6,9 +6,12 @@ using System.Threading.Tasks;
 
 namespace Logging.Core
 {
-    public enum LoggingOptions
+    public enum AppLoggerLevel
     {
-        Console,
-        File
+        Debug, 
+        Info, 
+        Warn, 
+        Error, 
+        Critical
     }
 }

@@ -4,14 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
+using Logging.Core;
 
 namespace ScraperService
 {
     public static class ScraperFactory
     {
-        public static IScraper Create(IEventBus eventbus)
+        public static IScraper Create(IAppLogger appLogger, IEventBus eventbus)
         {
-            return new HttpClientScraper(eventbus);
+            return new HttpClientScraper(appLogger, eventbus);
         }
     }
 }

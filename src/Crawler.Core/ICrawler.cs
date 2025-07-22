@@ -6,6 +6,6 @@ namespace Crawler.Core
 {
     public interface ICrawler : IEventBusLifecycle
     {
-        bool CrawlPage(CrawlPageEvent evt);
+        Task CrawlPage(CrawlPageEvent evt);
     }
 }

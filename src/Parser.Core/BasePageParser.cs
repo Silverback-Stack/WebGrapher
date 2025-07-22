@@ -6,15 +6,18 @@ using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
 using Events.Core.Types;
+using Logging.Core;
 
 namespace ParserService
 {
     public abstract class BasePageParser : IPageParser
     {
+        private readonly IAppLogger _appLogger;
         private readonly IEventBus _eventBus;
 
-        public BasePageParser(IEventBus eventBus)
+        public BasePageParser(IAppLogger appLogger, IEventBus eventBus)
         {
+            _appLogger = appLogger;
             _eventBus = eventBus;
         }
 
@@ -58,6 +61,6 @@ namespace ParserService
             }
         }
 
-        public abstract PageDto Parse(string content);
+        public abstract Page Parse(string content);
     }
 }

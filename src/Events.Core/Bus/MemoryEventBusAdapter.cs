@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Logging.Core;
 
 namespace Events.Core.Bus
 {
@@ -12,10 +14,11 @@ namespace Events.Core.Bus
     {
         private readonly ConcurrentDictionary<Type, List<Delegate>> _handlers = new();
 
+        public MemoryEventBusAdapter(IAppLogger logger) : base(logger) { }
+
         public override void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
         {
-            _handlers.AddOrUpdate(
-                typeof(TEvent),
+            _handlers.AddOrUpdate(typeof(TEvent),
                 _ => new List<Delegate> { handler },
                 (_, list) => { list.Add(handler); return list; }
             );

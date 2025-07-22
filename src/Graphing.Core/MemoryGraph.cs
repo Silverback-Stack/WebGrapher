@@ -8,17 +8,20 @@ using System.Xml.Linq;
 using Events.Core.Bus;
 using Events.Core.Types;
 using Graphing.Core.Exporters;
+using Logging.Core;
 
 namespace Graphing.Core
 {
     public class MemoryGraph : IGraph
     {
+        private readonly IAppLogger _appLogger;
         private readonly IEventBus _eventBus;
         private readonly IGraphAnalyser _graphAnalyser;
         private readonly Dictionary<string, Node> _nodes;
 
-        public MemoryGraph(IEventBus eventBus)
+        public MemoryGraph(IAppLogger appLogger, IEventBus eventBus)
         {
+            _appLogger = appLogger;
             _eventBus = eventBus;
             _nodes = new Dictionary<string, Node>();
             _graphAnalyser = new MemoryGraphAnalyser(_nodes);

@@ -8,25 +8,27 @@ using Logging.Core;
 using Requests.Core;
 using Toimik.RobotsProtocol;
 
-namespace Crawler.Core.Robots
+namespace Crawler.Core.RobotsEvaluator
 {
-    public class RobotsService : IRobotsService
+    public class RobotsEvaluator : IRobotsEvaluator
     {
-        private readonly ILogger _logger;
+        private readonly IAppLogger _logger;
         private readonly ICache _cache;
         private readonly IRequestSender _requestSender;
 
         private const int DEFAULT_ABSOLUTE_EXPIRY_DAYS = 30;
+        private const string DEFAULT_USER_AGENT = "*";
 
-        public RobotsService(ILogger logger, ICache cache, IRequestSender requestSender)
+        public RobotsEvaluator(IAppLogger logger, ICache cache, IRequestSender requestSender)
         {
             _logger = logger;
             _cache = cache;
             _requestSender = requestSender;
         }
 
-        public async Task<bool> IsUrlAllowedAsync(Uri url, string userAgent = "*", CancellationToken cancellationToken = default)
+        public async Task<bool> IsUrlPermittedAsync(Uri url, string? userAgent, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(userAgent)) userAgent = DEFAULT_USER_AGENT;
             var robotsTxtUri = new Uri($"{url.Scheme}://{url.Host}/robots.txt");
             var robotsItem = _cache.Get<RobotsItem>(robotsTxtUri.AbsoluteUri);
             
@@ -51,7 +53,7 @@ namespace Crawler.Core.Robots
             {
                 var robots = new RobotsTxt();
                 robots.Load(robotsItem.RobotsTxtContent);
-                return robots.IsAllowed(userAgent, url.PathAndQuery);
+                return robots.IsAllowed(userAgent, url.AbsolutePath);
             }
 
             _logger.LogWarning($"Unable to parse robots.txt for {url}");

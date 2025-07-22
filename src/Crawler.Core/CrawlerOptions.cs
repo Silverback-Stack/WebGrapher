@@ -8,7 +8,7 @@ namespace Crawler.Core
 {
     public enum CrawlerOptions
     {
-        Memory,
+        InMemory,
         LiteDb
     }
 }

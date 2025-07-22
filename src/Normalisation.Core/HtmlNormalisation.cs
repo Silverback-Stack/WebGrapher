@@ -3,11 +3,13 @@ using System.Data.SqlTypes;
 using System.Reflection.Metadata;
 using Events.Core.Bus;
 using Events.Core.Types;
+using Logging.Core;
 
 namespace Normalisation.Core
 {
     public class HtmlNormalisation : IHtmlNormalisation
     {
+        private readonly IAppLogger _appLogger;
         private readonly IEventBus _eventBus;
 
         private const int MAX_TITLE_LENGTH = 200;
@@ -15,8 +17,9 @@ namespace Normalisation.Core
         private const int MAX_LINKS_PER_PAGE = 1000;
         private static readonly string[] ALLOWABLE_SCHEMAS = ["http", "https"];
 
-        public HtmlNormalisation(IEventBus eventBus)
+        public HtmlNormalisation(IAppLogger appLogger, IEventBus eventBus)
         {
+            _appLogger = appLogger; 
             _eventBus = eventBus;
         }
 

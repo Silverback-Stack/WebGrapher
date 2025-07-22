@@ -5,6 +5,6 @@ namespace ParserService
 {
     public interface IPageParser : IEventBusLifecycle
     {
-        PageDto Parse(string content);
+        Page Parse(string content);
     }
 }

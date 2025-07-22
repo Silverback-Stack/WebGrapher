@@ -5,14 +5,15 @@ using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
+using Logging.Core;
 
 namespace Normalisation.Core
 {
     public static class NormalisationFactory
     {
-        public static IHtmlNormalisation Create(IEventBus eventBus)
+        public static IHtmlNormalisation CreateNormaliser(IAppLogger appLogger, IEventBus eventBus)
         {
-            return new HtmlNormalisation(eventBus);
+            return new HtmlNormalisation(appLogger, eventBus);
         }
     }
 }

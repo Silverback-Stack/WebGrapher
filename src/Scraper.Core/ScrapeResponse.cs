@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ScraperService
 {
-    public record ResponseDto
+    public record ScrapeResponse
     {
         public required string HtmlContent { get; set; }
         public HttpStatusCode StatusCode { get; set; }
