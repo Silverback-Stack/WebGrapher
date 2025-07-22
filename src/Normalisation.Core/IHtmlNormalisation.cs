@@ -3,8 +3,9 @@ using Events.Core.Bus;
 
 namespace Normalisation.Core
 {
-    public interface IHtmlNormalisation : IEventBusLifecycle
+    public interface IHtmlNormalisation
     {
+        void Start();
         public string NormaliseTitle(string text);
 
         public string NormaliseContent(string text);

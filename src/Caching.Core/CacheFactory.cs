@@ -10,7 +10,7 @@ namespace Caching.Core
 {
     public static class CacheFactory
     {
-        public static ICache CreateCache(CacheOptions options, IAppLogger logger)
+        public static ICache CreateCache(CacheOptions options, ILogger logger)
         {
             switch (options)
             {

@@ -2,8 +2,9 @@
 
 namespace Graphing.Core
 {
-    public interface IGraph : IEventBusLifecycle
+    public interface IGraph : IDisposable
     {
+        void Start();
         IGraphAnalyser GraphAnalyser { get; }
 
         bool IsNodePopulated(string id);

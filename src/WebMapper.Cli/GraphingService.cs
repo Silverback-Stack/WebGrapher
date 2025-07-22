@@ -12,21 +12,21 @@ namespace WebMapper.Cli
 {
     internal class GraphingService
     {
-        public static async Task StartAsync(IEventBus eventBus)
+        public static async Task ConfigureAsync(IEventBus eventBus)
         {
             using var graphingLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/parser.log", rollingInterval: RollingInterval.Day)
                     .CreateLogger();
 
-            var graphingLogger = AppLoggerFactory.CreateLogger(
+            using var graphingLogger = LoggerFactory.CreateLogger(
                 "ParserService",
-                AppLoggerOptions.Serilog,
+                LoggerOptions.Serilog,
                 graphingLoggerConfig
             );
 
             var service = GraphingFactory.Create(graphingLogger, eventBus);
-            await service.StartAsync();
+            service.Start();
         }
     }
 }

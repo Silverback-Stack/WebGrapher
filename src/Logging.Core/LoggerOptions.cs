@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace Logging.Core
 {
-    public enum AppLoggerOptions
+    public enum LoggerOptions
     {
-        Console,
-        File,
         Serilog,
         Microsoft
     }

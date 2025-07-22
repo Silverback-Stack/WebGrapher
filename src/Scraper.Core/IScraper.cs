@@ -7,8 +7,9 @@ using Events.Core.Bus;
 
 namespace ScraperService
 {
-    public interface IScraper : IEventBusLifecycle
+    public interface IScraper
     {
+        void Start();
         Task<ScrapeResponse> GetAsync(Uri url, string userAgent, string clientAccept);
     }
 }

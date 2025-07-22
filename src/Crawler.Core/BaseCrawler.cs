@@ -7,10 +7,10 @@ using Requests.Core;
 
 namespace Crawler.Core
 {
-    public abstract class BaseCrawler : ICrawler
+    public abstract class BaseCrawler : ICrawler, IEventBusLifecycle
     {
         protected readonly IEventBus _eventBus;
-        protected readonly IAppLogger _logger;
+        protected readonly ILogger _logger;
         protected readonly ICache _cache;
         protected readonly IRequestSender _requestSender;
         protected readonly IRobotsEvaluator _robotsService;
@@ -19,7 +19,7 @@ namespace Crawler.Core
         protected const int DEFAULT_MAX_LINK_DEPTH = 5;
 
         protected BaseCrawler(
-            IAppLogger logger, 
+            ILogger logger, 
             IEventBus eventBus,
             ICache cache,
             IRequestSender requestSender,
@@ -32,44 +32,35 @@ namespace Crawler.Core
             _robotsService = robotsEvaluator;
         }
 
-        async Task IEventBusLifecycle.StartAsync()
+        public void Start()
         {
-            await _eventBus.StartAsync();
-
-            _eventBus.Subscribe<CrawlPageEvent>(async evt =>
-            {
-                await HandleEvent(evt);
-                await Task.CompletedTask;
-            });
-
-            _eventBus.Subscribe<ScrapePageResultEvent>(async evt =>
-            {
-                await HandleEvent(evt);
-                await Task.CompletedTask;
-            });
+            Subscribe();
         }
 
-        async Task IEventBusLifecycle.StopAsync()
+        public void Subscribe()
         {
-            await _eventBus.StopAsync();
+            _eventBus.Subscribe<CrawlPageEvent>(EventHandler);
+            _eventBus.Subscribe<ScrapePageResultEvent>(EventHandler);
         }
 
-        public void Dispose()
+        public void Unsubscribe()
         {
-            _eventBus?.Dispose();
-            _logger?.Dispose();
+            _eventBus.Unsubscribe<CrawlPageEvent>(EventHandler);
+            _eventBus.Unsubscribe<ScrapePageResultEvent>(EventHandler);
         }
 
-        private async Task HandleEvent(CrawlPageEvent evt)
+        private async Task EventHandler(CrawlPageEvent evt)
         {
             await CrawlPage(evt);
+            await Task.CompletedTask;
         }
-        private async Task HandleEvent(ScrapePageResultEvent evt)
+        private async Task EventHandler(ScrapePageResultEvent evt)
         {
             //if 429 - too many requests
             //publish CrawlPageEvent with delay
 
             //SetHistory(url); //store the result of request with expiry date or default expiry if shorter
+            await Task.CompletedTask;
         }
 
         public async Task CrawlPage(CrawlPageEvent evt)
@@ -104,5 +95,6 @@ namespace Crawler.Core
 
         private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
             currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_LINK_DEPTH);
+
     }
 }

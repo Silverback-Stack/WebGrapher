@@ -10,9 +10,9 @@ namespace ScraperService
 {
     public static class ScraperFactory
     {
-        public static IScraper Create(IAppLogger appLogger, IEventBus eventbus)
+        public static IScraper Create(ILogger logger, IEventBus eventbus)
         {
-            return new HttpClientScraper(appLogger, eventbus);
+            return new HttpClientScraper(logger, eventbus);
         }
     }
 }

@@ -12,43 +12,36 @@ using Logging.Core;
 
 namespace Graphing.Core
 {
-    public class MemoryGraph : IGraph
+    public class MemoryGraph : IGraph, IEventBusLifecycle
     {
-        private readonly IAppLogger _appLogger;
+        private readonly ILogger _logger;
         private readonly IEventBus _eventBus;
         private readonly IGraphAnalyser _graphAnalyser;
         private readonly Dictionary<string, Node> _nodes;
 
-        public MemoryGraph(IAppLogger appLogger, IEventBus eventBus)
+        public MemoryGraph(ILogger logger, IEventBus eventBus)
         {
-            _appLogger = appLogger;
+            _logger = logger;
             _eventBus = eventBus;
             _nodes = new Dictionary<string, Node>();
             _graphAnalyser = new MemoryGraphAnalyser(_nodes);
         }
 
-        public async Task StartAsync()
+        public void Start()
         {
-            await _eventBus.StartAsync();
-
-            _eventBus.Subscribe<GraphPageEvent>(async evt =>
-            {
-                await HandleEvent(evt);
-                await Task.CompletedTask;
-            });
+            Subscribe();
+        }
+        public void Subscribe()
+        {
+            _eventBus.Subscribe<GraphPageEvent>(EventHandler);
         }
 
-        public async Task StopAsync()
+        public void Unsubscribe()
         {
-            await _eventBus.StopAsync();
+            _eventBus.Subscribe<GraphPageEvent>(EventHandler);
         }
 
-        public void Dispose()
-        {
-            _eventBus.Dispose();
-        }
-
-        private async Task HandleEvent(GraphPageEvent evt)
+        private async Task EventHandler(GraphPageEvent evt)
         {
             if (_graphAnalyser.TotalNodes() > 100 && _graphAnalyser.TotalEdges() > 100)
             {
@@ -64,7 +57,7 @@ namespace Graphing.Core
                         evt.Links);
 
             await FollowEdges(evt, node);
-
+            await Task.CompletedTask;
         }
 
         private async Task FollowEdges(GraphPageEvent evt, Node node)
@@ -128,6 +121,11 @@ namespace Graphing.Core
         public void RemoveNode(string url)
         {
             _nodes.Remove(url);
+        }
+        public void Dispose()
+        {
+            _logger.LogInformation($"Disposing: {typeof(MemoryGraph).Name}, memory cleared.");
+            _nodes.Clear();
         }
     }
 }

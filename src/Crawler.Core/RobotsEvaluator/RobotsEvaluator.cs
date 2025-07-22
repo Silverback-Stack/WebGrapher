@@ -12,14 +12,14 @@ namespace Crawler.Core.RobotsEvaluator
 {
     public class RobotsEvaluator : IRobotsEvaluator
     {
-        private readonly IAppLogger _logger;
+        private readonly ILogger _logger;
         private readonly ICache _cache;
         private readonly IRequestSender _requestSender;
 
         private const int DEFAULT_ABSOLUTE_EXPIRY_DAYS = 30;
         private const string DEFAULT_USER_AGENT = "*";
 
-        public RobotsEvaluator(IAppLogger logger, ICache cache, IRequestSender requestSender)
+        public RobotsEvaluator(ILogger logger, ICache cache, IRequestSender requestSender)
         {
             _logger = logger;
             _cache = cache;

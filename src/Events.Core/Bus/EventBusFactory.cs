@@ -9,9 +9,9 @@ namespace Events.Core.Bus
 {
     public static class EventBusFactory
     {
-        public static IEventBus CreateEventBus(IAppLogger appLogger)
+        public static IEventBus CreateEventBus(ILogger logger)
         {
-            return new MemoryEventBusAdapter(appLogger);
+            return new MemoryEventBusAdapter(logger);
         }
     }
 }

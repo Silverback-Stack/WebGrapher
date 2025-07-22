@@ -10,24 +10,24 @@ namespace Caching.Core
 {
     public class MemoryCacheAdapter : ICache
     {
-        private readonly IAppLogger _appLogger;
+        private readonly ILogger _logger;
         private readonly IMemoryCache _cache;
 
-        public MemoryCacheAdapter(IAppLogger appLogger)
+        public MemoryCacheAdapter(ILogger logger)
         {
-            _appLogger = appLogger;
+            _logger = logger;
             _cache = new MemoryCache(new MemoryCacheOptions());
         }
 
         public T? Get<T>(string key)
         {
-            _appLogger.LogInformation("Getting {key} from the cache.");
+            _logger.LogInformation("Getting {key} from the cache.");
             return _cache.TryGetValue(key, out var value) ? (T?)value : default;
         }
 
         public void Set<T>(string key, T value, TimeSpan? expiration = null)
         {
-            _appLogger.LogInformation("Setting {key} in the cache.");
+            _logger.LogInformation("Setting {key} in the cache.");
             var options = new MemoryCacheEntryOptions();
 
             if (expiration.HasValue)
@@ -38,14 +38,23 @@ namespace Caching.Core
 
         public void Remove(string key)
         {
-            _appLogger.LogInformation("Removing {key} from the cache.");
+            _logger.LogInformation("Removing {key} from the cache.");
             _cache.Remove(key);
         }
 
         public bool Exists(string key)
         {
-            _appLogger.LogInformation("Checking {key} is in the cache.");
+            _logger.LogInformation("Checking {key} is in the cache.");
             return _cache.TryGetValue(key, out _);
+        }
+
+        public void Dispose()
+        {
+            if (_cache is IDisposable disposable)
+            {
+                _logger.LogInformation($"Disposing: {typeof(MemoryCacheAdapter).Name}.");
+                disposable.Dispose();
+            }
         }
     }
 }

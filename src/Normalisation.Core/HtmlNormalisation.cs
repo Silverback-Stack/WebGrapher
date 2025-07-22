@@ -7,9 +7,9 @@ using Logging.Core;
 
 namespace Normalisation.Core
 {
-    public class HtmlNormalisation : IHtmlNormalisation
+    public class HtmlNormalisation : IHtmlNormalisation, IEventBusLifecycle
     {
-        private readonly IAppLogger _appLogger;
+        private readonly ILogger _logger;
         private readonly IEventBus _eventBus;
 
         private const int MAX_TITLE_LENGTH = 200;
@@ -17,34 +17,28 @@ namespace Normalisation.Core
         private const int MAX_LINKS_PER_PAGE = 1000;
         private static readonly string[] ALLOWABLE_SCHEMAS = ["http", "https"];
 
-        public HtmlNormalisation(IAppLogger appLogger, IEventBus eventBus)
+        public HtmlNormalisation(ILogger logger, IEventBus eventBus)
         {
-            _appLogger = appLogger; 
+            _logger = logger; 
             _eventBus = eventBus;
         }
 
-        public async Task StartAsync()
+        public void Start()
         {
-            await _eventBus.StartAsync();
-
-            _eventBus.Subscribe<NormalisePageEvent>(async evt =>
-            {
-                await HandleEvent(evt);
-                await Task.CompletedTask;
-            });
+            Subscribe();
         }
 
-        public async Task StopAsync()
+        public void Subscribe()
         {
-            await _eventBus.StopAsync();
+            _eventBus.Subscribe<NormalisePageEvent>(EventHandler);
         }
 
-        public void Dispose()
+        public void Unsubscribe()
         {
-            _eventBus.Dispose();
+            _eventBus.Unsubscribe<NormalisePageEvent>(EventHandler);
         }
 
-        private async Task HandleEvent(NormalisePageEvent evt)
+        private async Task EventHandler(NormalisePageEvent evt)
         {
             var normalisedTitle = NormaliseKeywords(evt.Title);
             var normalisedKeywords = NormaliseKeywords(evt.Keywords);
@@ -65,6 +59,7 @@ namespace Normalisation.Core
                 StatusCode = evt.StatusCode,
                 SourceLastModified = evt.LastModified
             });
+            await Task.CompletedTask;
         }
 
         public string NormaliseTitle(string text)
@@ -114,6 +109,5 @@ namespace Normalisation.Core
 
             return links;
         }
-
     }
 }

@@ -12,21 +12,21 @@ namespace WebMapper.Cli
 {
     internal class ParserService
     {
-        public static async Task StartAsync(IEventBus eventBus) {
+        public static async Task ConfigureAsync(IEventBus eventBus) {
 
             using var parserLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/parser.log", rollingInterval: RollingInterval.Day)
                     .CreateLogger();
 
-            var parserLogger = AppLoggerFactory.CreateLogger(
+            using var parserLogger = LoggerFactory.CreateLogger(
                 "ParserService",
-            AppLoggerOptions.Serilog,
+            LoggerOptions.Serilog,
             parserLoggerConfig
             );
 
             var service = ParserFactory.CreateParser(parserLogger, eventBus);
-            await service.StartAsync();
+            service.Start();
 
         }
     }

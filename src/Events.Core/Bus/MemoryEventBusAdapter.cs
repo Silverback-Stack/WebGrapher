@@ -14,7 +14,24 @@ namespace Events.Core.Bus
     {
         private readonly ConcurrentDictionary<Type, List<Delegate>> _handlers = new();
 
-        public MemoryEventBusAdapter(IAppLogger logger) : base(logger) { }
+        public MemoryEventBusAdapter(ILogger logger) : base(logger) { }
+
+        public async override Task StartAsync()
+        {
+            //nothing to do for in-memory implementation
+            _logger.LogInformation($"Started: {typeof(MemoryEventBusAdapter).Name}");
+        }
+
+        public async override Task StopAsync()
+        {
+            //nothing to do for in-memory implementation
+            _logger.LogInformation($"Stopped: {typeof(MemoryEventBusAdapter).Name}");
+        }
+        public override void Dispose()
+        {
+            _logger.LogInformation($"Disposing: {typeof(MemoryEventBusAdapter).Name}, handlers cleared.");
+            _handlers.Clear();
+        }
 
         public override void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
         {
@@ -23,6 +40,20 @@ namespace Events.Core.Bus
                 (_, list) => { list.Add(handler); return list; }
             );
             _logger.LogInformation($"Subscribed: {typeof(TEvent).Name}");
+        }
+
+        public override void Unsubscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
+        {
+            if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
+            {
+                subscribers.RemoveAll(h => h.Equals(handler));
+                _logger.LogInformation($"Unsubscribed: {typeof(TEvent).Name}");
+
+                if (subscribers.Count == 0)
+                {
+                    _handlers.TryRemove(typeof(TEvent), out _);
+                }
+            }
         }
 
         public override Task PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default) where TEvent : class
@@ -36,24 +67,6 @@ namespace Events.Core.Bus
                 }
             }
             return Task.CompletedTask;
-        }
-
-        public async override Task StartAsync()
-        {
-            //nothing to do for in-memory implementation
-            _logger.LogInformation($"Started: {typeof(MemoryEventBusAdapter).Name}");
-        }
-
-        public async override Task StopAsync()
-        {
-            //nothing to do for in-memory implementation
-            _logger.LogInformation($"Stopped: {typeof(MemoryEventBusAdapter).Name}");
-        }
-
-        public override void Dispose()
-        {
-            _handlers.Clear();
-            _logger.LogInformation($"Disposed: {typeof(MemoryEventBusAdapter).Name} and handlers cleared.");
         }
 
     }

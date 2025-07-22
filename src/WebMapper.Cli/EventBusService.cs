@@ -11,18 +11,22 @@ namespace WebMapper.Cli
 {
     internal class EventBusService
     {
-        public static IEventBus Start()
+        public static IEventBus Configure()
         {
             using var eventLoggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File("logs/eventbus.log", rollingInterval: RollingInterval.Day)
+                .WriteTo.Console()
                 .CreateLogger();
 
-            var eventLogger = AppLoggerFactory.CreateLogger(
+            using var eventLogger = LoggerFactory.CreateLogger(
                 "EventsService",
-                AppLoggerOptions.Serilog,
+                LoggerOptions.Serilog,
                 eventLoggerConfig);
-            return EventBusFactory.CreateEventBus(eventLogger);
+
+            var eventBus = EventBusFactory.CreateEventBus(eventLogger);
+            eventBus.StartAsync();
+            return eventBus;
         }
     }
 }

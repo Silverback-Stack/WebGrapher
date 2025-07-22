@@ -9,7 +9,7 @@ namespace Requests.Core
 {
     public static class RequestFactory
     {
-        public static IRequestSender CreateRequestSender(IAppLogger logger)
+        public static IRequestSender CreateRequestSender(ILogger logger)
         {
             return new HttpClientRequestSenderAdapter(logger);
         }

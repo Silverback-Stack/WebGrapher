@@ -1,6 +1,6 @@
 ﻿namespace Caching.Core
 {
-    public interface ICache
+    public interface ICache : IDisposable
     {
         /// <summary>
         /// Retrieve a cached item by key.

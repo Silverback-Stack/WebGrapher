@@ -19,7 +19,7 @@ namespace Crawler.Core
         private readonly LiteDatabase _database;
 
         public LiteDbCrawlerAdapter(
-            IAppLogger logger,
+            ILogger logger,
             IEventBus eventBus,
             ICache cache,
             IRequestSender requestSender,

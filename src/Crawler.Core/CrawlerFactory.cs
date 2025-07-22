@@ -15,7 +15,7 @@ namespace Crawler.Core
     {
         public static ICrawler CreateCrawler(
             CrawlerOptions storeType,
-            IAppLogger logger,
+            ILogger logger,
             IEventBus eventBus,
             ICache cache,
             IRequestSender requestSender,

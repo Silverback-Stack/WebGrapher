@@ -14,7 +14,7 @@ namespace ScraperService
     {
         private const int CLIENT_REQUESTS_DELAY_SECONDS = 3;
 
-        public HttpClientScraper(IAppLogger appLogger, IEventBus eventBus) : base(appLogger, eventBus) { }
+        public HttpClientScraper(ILogger appLogger, IEventBus eventBus) : base(appLogger, eventBus) { }
 
         public override async Task<ScrapeResponse> GetAsync(Uri url, string userAgent, string clientAccept)
         {
@@ -50,7 +50,7 @@ namespace ScraperService
                 }
                 catch (Exception ex)
                 {
-                    _appLogger.LogError($"Error fetching {url.AbsoluteUri}. Exception: {ex.Message} InnerException: {ex.InnerException}");
+                    _logger.LogError($"Error fetching {url.AbsoluteUri}. Exception: {ex.Message} InnerException: {ex.InnerException}");
                 }
                 return scrapeResponse;
             }

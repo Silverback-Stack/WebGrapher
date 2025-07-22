@@ -7,31 +7,25 @@ using Microsoft.Extensions.Logging;
 
 namespace Logging.Core
 {
-    public class AppLoggerFactory
+    public class LoggerFactory
     {
-        public static IAppLogger CreateLogger(
+        public static ILogger CreateLogger(
             string serviceName, 
-            AppLoggerOptions loggerType,
+            LoggerOptions loggerType,
             object? logger = null)
         {
             switch (loggerType)
             {
-                //case AppLoggerOptions.Console:
-                //    return new ConsoleAppLoggerAdapter(serviceName);
-
-                //case AppLoggerOptions.File:
-                //    return new FileAppLoggerAdapter(serviceName);
-
-                case AppLoggerOptions.Serilog:
+                case LoggerOptions.Serilog:
                     if (logger is Serilog.ILogger serilogLogger)
-                        return new SerilogAppLoggerAdapter(serviceName, serilogLogger);
+                        return new SerilogLoggerAdapter(serviceName, serilogLogger);
 
                     throw new ArgumentNullException(
                         "Logger must be specified when using the Serilog Logging Provider.");
 
-                case AppLoggerOptions.Microsoft:
-                    if (logger is ILogger microsoftLogger)
-                        return new MicrosoftAppLoggerAdapter(serviceName, microsoftLogger);
+                case LoggerOptions.Microsoft:
+                    if (logger is Microsoft.Extensions.Logging.ILogger microsoftLogger)
+                        return new MicrosoftLoggerAdapter(serviceName, microsoftLogger);
 
                     throw new ArgumentNullException(
                         "Logger must be specified when using the Microsoft Logging Provider.");
