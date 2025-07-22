@@ -72,7 +72,7 @@ namespace WebMapper.Cli
 
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                Console.WriteLine("Invalid Url. Use format: https://www.example.com");
+                Console.WriteLine("Invalid Url. Format: https://www.example.com");
                 return null;
             }
 

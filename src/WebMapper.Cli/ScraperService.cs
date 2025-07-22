@@ -14,12 +14,13 @@ namespace WebMapper.Cli
     {
         public async static Task ConfigureAsync(IEventBus eventBus)
         {
-            using var scraperLoggerConfig = new LoggerConfiguration()
+            var scraperLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/scraper.log", rollingInterval: RollingInterval.Day)
+                    .WriteTo.Console()
                     .CreateLogger();
 
-            using var scraperLogger = LoggerFactory.CreateLogger(
+            var scraperLogger = LoggerFactory.CreateLogger(
                 "ScraperService",
                 LoggerOptions.Serilog,
                 scraperLoggerConfig

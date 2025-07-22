@@ -13,13 +13,13 @@ namespace WebMapper.Cli
     {
         public static IEventBus Configure()
         {
-            using var eventLoggerConfig = new LoggerConfiguration()
+            var eventLoggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File("logs/eventbus.log", rollingInterval: RollingInterval.Day)
                 .WriteTo.Console()
                 .CreateLogger();
 
-            using var eventLogger = LoggerFactory.CreateLogger(
+            var eventLogger = LoggerFactory.CreateLogger(
                 "EventsService",
                 LoggerOptions.Serilog,
                 eventLoggerConfig);

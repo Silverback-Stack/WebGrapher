@@ -65,6 +65,8 @@ namespace Crawler.Core
 
         public async Task CrawlPage(CrawlPageEvent evt)
         {
+            _logger.LogWarning($"Crawling page {evt.Url}");
+
             if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
                 return;
 
