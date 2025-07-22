@@ -6,6 +6,7 @@ using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
+using Logging.Core;
 
 namespace ScraperService
 {
@@ -13,16 +14,16 @@ namespace ScraperService
     {
         private const int CLIENT_REQUESTS_DELAY_SECONDS = 3;
 
-        public HttpClientScraper(IEventBus eventBus) : base(eventBus) { }
+        public HttpClientScraper(IAppLogger appLogger, IEventBus eventBus) : base(appLogger, eventBus) { }
 
-        public override async Task<ResponseDto> GetAsync(Uri url, string userAgent, string clientAccept)
+        public override async Task<ScrapeResponse> GetAsync(Uri url, string userAgent, string clientAccept)
         {
             using (var httpClient = new HttpClient())
             {
                 httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
                 httpClient.DefaultRequestHeaders.Accept.ParseAdd(clientAccept);
 
-                ResponseDto? responseDto = null;
+                ScrapeResponse? scrapeResponse = null;
                 try
                 {
                     ////TODO: REMOVE THIS ONCE EVENT MANAGER QUEUE IS IMPLEMENTED
@@ -49,9 +50,9 @@ namespace ScraperService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"Error fetching {url.AbsoluteUri}. Exception: {ex.Message} InnerException: {ex.InnerException}");
+                    _appLogger.LogError($"Error fetching {url.AbsoluteUri}. Exception: {ex.Message} InnerException: {ex.InnerException}");
                 }
-                return responseDto;
+                return scrapeResponse;
             }
         }
 

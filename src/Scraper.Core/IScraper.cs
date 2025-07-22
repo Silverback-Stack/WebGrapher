@@ -9,6 +9,6 @@ namespace ScraperService
 {
     public interface IScraper : IEventBusLifecycle
     {
-        Task<ResponseDto> GetAsync(Uri url, string userAgent, string clientAccept);
+        Task<ScrapeResponse> GetAsync(Uri url, string userAgent, string clientAccept);
     }
 }

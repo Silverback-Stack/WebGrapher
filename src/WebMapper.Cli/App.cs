@@ -3,13 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Types;
-using Graphing.Core;
-using Normalisation.Core;
-using ParserService;
-using ScraperService;
 
 namespace WebMapper.Cli
 {
@@ -19,41 +14,38 @@ namespace WebMapper.Cli
 
         public App() {
 
-            _eventBus = EventBusFactory.Create();
+            //EVENTS SERVICE
+            _eventBus = EventBusService.Start();
+
 
             //CRAWLER SERVICE
-            Task.Run(async () => {
-                var service = CrawlerFactory.Create(CrawlerOptions.Memory, _eventBus);
-                await service.StartAsync();
-            });
+            Task.Run(async () => 
+                await CrawlerService.StartAsync(_eventBus));
+
 
             //SCRAPER SERVICE
-            Task.Run(async () => {
-                var service = ScraperFactory.Create(_eventBus);
-                await service.StartAsync();
-            });
+            Task.Run(async () => 
+                await ScraperService.StartAsync(_eventBus));
+
 
             //PARSER SERVICE
-            Task.Run(async () => {
-                var service = ParserFactory.Create(_eventBus);
-                await service.StartAsync();
-            });
+            Task.Run(async () =>
+                await ParserService.StartAsync(_eventBus));
+
 
             //NORMALISATION SERVICE
-            Task.Run(async () => {
-                var service = NormalisationFactory.Create(_eventBus);
-                await service.StartAsync();
-            });
+            Task.Run(async () =>
+                NormalisationService.StartAsync(_eventBus));
 
             //GRAPHING SERVICE
-            Task.Run(async () => {
-                var service = GraphingFactory.Create(_eventBus);
-                await service.StartAsync();
-            });
+            Task.Run(async () =>
+                GraphingService.StartAsync(_eventBus));
 
             //STREAMING SERVICE
             //Task.Run(() => StreamingFactory.Create(_eventBus));
         }
+
+
 
         public async Task Start()
         {

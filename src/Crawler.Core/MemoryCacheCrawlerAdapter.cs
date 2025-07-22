@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Caching.Core;
+using Crawler.Core.RobotsEvaluator;
 using Events.Core.Bus;
 using Logging.Core;
 using Requests.Core;
@@ -12,24 +13,32 @@ namespace Crawler.Core
 {
     public class MemoryCacheCrawlerAdapter : BaseCrawler
     {
-        private readonly ILogger _logger;
-        private readonly ICache _cache;
-        private readonly IRequestSender _requestSender;
-
-        public MemoryCacheCrawlerAdapter(IEventBus eventBus) : base(eventBus) {
-            _logger = LoggingFactory.Create(LoggingOptions.File, nameof(MemoryCacheCrawlerAdapter));
-            _cache = new MemoryCacheAdapter();
-            _requestSender = new HttpClientRequestSender(_logger);
+        public MemoryCacheCrawlerAdapter(
+            IAppLogger logger, 
+            IEventBus eventBus,
+            ICache cache,
+            IRequestSender requestSender,
+            IRobotsEvaluator robotsEvaluator) : base(logger, eventBus, cache, requestSender, robotsEvaluator) {
         }
 
-        internal override DateTimeOffset? GetUrl(string key)
+        protected override Task<bool> GetHistory(Uri url)
         {
-            return _cache.Get<DateTimeOffset?>(key);
+            throw new NotImplementedException();
         }
 
-        internal override void SetUrl(string key, DateTimeOffset value)
+        protected override Task SetHistory(Uri url)
         {
-            _cache.Set(key, value, TimeSpan.FromMinutes(DEFAULT_ABSOLUTE_EXPIRY_MINUTES));
+            throw new NotImplementedException();
         }
+
+        //internal override DateTimeOffset? GetUrl(string key)
+        //{
+        //    return _cache.Get<DateTimeOffset?>(key);
+        //}
+
+        //internal override void SetUrl(string key, DateTimeOffset value)
+        //{
+        //    _cache.Set(key, value, TimeSpan.FromMinutes(DEFAULT_ABSOLUTE_EXPIRY_MINUTES));
+        //}
     }
 }

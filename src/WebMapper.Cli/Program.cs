@@ -9,8 +9,6 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        var _logger = LoggingFactory.Create(LoggingOptions.Console, nameof(WebMapper.Cli));
-
         try
         {
             var app = new App();
@@ -19,7 +17,7 @@ internal class Program
         }
         catch (Exception ex) //global exception handler
         {
-            _logger.LogCritical($"{ex.Message}");
+            Console.WriteLine($"Critical Exception: {ex.Message} Inner Exception: {ex.InnerException?.Message}");
         }
 
         Console.WriteLine("The application was terminated.");

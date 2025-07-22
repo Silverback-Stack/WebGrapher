@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ParserService
 {
-    public record PageDto
+    public record Page
     {
         public string Title {  get; set; }
         public string Content { get; set; }

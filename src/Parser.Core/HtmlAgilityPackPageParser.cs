@@ -6,19 +6,20 @@ using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
 using HtmlAgilityPack;
+using Logging.Core;
 
 namespace ParserService
 {
     public class HtmlAgilityPackPageParser : BasePageParser
     {
-        public HtmlAgilityPackPageParser(IEventBus eventBus) : base(eventBus) { }
+        public HtmlAgilityPackPageParser(IAppLogger appLogger, IEventBus eventBus) : base(appLogger, eventBus) { }
 
-        public override PageDto Parse(string content)
+        public override Page Parse(string content)
         {
             var htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(content);
 
-            return new PageDto
+            return new Page
             {
                 Title = ExtractTitle(htmlDocument),
                 Content = ExtractContentAsPlainText(htmlDocument),

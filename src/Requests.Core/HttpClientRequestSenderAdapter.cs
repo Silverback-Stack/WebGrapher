@@ -6,9 +6,9 @@ using Logging.Core;
 
 namespace Requests.Core
 {
-    public class HttpClientRequestSender : IRequestSender
+    public class HttpClientRequestSenderAdapter : IRequestSender
     {
-        private readonly ILogger _logger;
+        private readonly IAppLogger _logger;
         private readonly HttpClient _httpClient;
 
         private const string DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
@@ -16,7 +16,7 @@ namespace Requests.Core
         private const int DEFAULT_REQUEST_SIZE_LIMIT = 1_048_576; //1Mb
         private const int MAX_RETRY_ATTEMPTS = 3;
 
-        public HttpClientRequestSender(ILogger logger)
+        public HttpClientRequestSenderAdapter(IAppLogger logger)
         {
             _logger = logger;   
             _httpClient = new HttpClient();
