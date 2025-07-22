@@ -17,12 +17,13 @@ namespace WebMapper.Cli
     {
         public async static Task ConfigureAsync(IEventBus eventBus)
         {
-            using var crawlerLoggerConfig = new LoggerConfiguration()
+            var crawlerLoggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File("logs/crawler.log", rollingInterval: RollingInterval.Day)
+                .WriteTo.Console()
                 .CreateLogger();
 
-            using var crawlerLogger = LoggerFactory.CreateLogger(
+            var crawlerLogger = LoggerFactory.CreateLogger(
                 "CrawlerService",
                 LoggerOptions.Serilog,
                 crawlerLoggerConfig

@@ -14,12 +14,13 @@ namespace WebMapper.Cli
     {
         public static async Task ConfigureAsync(IEventBus eventBus)
         {
-            using var graphingLoggerConfig = new LoggerConfiguration()
+            var graphingLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/parser.log", rollingInterval: RollingInterval.Day)
+                    .WriteTo.Console()
                     .CreateLogger();
 
-            using var graphingLogger = LoggerFactory.CreateLogger(
+            var graphingLogger = LoggerFactory.CreateLogger(
                 "ParserService",
                 LoggerOptions.Serilog,
                 graphingLoggerConfig
