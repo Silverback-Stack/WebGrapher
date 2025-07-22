@@ -11,9 +11,9 @@ namespace Normalisation.Core
 {
     public static class NormalisationFactory
     {
-        public static IHtmlNormalisation CreateNormaliser(IAppLogger appLogger, IEventBus eventBus)
+        public static IHtmlNormalisation CreateNormaliser(ILogger logger, IEventBus eventBus)
         {
-            return new HtmlNormalisation(appLogger, eventBus);
+            return new HtmlNormalisation(logger, eventBus);
         }
     }
 }

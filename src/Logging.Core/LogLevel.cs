@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Logging.Core
 {
-    public enum AppLoggerLevel
+    public enum LogLevel
     {
         Debug, 
         Info, 

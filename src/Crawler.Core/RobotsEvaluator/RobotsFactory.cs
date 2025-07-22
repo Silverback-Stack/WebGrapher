@@ -12,7 +12,7 @@ namespace Crawler.Core.RobotsEvaluator
     public static class RobotsFactory
     {
         public static IRobotsEvaluator CreateRobotsEvaluator(
-            IAppLogger logger, 
+            ILogger logger, 
             ICache cache, 
             IRequestSender requestSender)
         {

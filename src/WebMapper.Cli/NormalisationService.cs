@@ -12,21 +12,21 @@ namespace WebMapper.Cli
 {
     internal class NormalisationService
     {
-        public static async Task StartAsync(IEventBus eventBus)
+        public static async Task ConfigureAsync(IEventBus eventBus)
         {
             using var normalisationLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/normalisation.log", rollingInterval: RollingInterval.Day)
                     .CreateLogger();
 
-            var normalisationLogger = AppLoggerFactory.CreateLogger(
+            using var normalisationLogger = LoggerFactory.CreateLogger(
                 "NormalisationService",
-                AppLoggerOptions.Serilog,
+                LoggerOptions.Serilog,
                 normalisationLoggerConfig
             );
 
             var service = NormalisationFactory.CreateNormaliser(normalisationLogger, eventBus);
-            await service.StartAsync();
+            service.Start();
         }
     }
 }

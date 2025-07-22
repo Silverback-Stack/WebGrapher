@@ -10,39 +10,33 @@ using Logging.Core;
 
 namespace ParserService
 {
-    public abstract class BasePageParser : IPageParser
+    public abstract class BasePageParser : IPageParser, IEventBusLifecycle
     {
-        private readonly IAppLogger _appLogger;
+        private readonly ILogger _logger;
         private readonly IEventBus _eventBus;
 
-        public BasePageParser(IAppLogger appLogger, IEventBus eventBus)
+        public BasePageParser(ILogger logger, IEventBus eventBus)
         {
-            _appLogger = appLogger;
+            _logger = logger;
             _eventBus = eventBus;
         }
 
-        public async Task StartAsync()
+        public void Start()
         {
-            await _eventBus.StartAsync();
-
-            _eventBus.Subscribe<ParsePageEvent>(async evt =>
-            {
-                await HandleEvent(evt);
-                await Task.CompletedTask;
-            });
+            Subscribe();
         }
 
-        public async Task StopAsync()
+        public void Subscribe()
         {
-            await _eventBus.StopAsync();
+            _eventBus.Subscribe<ParsePageEvent>(EventHandler);
         }
 
-        public void Dispose()
+        public void Unsubscribe()
         {
-            _eventBus.Dispose();
+            _eventBus.Unsubscribe<ParsePageEvent>(EventHandler);
         }
 
-        private async Task HandleEvent(ParsePageEvent evt)
+        private async Task EventHandler(ParsePageEvent evt)
         {
             var pageDto = Parse(evt.HtmlContent);
 
@@ -59,6 +53,7 @@ namespace ParserService
                     LastModified = evt.LastModified
                 });
             }
+            await Task.CompletedTask;
         }
 
         public abstract Page Parse(string content);

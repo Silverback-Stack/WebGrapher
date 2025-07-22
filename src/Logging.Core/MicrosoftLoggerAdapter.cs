@@ -7,24 +7,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Logging.Core
 {
-    public class MicrosoftAppLoggerAdapter : BaseAppLogger
+    public class MicrosoftLoggerAdapter : BaseLogger
     {
-        private readonly ILogger _logger;
+        private readonly Microsoft.Extensions.Logging.ILogger _logger;
 
-        public MicrosoftAppLoggerAdapter(string name, ILogger logger) : base(name)
+        public MicrosoftLoggerAdapter(string name, Microsoft.Extensions.Logging.ILogger logger) : base(name)
         {
             _logger = logger;
         }
 
-        public override void Dispose()
-        {
-            Log(AppLoggerLevel.Info, $"Disposing: {typeof(MicrosoftAppLoggerAdapter).Name}.");
-            if (_logger is IDisposable disposable)
-                disposable.Dispose();
-        }
-
         protected override void Log(
-            AppLoggerLevel level,
+            LogLevel level,
             string message,
             string? correlationId = null,
             object? context = null)
@@ -41,23 +34,23 @@ namespace Logging.Core
 
             switch (level)
             {
-                case AppLoggerLevel.Debug:
+                case LogLevel.Debug:
                     _logger.LogDebug(message);
                     break;
 
-                case AppLoggerLevel.Info:
+                case LogLevel.Info:
                     _logger.LogInformation(message);
                     break;
 
-                case AppLoggerLevel.Warn:
+                case LogLevel.Warn:
                     _logger.LogWarning(message);
                     break;
 
-                case AppLoggerLevel.Error:
+                case LogLevel.Error:
                     _logger.LogError(message);
                     break;
 
-                case AppLoggerLevel.Critical:
+                case LogLevel.Critical:
                     _logger.LogCritical(message);
                     break;
 
@@ -65,6 +58,14 @@ namespace Logging.Core
                     throw new NotSupportedException($"Logging level '{level}' is not supported.");
             }
         }
+        public override void Dispose()
+        {
+            if (_logger is IDisposable disposable) {
+                Log(LogLevel.Info, $"Disposing: {typeof(MicrosoftLoggerAdapter).Name}.");
+                disposable.Dispose();
+            }       
+        }
+
     }
 
 }

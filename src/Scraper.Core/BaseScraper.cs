@@ -10,39 +10,33 @@ using Logging.Core;
 
 namespace ScraperService
 {
-    public abstract class BaseScraper : IScraper
+    public abstract class BaseScraper : IScraper, IEventBusLifecycle
     {
-        internal readonly IAppLogger _appLogger;
+        internal readonly ILogger _logger;
         private readonly IEventBus _eventBus;
 
-        public BaseScraper(IAppLogger appLogger, IEventBus eventBus)
+        public BaseScraper(ILogger logger, IEventBus eventBus)
         {
-            _appLogger = appLogger;
+            _logger = logger;
             _eventBus = eventBus;
-            RegisterEvents();
         }
 
-        public async Task StartAsync()
+        public void Start()
         {
-            await _eventBus.StartAsync();
-            _eventBus.Subscribe<ScrapePageEvent>(async evt =>
-            {
-                await HandleEvent(evt);
-                await Task.CompletedTask;
-            });
+            Subscribe();
         }
 
-        public async Task StopAsync()
+        public void Subscribe()
         {
-            await _eventBus.StopAsync();
+            _eventBus.Subscribe<ScrapePageEvent>(EventHandler);
         }
 
-        private void RegisterEvents()
+        public void Unsubscribe()
         {
-            
+            _eventBus.Unsubscribe<ScrapePageEvent>(EventHandler);
         }
 
-        private async Task HandleEvent(ScrapePageEvent evt)
+        private async Task EventHandler(ScrapePageEvent evt)
         {
             var responseDto = await GetAsync(
                 evt.CrawlPageEvent.Url, 
@@ -60,14 +54,11 @@ namespace ScraperService
                     StatusCode = responseDto.StatusCode
                 });
             }
+            await Task.CompletedTask;
         }
 
         public abstract Task<ScrapeResponse> GetAsync(Uri url, string userAgent, string clientAccept);
 
-        public void Dispose()
-        {
-            _eventBus?.Dispose();
-        }
     }
 
 }

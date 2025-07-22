@@ -14,7 +14,7 @@ namespace Crawler.Core
     public class MemoryCacheCrawlerAdapter : BaseCrawler
     {
         public MemoryCacheCrawlerAdapter(
-            IAppLogger logger, 
+            ILogger logger, 
             IEventBus eventBus,
             ICache cache,
             IRequestSender requestSender,

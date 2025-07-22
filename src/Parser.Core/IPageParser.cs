@@ -3,8 +3,9 @@ using Events.Core.Bus;
 
 namespace ParserService
 {
-    public interface IPageParser : IEventBusLifecycle
+    public interface IPageParser
     {
+        void Start();
         Page Parse(string content);
     }
 }

@@ -10,9 +10,9 @@ namespace ParserService
 {
     public static class ParserFactory
     {
-        public static IPageParser CreateParser(IAppLogger appLogger, IEventBus eventBus)
+        public static IPageParser CreateParser(ILogger logger, IEventBus eventBus)
         {
-            return new HtmlAgilityPackPageParser(appLogger, eventBus);
+            return new HtmlAgilityPackPageParser(logger, eventBus);
         }
     }
 }

@@ -22,9 +22,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{785AE35B-D59A-48BB-9CB5-2EBDA56F1248}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{82C3C83E-1FAE-4950-9A5F-AEE5AB823C11}"
-	ProjectSection(SolutionItems) = preProject
-		Ideas.txt = Ideas.txt
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Service.Graphing", "Service.Graphing", "{2ACB9358-1285-4303-9C01-3CA9A98B72C9}"
 EndProject

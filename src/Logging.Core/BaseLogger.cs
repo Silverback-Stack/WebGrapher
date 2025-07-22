@@ -7,36 +7,36 @@ using System.Threading.Tasks;
 
 namespace Logging.Core
 {
-    public abstract class BaseAppLogger : IAppLogger
+    public abstract class BaseLogger : ILogger
     {
         protected readonly string _serviceName;
-        protected BaseAppLogger(string serviceName) {
+        protected BaseLogger(string serviceName) {
             _serviceName = serviceName;
         }
 
         protected string ServiceName => _serviceName;
 
         protected abstract void Log(
-            AppLoggerLevel level,
+            LogLevel level,
             string message,
             string? correlationId = null,
             object? context = null);
 
-        public abstract void Dispose();
-
         public void LogDebug(string message, string? correlationId = null, object? context = null)
-            => Log(AppLoggerLevel.Debug, message, correlationId, context);
+            => Log(LogLevel.Debug, message, correlationId, context);
 
         public void LogInformation(string message, string? correlationId = null, object? context = null)
-            => Log(AppLoggerLevel.Info, message, correlationId, context);
+            => Log(LogLevel.Info, message, correlationId, context);
 
         public void LogWarning(string message, string? correlationId = null, object? context = null)
-            => Log(AppLoggerLevel.Warn, message, correlationId, context);
+            => Log(LogLevel.Warn, message, correlationId, context);
 
         public void LogError(string message, string? correlationId = null, object? context = null)
-            => Log(AppLoggerLevel.Error, message, correlationId, context);
+            => Log(LogLevel.Error, message, correlationId, context);
 
         public void LogCritical(string message, string? correlationId = null, object? context = null)
-            => Log(AppLoggerLevel.Critical, message, correlationId, context);
+            => Log(LogLevel.Critical, message, correlationId, context);
+
+        public abstract void Dispose();
     }
 }

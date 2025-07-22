@@ -12,7 +12,7 @@ namespace ParserService
 {
     public class HtmlAgilityPackPageParser : BasePageParser
     {
-        public HtmlAgilityPackPageParser(IAppLogger appLogger, IEventBus eventBus) : base(appLogger, eventBus) { }
+        public HtmlAgilityPackPageParser(ILogger logger, IEventBus eventBus) : base(logger, eventBus) { }
 
         public override Page Parse(string content)
         {

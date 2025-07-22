@@ -6,9 +6,17 @@ using System.Threading.Tasks;
 
 namespace Events.Core.Bus
 {
-    public interface IEventBusLifecycle : IDisposable
+    public interface IEventBusLifecycle
     {
-        Task StartAsync();
-        Task StopAsync();
+        /// <summary>
+        /// Registers event handlers or subscriptions for this service.
+        /// </summary>
+        void Subscribe();
+
+        /// <summary>
+        /// Unsubscribes or cleans up event handlers.
+        /// </summary>
+        void Unsubscribe();
+
     }
 }

@@ -13,7 +13,7 @@ namespace Logging.Core
         public string Message { get; set; }
         public string? CorrelationId { get; set; }
         public object? Context { get; set; }
-        public AppLoggerLevel Level { get; set; }
+        public LogLevel Level { get; set; }
         public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 
         public string ToJson()

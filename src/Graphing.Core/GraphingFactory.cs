@@ -10,9 +10,9 @@ namespace Graphing.Core
 {
     public class GraphingFactory
     {
-        public static IGraph Create(IAppLogger appLogger, IEventBus eventBus)
+        public static IGraph Create(ILogger logger, IEventBus eventBus)
         {
-            return new MemoryGraph(appLogger, eventBus);
+            return new MemoryGraph(logger, eventBus);
         }
     }
 }

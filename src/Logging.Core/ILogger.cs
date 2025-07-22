@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Logging.Core
 {
-    public interface IAppLogger : IDisposable
+    public interface ILogger : IDisposable
     {
         void LogDebug(
             string message, 

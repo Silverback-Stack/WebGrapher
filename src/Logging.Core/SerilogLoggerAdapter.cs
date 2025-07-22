@@ -7,24 +7,17 @@ using Serilog;
 
 namespace Logging.Core
 {
-    public class SerilogAppLoggerAdapter : BaseAppLogger
+    public class SerilogLoggerAdapter : BaseLogger
     {
-        private readonly ILogger _logger;
+        private readonly Serilog.ILogger _logger;
 
-        public SerilogAppLoggerAdapter(string name, ILogger logger) : base(name)
+        public SerilogLoggerAdapter(string name, Serilog.ILogger logger) : base(name)
         {
             _logger = logger;
         }
 
-        public override void Dispose()
-        {
-            Log(AppLoggerLevel.Info, $"Disposing: {typeof(SerilogAppLoggerAdapter).Name}.");
-            if (_logger is IDisposable disposable)
-                disposable.Dispose();
-        }
-
         protected override void Log(
-            AppLoggerLevel level, 
+            LogLevel level, 
             string message, 
             string? correlationId = null, 
             object? context = null)
@@ -41,28 +34,36 @@ namespace Logging.Core
 
             switch (level)
             {
-                case AppLoggerLevel.Debug:
+                case LogLevel.Debug:
                     _logger.Debug(message);
                     break;
 
-                case AppLoggerLevel.Info:
+                case LogLevel.Info:
                     _logger.Information(message);
                     break;
 
-                case AppLoggerLevel.Warn:
+                case LogLevel.Warn:
                     _logger.Warning(message);
                     break;
 
-                case AppLoggerLevel.Error:
+                case LogLevel.Error:
                     _logger.Error(message);
                     break;
 
-                case AppLoggerLevel.Critical:
+                case LogLevel.Critical:
                     _logger.Fatal(message);
                     break;
 
                 default:
                     throw new NotSupportedException($"Logging level '{level}' is not supported.");
+            }
+        }
+        public override void Dispose()
+        {
+            if (_logger is IDisposable disposable)
+            {
+                Log(LogLevel.Info, $"Disposing: {typeof(SerilogLoggerAdapter).Name}.");
+                disposable.Dispose();
             }
         }
     }

@@ -14,35 +14,35 @@ namespace WebMapper.Cli
 
         public App() {
 
-            //EVENTS SERVICE
-            _eventBus = EventBusService.Start();
+            //EVENT SERVICE
+            _eventBus = EventBusService.Configure();
 
 
             //CRAWLER SERVICE
             Task.Run(async () => 
-                await CrawlerService.StartAsync(_eventBus));
+                await CrawlerService.ConfigureAsync(_eventBus));
 
 
             //SCRAPER SERVICE
             Task.Run(async () => 
-                await ScraperService.StartAsync(_eventBus));
+                await ScraperService.ConfigureAsync(_eventBus));
 
 
             //PARSER SERVICE
             Task.Run(async () =>
-                await ParserService.StartAsync(_eventBus));
+                await ParserService.ConfigureAsync(_eventBus));
 
 
             //NORMALISATION SERVICE
             Task.Run(async () =>
-                NormalisationService.StartAsync(_eventBus));
+                await NormalisationService.ConfigureAsync(_eventBus));
 
             //GRAPHING SERVICE
             Task.Run(async () =>
-                GraphingService.StartAsync(_eventBus));
+                await GraphingService.ConfigureAsync(_eventBus));
 
             //STREAMING SERVICE
-            //Task.Run(() => StreamingFactory.Create(_eventBus));
+            //Task.Run(() => StreamingFactory.SetupAsync(_eventBus));
         }
 
 
@@ -86,7 +86,10 @@ namespace WebMapper.Cli
         /// <returns></returns>
         private async Task SubmitUrl(Uri url)
         {
-            var crawlPageEvent = new CrawlPageEvent(url, containerId: Guid.NewGuid(), correlationId: Guid.NewGuid());
+            var crawlPageEvent = new CrawlPageEvent(
+                url, 
+                containerId: Guid.Parse("00000000-0000-0000-0000-000000000001"), 
+                correlationId: Guid.NewGuid());
 
             crawlPageEvent.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
             crawlPageEvent.ClientAccepts = "text/html";
