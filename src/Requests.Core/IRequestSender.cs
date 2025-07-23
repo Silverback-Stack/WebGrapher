@@ -10,6 +10,6 @@ namespace Requests.Core
     public interface IRequestSender
     {
         Task<RequestResponse?> GetStringAsync(Uri url, CancellationToken cancellationToken = default);
-        Task<RequestResponse?> GetStringAsync(Uri url, string userAgent, string clientAccepts, int attempt, CancellationToken cancellationToken = default);
+        Task<RequestResponse?> GetStringAsync(Uri url, string? userAgent, string? clientAccepts, int attempt, CancellationToken cancellationToken = default);
     }
 }

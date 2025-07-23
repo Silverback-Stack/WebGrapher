@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using Events.Core.Bus;
-using Events.Core.Types;
+using Events.Core.EventTypes;
 using Graphing.Core.Exporters;
 using Logging.Core;
 
@@ -71,7 +71,8 @@ namespace Graphing.Core
                 {
                     var crawlPageEvent = new CrawlPageEvent(
                         evt.CrawlPageEvent, 
-                        edgeUri, 
+                        edgeUri,
+                        attempt: 0,
                         evt.CrawlPageEvent.Depth++);
 
                     await _eventBus.PublishAsync(crawlPageEvent);

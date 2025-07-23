@@ -21,30 +21,38 @@ namespace Caching.Core
 
         public T? Get<T>(string key)
         {
-            _logger.LogInformation("Getting {key} from the cache.");
-            return _cache.TryGetValue(key, out var value) ? (T?)value : default;
+            var item = _cache.TryGetValue(key, out var value) ? (T?)value : default;
+
+            if (item == null)
+                _logger.LogInformation($"Cache Miss: {key} was not found in the cache.");
+            else
+                _logger.LogInformation($"Cache Hit: {key} was found in the cache.");
+
+            return item;
         }
 
         public void Set<T>(string key, T value, TimeSpan? expiration = null)
         {
-            _logger.LogInformation("Setting {key} in the cache.");
             var options = new MemoryCacheEntryOptions();
 
             if (expiration.HasValue)
                 options.SetAbsoluteExpiration(expiration.Value);
 
-            _cache.Set(key, value, options);
+            var item = _cache.Set(key, value, options);
+
+            if (item == null)
+                _logger.LogInformation($"Cache Set Failed: {key} was not stored to the cache.");
+            else
+                _logger.LogInformation($"Cache Set: {key} was stored to the cache.");
         }
 
         public void Remove(string key)
         {
-            _logger.LogInformation("Removing {key} from the cache.");
             _cache.Remove(key);
         }
 
         public bool Exists(string key)
         {
-            _logger.LogInformation("Checking {key} is in the cache.");
             return _cache.TryGetValue(key, out _);
         }
 

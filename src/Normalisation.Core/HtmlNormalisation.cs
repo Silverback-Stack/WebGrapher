@@ -2,7 +2,7 @@
 using System.Data.SqlTypes;
 using System.Reflection.Metadata;
 using Events.Core.Bus;
-using Events.Core.Types;
+using Events.Core.EventTypes;
 using Logging.Core;
 
 namespace Normalisation.Core

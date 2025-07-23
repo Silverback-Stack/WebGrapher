@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Crawler.Core
+namespace Crawler.Core.Policies
 {
-    public enum CrawlerOptions
+    public interface IRateLimitPolicy
     {
-        InMemory,
-        LiteDb
+        bool IsRateLimited(Uri url);
     }
 }

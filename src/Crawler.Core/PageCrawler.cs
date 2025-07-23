@@ -1,35 +1,37 @@
 ﻿using Caching.Core;
-using Crawler.Core.RobotsEvaluator;
+using Crawler.Core.Policies;
 using Events.Core.Bus;
-using Events.Core.Types;
+using Events.Core.EventTypes;
 using Logging.Core;
 using Requests.Core;
 
 namespace Crawler.Core
 {
-    public abstract class BaseCrawler : ICrawler, IEventBusLifecycle
+    public class PageCrawler : IPageCrawler, IEventBusLifecycle
     {
         protected readonly IEventBus _eventBus;
         protected readonly ILogger _logger;
         protected readonly ICache _cache;
         protected readonly IRequestSender _requestSender;
-        protected readonly IRobotsEvaluator _robotsService;
+        protected readonly IRateLimitPolicy _rateLimitPolicy;
+        protected readonly IRobotsPolicy _robotsPolicy;
 
         protected const int DEFAULT_ABSOLUTE_EXPIRY_MINUTES = 60;
-        protected const int DEFAULT_MAX_LINK_DEPTH = 5;
+        protected const int DEFAULT_MAX_CRAWL_DEPTH = 5;
 
-        protected BaseCrawler(
+        public PageCrawler(
             ILogger logger, 
             IEventBus eventBus,
             ICache cache,
-            IRequestSender requestSender,
-            IRobotsEvaluator robotsEvaluator)
+            IRequestSender requestSender)
         {
             _eventBus = eventBus;
             _logger = logger;
             _cache = cache;
             _requestSender = requestSender;
-            _robotsService = robotsEvaluator;
+
+            _rateLimitPolicy = new RateLimitPolicy(logger, cache, requestSender);
+            _robotsPolicy = new RobotsPolicy(logger, cache, requestSender);
         }
 
         public void Start()
@@ -65,21 +67,14 @@ namespace Crawler.Core
 
         public async Task CrawlPage(CrawlPageEvent evt)
         {
-            _logger.LogWarning($"Crawling page {evt.Url}");
-
             if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
                 return;
 
-            if (!await _robotsService.IsUrlPermittedAsync(evt.Url, evt.UserAgent))
+            if (_rateLimitPolicy.IsRateLimited(evt.Url))
                 return;
 
-            var history = await GetHistory(evt.Url);
-            if (history)
-            {
-                //decide if we can crawl
-                //ELSE
+            if (await _robotsPolicy.IsDenied(evt.Url, evt.UserAgent))
                 return;
-            }
 
             await _eventBus.PublishAsync(new ScrapePageEvent
             {
@@ -88,15 +83,8 @@ namespace Crawler.Core
             });
         }
 
-        protected abstract Task<bool> GetHistory(Uri url);
-
-        protected abstract Task SetHistory(Uri url);
-
-        //internal abstract DateTimeOffset? GetUrl(string key);
-        //internal abstract void SetUrl(string key, DateTimeOffset value);
-
         private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
-            currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_LINK_DEPTH);
+            currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_CRAWL_DEPTH);
 
     }
 }
