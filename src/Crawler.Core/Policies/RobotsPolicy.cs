@@ -22,7 +22,7 @@ namespace Crawler.Core.Policies
             ICache cache,
             IRequestSender requestSender) : base(logger, cache, requestSender) { }
 
-        public async Task<bool> IsDenied(Uri url, string? userAgent)
+        public async Task<bool> IsAllowed(Uri url, string? userAgent)
         {
             if (string.IsNullOrWhiteSpace(userAgent))
                 userAgent = DEFAULT_USER_AGENT;
@@ -35,7 +35,7 @@ namespace Crawler.Core.Policies
 
             SetSiteItem(siteItem);
 
-            return !IsAllowed(userAgent, url, siteItem);
+            return IsAllowed(userAgent, url, siteItem);
         }
 
         private async Task<SiteItem?> GetSiteItemAsync(Uri url, string? userAgent)
