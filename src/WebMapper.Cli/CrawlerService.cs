@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Caching.Core;
-using Crawler.Core.RobotsEvaluator;
 using Crawler.Core;
 using Events.Core.Bus;
 using Logging.Core;
@@ -36,11 +35,8 @@ namespace WebMapper.Cli
             var requestSender = RequestFactory.CreateRequestSender(
                 crawlerLogger);
 
-            var robotsEvaluator = RobotsFactory.CreateRobotsEvaluator(
-            crawlerLogger, cache, requestSender);
-
             var crawlerService = CrawlerFactory.CreateCrawler(
-                CrawlerOptions.InMemory, crawlerLogger, eventBus, cache, requestSender, robotsEvaluator);
+                crawlerLogger, eventBus, cache, requestSender);
 
             crawlerService.Start();
         }

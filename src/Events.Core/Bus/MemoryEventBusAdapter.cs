@@ -36,10 +36,10 @@ namespace Events.Core.Bus
         public override void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
         {
             _handlers.AddOrUpdate(typeof(TEvent),
-                _ => new List<Delegate> { handler },
+                _ => new List<Delegate> { handler }, 
                 (_, list) => { list.Add(handler); return list; }
             );
-            _logger.LogInformation($"Subscribed: {typeof(TEvent).Name}");
+            _logger.LogInformation($"Event Handler Subscribed: {typeof(TEvent).Name}");
         }
 
         public override void Unsubscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
@@ -47,7 +47,7 @@ namespace Events.Core.Bus
             if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
             {
                 subscribers.RemoveAll(h => h.Equals(handler));
-                _logger.LogInformation($"Unsubscribed: {typeof(TEvent).Name}");
+                _logger.LogInformation($"Event Handler Unsubscribed: {typeof(TEvent).Name}");
 
                 if (subscribers.Count == 0)
                 {
@@ -63,7 +63,7 @@ namespace Events.Core.Bus
                 foreach (var handler in subscribers.Cast<Func<TEvent, Task>>())
                 {
                     handler(@event); // fire and forget (can be awaited if needed)
-                    _logger.LogInformation($"Published: {typeof(TEvent).Name}");
+                    _logger.LogInformation($"Event Published: {typeof(TEvent).Name}");
                 }
             }
             return Task.CompletedTask;

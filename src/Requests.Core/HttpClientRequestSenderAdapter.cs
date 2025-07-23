@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Net;
 using System.Text;
+using System.Threading;
 using Logging.Core;
 
 namespace Requests.Core
@@ -12,7 +13,7 @@ namespace Requests.Core
         private readonly HttpClient _httpClient;
 
         private const string DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
-        private const string DEFAULT_CLIENT_ACCEPT = "text/html";
+        private const string DEFAULT_CLIENT_ACCEPTS = "text/html";
         private const int DEFAULT_REQUEST_SIZE_LIMIT = 1_048_576; //1Mb
         private const int MAX_RETRY_ATTEMPTS = 3;
 
@@ -22,18 +23,16 @@ namespace Requests.Core
             _httpClient = new HttpClient();
         }
 
-        public async Task<RequestResponse?> GetStringAsync(Uri url, CancellationToken cancellationToken = default)
-        {
-            return await GetStringAsync(url, string.Empty, string.Empty, 0, cancellationToken);
-        }
+        public async Task<RequestResponse?> GetStringAsync(Uri url, CancellationToken cancellationToken = default) =>
+            await GetStringAsync(url, string.Empty, string.Empty, attempt: 0, cancellationToken);
 
-        public async Task<RequestResponse?> GetStringAsync(Uri url, string userAgent, string clientAccepts, int attempt, CancellationToken cancellationToken = default)
+        public async Task<RequestResponse?> GetStringAsync(Uri url, string? userAgent, string? clientAccepts, int attempt, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(userAgent))
                 userAgent = DEFAULT_USER_AGENT;
 
             if (string.IsNullOrWhiteSpace(clientAccepts))
-                clientAccepts = DEFAULT_CLIENT_ACCEPT;
+                clientAccepts = DEFAULT_CLIENT_ACCEPTS;
 
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
             _httpClient.DefaultRequestHeaders.Accept.ParseAdd(clientAccepts);
@@ -53,11 +52,11 @@ namespace Requests.Core
                 if (!IsContentAcceptable(contentType,clientAccepts))
                     statusCode = HttpStatusCode.NotAcceptable;
 
-                _logger.LogInformation($"GET: {url.AbsoluteUri} Status Code: {response.StatusCode} Attempt: {attempt}");
+                _logger.LogInformation($"Get: {url.AbsoluteUri} Status Code: {response.StatusCode} Attempt: {attempt}");
 
-                if (!SetRetryAfterThrottle(statusCode, attempt, MAX_RETRY_ATTEMPTS, ref retryAttempt, ref retryAfter))
+                if (SetRetryAfterThrottle(statusCode, attempt, MAX_RETRY_ATTEMPTS, ref retryAttempt, ref retryAfter))
                 {
-                    _logger.LogInformation($"DISCARDED: {url.AbsoluteUri} Status Code: {response.StatusCode} Attempt: {attempt}");
+                    _logger.LogInformation($"Throttled: {url.AbsoluteUri} Status Code: {response.StatusCode} Attempt: {attempt}. Can retry after {retryAfter}");
                 }
 
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -84,7 +83,7 @@ namespace Requests.Core
                 //TaskCanceledException: Timeouts
                 //OperationCanceledException: Explicit cancellation via CancellationToken
                 //InvalidOperationException: Misconfigured HttpClient
-                _logger.LogError($"GET: {url.AbsoluteUri} Exception: {ex.Message} InnerException: {ex.InnerException}");
+                _logger.LogError($"Get: {url.AbsoluteUri} Exception: {ex.Message} InnerException: {ex.InnerException}");
             }
 
             return null;

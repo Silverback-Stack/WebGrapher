@@ -5,11 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Events.Core.Types
+namespace Events.Core.EventTypes
 {
     public record CrawlPageEvent
     {
         public Uri Url { get; set; }
+        public int Attempt { get; set; }
         public Guid ContainerId { get; set; }
         public Guid CorrelationId { get; set; }
         public bool FollowExternalLinks { get; set; }
@@ -29,9 +30,10 @@ namespace Events.Core.Types
             CorrelationId = correlationId;
         }
 
-        public CrawlPageEvent(CrawlPageEvent evt, Uri url, int depth) 
+        public CrawlPageEvent(CrawlPageEvent evt, Uri url, int attempt, int depth) 
         {
             Url = url;
+            Attempt = attempt;
             Depth = depth;
             ContainerId = evt.ContainerId;
             CorrelationId = evt.CorrelationId;

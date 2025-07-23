@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
-using Events.Core.Types;
+using Events.Core.EventTypes;
 using Logging.Core;
 
 namespace ParserService

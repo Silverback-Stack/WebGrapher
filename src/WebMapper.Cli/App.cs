@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
-using Events.Core.Types;
+using Events.Core.EventTypes;
 
 namespace WebMapper.Cli
 {
