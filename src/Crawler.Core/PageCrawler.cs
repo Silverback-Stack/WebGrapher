@@ -73,7 +73,7 @@ namespace Crawler.Core
             if (_rateLimitPolicy.IsRateLimited(evt.Url))
                 return;
 
-            if (await _robotsPolicy.IsDenied(evt.Url, evt.UserAgent))
+            if (await _robotsPolicy.IsAllowed(evt.Url, evt.UserAgent) == false)
                 return;
 
             await _eventBus.PublishAsync(new ScrapePageEvent
