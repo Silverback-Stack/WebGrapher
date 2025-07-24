@@ -42,7 +42,7 @@ namespace Crawler.Core.Policies
                 robotsTxtUrl, 
                 userAgent, 
                 DEFAULT_CLIENT_ACCEPTS, 
-                attempt: 0);
+                attempt: 1);
 
             if (response != null)
                 return NewSiteItem(

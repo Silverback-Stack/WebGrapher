@@ -11,7 +11,6 @@ namespace Requests.Core
         public DateTimeOffset? Expires { get; init; }
         public DateTimeOffset? RetryAfter { get; init; }
         public int RetryAttempt { get; init; }
-
     }
 
 }

@@ -33,7 +33,7 @@ namespace WebMapper.Cli
                 crawlerLogger);
 
             var requestSender = RequestFactory.CreateRequestSender(
-                crawlerLogger);
+                crawlerLogger, cache);
 
             var crawlerService = CrawlerFactory.CreateCrawler(
                 crawlerLogger, eventBus, cache, requestSender);
