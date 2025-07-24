@@ -39,7 +39,7 @@ namespace Events.Core.Bus
                 _ => new List<Delegate> { handler }, 
                 (_, list) => { list.Add(handler); return list; }
             );
-            _logger.LogInformation($"Event Handler Subscribed: {typeof(TEvent).Name}");
+            _logger.LogInformation($"Event subscribed: {typeof(TEvent).Name}");
         }
 
         public override void Unsubscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
@@ -47,7 +47,7 @@ namespace Events.Core.Bus
             if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
             {
                 subscribers.RemoveAll(h => h.Equals(handler));
-                _logger.LogInformation($"Event Handler Unsubscribed: {typeof(TEvent).Name}");
+                _logger.LogInformation($"Event unsubscribed: {typeof(TEvent).Name}");
 
                 if (subscribers.Count == 0)
                 {
@@ -56,17 +56,29 @@ namespace Events.Core.Bus
             }
         }
 
-        public override Task PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default) where TEvent : class
+        public override async Task PublishAsync<TEvent>(
+            TEvent @event,
+            DateTimeOffset? scheduledEnqueueTime = null,
+            CancellationToken cancellationToken = default) where TEvent : class
         {
+            var delay = scheduledEnqueueTime.HasValue
+                ? scheduledEnqueueTime.Value - DateTimeOffset.UtcNow 
+                : TimeSpan.Zero;
+
+            if (delay > TimeSpan.Zero)
+            {
+                _logger.LogInformation($"Event scheduled: {typeof(TEvent).Name}, will be published after {delay.TotalSeconds} seconds.");
+                await Task.Delay(delay, cancellationToken);
+            }
+
             if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
             {
                 foreach (var handler in subscribers.Cast<Func<TEvent, Task>>())
                 {
-                    handler(@event); // fire and forget (can be awaited if needed)
-                    _logger.LogInformation($"Event Published: {typeof(TEvent).Name}");
+                    _ = handler(@event); // fire-and-forget; can choose to await if you want sequential
+                    _logger.LogInformation($"Event published: {typeof(TEvent).Name}");
                 }
             }
-            return Task.CompletedTask;
         }
 
     }

@@ -8,6 +8,6 @@ namespace Crawler.Core.Policies
 {
     public interface IRateLimitPolicy
     {
-        bool IsRateLimited(Uri url);
+        bool IsRateLimited(Uri url, out DateTimeOffset? retryAfter);
     }
 }

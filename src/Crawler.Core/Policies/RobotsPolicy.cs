@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Caching.Core;
 using Logging.Core;
 using Requests.Core;
@@ -49,17 +45,11 @@ namespace Crawler.Core.Policies
                 attempt: 0);
 
             if (response != null)
-            {
-                var siteItem = new SiteItem()
-                {
-                    Url = url,
-                    StatusCode = response?.StatusCode ?? HttpStatusCode.NotFound,
-                    FetchedAt = DateTimeOffset.UtcNow,
-                    ExpiresAt = DateTimeOffset.UtcNow.AddDays(DEFAULT_ABSOLUTE_EXPIRY_DAYS),
-                    RobotsTxtContent = response?.Content ?? string.Empty,
-                };
-                return siteItem;
-            }
+                return NewSiteItem(
+                        url,
+                        response?.StatusCode ?? HttpStatusCode.NotFound,
+                        response?.RetryAfter,
+                        response?.Content ?? string.Empty);
 
             return null;
         }
