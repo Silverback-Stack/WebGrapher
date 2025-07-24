@@ -18,13 +18,15 @@ namespace Crawler.Core.Policies
             IRequestSender requestSender) : base(logger, cache, requestSender) { }
 
         /// <summary>
-        /// Returns True if the site is rate limiting requests.
+        /// Returns the Retry After offset when the site is rate limiting requests.
         /// </summary>
         /// <param name="url"></param>
         /// <returns></returns>
-        public bool IsRateLimited(Uri url)
+        public bool IsRateLimited(Uri url, out DateTimeOffset? retryAfter)
         {
             var siteItem = GetSiteItem(url);
+
+            retryAfter = siteItem?.RetryAfter ?? null;
 
             if (siteItem == null) return false;
 

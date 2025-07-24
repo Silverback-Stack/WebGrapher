@@ -1,4 +1,6 @@
-﻿using Caching.Core;
+﻿using System;
+using System.Net;
+using Caching.Core;
 using Crawler.Core.Policies;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
@@ -13,6 +15,7 @@ namespace Crawler.Core
         protected readonly ILogger _logger;
         protected readonly ICache _cache;
         protected readonly IRequestSender _requestSender;
+        protected readonly IHistoryPolicy _historyPolicy;
         protected readonly IRateLimitPolicy _rateLimitPolicy;
         protected readonly IRobotsPolicy _robotsPolicy;
 
@@ -30,6 +33,7 @@ namespace Crawler.Core
             _cache = cache;
             _requestSender = requestSender;
 
+            _historyPolicy = new HistoryPolicy(logger, cache, requestSender);
             _rateLimitPolicy = new RateLimitPolicy(logger, cache, requestSender);
             _robotsPolicy = new RobotsPolicy(logger, cache, requestSender);
         }
@@ -58,10 +62,14 @@ namespace Crawler.Core
         }
         private async Task EventHandler(ScrapePageResultEvent evt)
         {
-            //if 429 - too many requests
-            //publish CrawlPageEvent with delay
+            _historyPolicy.SetResponseStatus(
+                evt.CrawlPageEvent.Url,
+                evt.StatusCode,
+                evt.RetryAfter);
 
-            //SetHistory(url); //store the result of request with expiry date or default expiry if shorter
+            if (evt.StatusCode == HttpStatusCode.TooManyRequests)
+                await PublishCrawlPageEvent(evt.CrawlPageEvent, evt.RetryAfter);
+
             await Task.CompletedTask;
         }
 
@@ -70,21 +78,39 @@ namespace Crawler.Core
             if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
                 return;
 
-            if (_rateLimitPolicy.IsRateLimited(evt.Url))
+            if (_rateLimitPolicy.IsRateLimited(
+                evt.Url, out DateTimeOffset? retryAfter))
+            {
+                await PublishCrawlPageEvent(evt, retryAfter);
                 return;
+            }
 
             if (await _robotsPolicy.IsAllowed(evt.Url, evt.UserAgent) == false)
                 return;
 
+            await PublishScrapePageEvent(evt);
+        }
+
+        private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
+            currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_CRAWL_DEPTH);
+
+        private async Task PublishCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
+        {
+            await _eventBus.PublishAsync(new CrawlPageEvent(
+                    evt,
+                    evt.Url,
+                    evt.Attempt++,
+                    evt.Depth), retryAfter);
+        }
+
+        private async Task PublishScrapePageEvent(CrawlPageEvent evt)
+        {
             await _eventBus.PublishAsync(new ScrapePageEvent
             {
                 CrawlPageEvent = evt,
                 CreatedAt = DateTimeOffset.UtcNow
             });
         }
-
-        private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
-            currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_CRAWL_DEPTH);
 
     }
 }
