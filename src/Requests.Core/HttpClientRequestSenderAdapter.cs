@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Caching.Core;
 using Logging.Core;
 
 namespace Requests.Core
@@ -10,16 +11,19 @@ namespace Requests.Core
     public class HttpClientRequestSenderAdapter : IRequestSender
     {
         private readonly ILogger _logger;
+        private readonly ICache _cache;
         private readonly HttpClient _httpClient;
 
         private const string DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
         private const string DEFAULT_CLIENT_ACCEPTS = "text/html";
         private const int DEFAULT_REQUEST_SIZE_LIMIT = 1_048_576; //1Mb
         private const int MAX_RETRY_ATTEMPTS = 3;
+        private const int MAX_ABSOLUTE_EXPIRY_DAYS = 30;
 
-        public HttpClientRequestSenderAdapter(ILogger logger)
+        public HttpClientRequestSenderAdapter(ILogger logger, ICache cache)
         {
             _logger = logger;   
+            _cache = cache;
             _httpClient = new HttpClient();
         }
 
@@ -39,12 +43,15 @@ namespace Requests.Core
 
             try
             {
+                var requestResponse = _cache.Get<RequestResponse>(url.AbsoluteUri);
+                if (requestResponse != null) return requestResponse;
+
                 var response = await _httpClient.GetAsync(url.AbsoluteUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 var statusCode = response.StatusCode;
                 var contentType = response.Content.Headers.ContentType?.MediaType;
                 var lastModified = response.Content?.Headers?.LastModified?.UtcDateTime ?? DateTimeOffset.UtcNow;
-                var expires = response.Content?.Headers?.Expires?.UtcDateTime;
+                var expires = response.Content?.Headers?.Expires;
                 var retryAfter = GetRetryAfterDate(response);
                 var retryAttempt = attempt;
                 string? content = null;
@@ -64,7 +71,7 @@ namespace Requests.Core
                     content = await ReadAsStringWithSizeLimitAsync(response, DEFAULT_REQUEST_SIZE_LIMIT, cancellationToken);
                 }
 
-                return new RequestResponse
+                requestResponse = new RequestResponse
                 {
                     Content = content,
                     ContentType = contentType,
@@ -74,6 +81,9 @@ namespace Requests.Core
                     RetryAfter = retryAfter,
                     RetryAttempt = retryAttempt
                 };
+
+                _cache.Set(url.AbsoluteUri, requestResponse, GetCacheDuration(expires));
+                return requestResponse;
             }
             catch (Exception ex)
             {
@@ -129,6 +139,22 @@ namespace Requests.Core
             }
 
             return null;
+        }
+
+        private static TimeSpan GetCacheDuration(DateTimeOffset? expires)
+        {
+            if (expires.HasValue)
+            {
+                var cacheDuration = expires.Value - DateTimeOffset.UtcNow;
+                var maxDuration = TimeSpan.FromDays(MAX_ABSOLUTE_EXPIRY_DAYS);
+
+                if (cacheDuration > maxDuration) 
+                    cacheDuration = maxDuration;
+
+                return cacheDuration > TimeSpan.Zero ? cacheDuration : TimeSpan.Zero;
+            }
+
+            return TimeSpan.Zero;
         }
 
         private static async Task<string> ReadAsStringWithSizeLimitAsync(HttpResponseMessage response, int maxBytes, CancellationToken cancellationToken = default)

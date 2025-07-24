@@ -72,7 +72,7 @@ namespace Graphing.Core
                     var crawlPageEvent = new CrawlPageEvent(
                         evt.CrawlPageEvent, 
                         edgeUri,
-                        attempt: 0,
+                        attempt: 1,
                         evt.CrawlPageEvent.Depth++);
 
                     await _eventBus.PublishAsync(crawlPageEvent);
