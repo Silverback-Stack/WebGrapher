@@ -53,7 +53,6 @@ namespace Graphing.Core
                         evt.Links);
 
             await FollowEdges(evt, node);
-            await Task.CompletedTask;
         }
 
         private async Task FollowEdges(GraphPageEvent evt, Node node)
