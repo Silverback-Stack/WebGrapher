@@ -15,7 +15,7 @@ namespace Events.Core.EventTypes
 
         public IEnumerable<string> Links;
         public HttpStatusCode StatusCode { get; set; }
-        public DateTimeOffset SourceLastModified { get; set; }
+        public DateTimeOffset? SourceLastModified { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
     }
 }

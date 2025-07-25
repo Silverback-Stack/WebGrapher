@@ -13,7 +13,9 @@ namespace Normalisation.Core
     {
         public static IHtmlNormalisation CreateNormaliser(ILogger logger, IEventBus eventBus)
         {
-            return new HtmlNormalisation(logger, eventBus);
+            var service = new HtmlNormalisation(logger, eventBus);
+            service.SubscribeAll();
+            return service;
         }
     }
 }

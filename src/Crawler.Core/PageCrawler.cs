@@ -38,18 +38,13 @@ namespace Crawler.Core
             _robotsPolicy = new RobotsPolicy(logger, cache, requestSender);
         }
 
-        public void Start()
-        {
-            Subscribe();
-        }
-
-        public void Subscribe()
+        public void SubscribeAll()
         {
             _eventBus.Subscribe<CrawlPageEvent>(EventHandler);
             _eventBus.Subscribe<ScrapePageResultEvent>(EventHandler);
         }
 
-        public void Unsubscribe()
+        public void UnsubscribeAll()
         {
             _eventBus.Unsubscribe<CrawlPageEvent>(EventHandler);
             _eventBus.Unsubscribe<ScrapePageResultEvent>(EventHandler);
@@ -62,7 +57,7 @@ namespace Crawler.Core
         }
         private async Task EventHandler(ScrapePageResultEvent evt)
         {
-            _historyPolicy.SetResponseStatus(
+            await _historyPolicy.SetResponseStatus(
                 evt.CrawlPageEvent.Url,
                 evt.StatusCode,
                 evt.RetryAfter);
@@ -78,14 +73,14 @@ namespace Crawler.Core
             if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
                 return;
 
-            if (_rateLimitPolicy.IsRateLimited(
-                evt.Url, out DateTimeOffset? retryAfter))
+            var rateLimit = await _rateLimitPolicy.IsRateLimitedAsync(evt.Url);
+            if (rateLimit.IsRateLimited)
             {
-                await PublishCrawlPageEvent(evt, retryAfter);
+                await PublishCrawlPageEvent(evt, rateLimit.RetryAfter);
                 return;
             }
 
-            if (await _robotsPolicy.IsAllowed(evt.Url, evt.UserAgent) == false)
+            if (await _robotsPolicy.IsAllowedAsync(evt.Url, evt.UserAgent) == false)
                 return;
 
             await PublishScrapePageEvent(evt);

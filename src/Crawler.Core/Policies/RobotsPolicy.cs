@@ -12,24 +12,25 @@ namespace Crawler.Core.Policies
     {
         private const string DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
         private const string DEFAULT_CLIENT_ACCEPTS = "text/html";
+        private const int DEFAULT_CONTENT_MAX_BYTES = 1_048_576; //1Mb
 
         public RobotsPolicy(
             ILogger logger,
             ICache cache,
             IRequestSender requestSender) : base(logger, cache, requestSender) { }
 
-        public async Task<bool> IsAllowed(Uri url, string? userAgent)
+        public async Task<bool> IsAllowedAsync(Uri url, string? userAgent)
         {
             if (string.IsNullOrWhiteSpace(userAgent))
                 userAgent = DEFAULT_USER_AGENT;
 
-            var siteItem = GetSiteItem(url) ?? 
+            var siteItem = await GetSiteItemAsync(url) ?? 
                 await GetSiteItemAsync(url, userAgent);
 
             if (siteItem == null)
                 return false;
 
-            SetSiteItem(siteItem);
+            await SetSiteItemAsync(siteItem);
 
             return IsAllowed(userAgent, url, siteItem);
         }
@@ -42,7 +43,7 @@ namespace Crawler.Core.Policies
                 robotsTxtUrl, 
                 userAgent, 
                 DEFAULT_CLIENT_ACCEPTS, 
-                attempt: 1);
+                DEFAULT_CONTENT_MAX_BYTES);
 
             if (response != null)
                 return NewSiteItem(

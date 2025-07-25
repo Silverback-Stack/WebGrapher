@@ -22,20 +22,37 @@ namespace Crawler.Core.Policies
         /// </summary>
         /// <param name="url"></param>
         /// <returns></returns>
-        public bool IsRateLimited(Uri url, out DateTimeOffset? retryAfter)
+        public async Task<RateLimitResult> IsRateLimitedAsync(Uri url)
         {
-            var siteItem = GetSiteItem(url);
+            var result = new RateLimitResult()
+            {
+                IsRateLimited = false,
+                RetryAfter = null
+            };
 
-            retryAfter = siteItem?.RetryAfter ?? null;
+            var siteItem = await GetSiteItemAsync(url);
+            result.RetryAfter = siteItem?.RetryAfter;
 
-            if (siteItem == null) return false;
+            if (siteItem == null ||
+                siteItem.StatusCode is HttpStatusCode.OK)
+                return result;
 
-            if (siteItem.StatusCode == HttpStatusCode.TooManyRequests && 
-                DateTimeOffset.UtcNow > siteItem.RetryAfter)
-                    return false;
+            if (result.RetryAfter.HasValue &&
+                DateTimeOffset.UtcNow > result.RetryAfter.Value)
+                return result;
 
-            return siteItem.StatusCode == HttpStatusCode.TooManyRequests;
+            if (!siteItem.RetryAfter.HasValue && 
+                (siteItem.StatusCode is HttpStatusCode.TooManyRequests
+                    or HttpStatusCode.Forbidden
+                    or HttpStatusCode.ServiceUnavailable))
+            {
+                result.IsRateLimited = true;
+                return result;
+            }
+
+            return result;
         }
 
     }
+
 }

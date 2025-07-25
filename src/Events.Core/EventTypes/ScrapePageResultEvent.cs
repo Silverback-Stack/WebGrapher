@@ -11,9 +11,8 @@ namespace Events.Core.EventTypes
     {
         public required CrawlPageEvent CrawlPageEvent { get; set; }
         public HttpStatusCode StatusCode {  get; set; }
-        public string ReasonPhrase { get; set; }
-        public DateTimeOffset LastModified { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset? LastModified { get; set; }
         public DateTimeOffset? RetryAfter { get; set; }
         public Uri? RedirectLocation { get; set; }
     }

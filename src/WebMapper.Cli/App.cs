@@ -15,39 +15,39 @@ namespace WebMapper.Cli
         public App() {
 
             //EVENT SERVICE
-            _eventBus = EventBusService.Configure();
+            _eventBus = EventBusService.Start();
 
 
             //CRAWLER SERVICE
             Task.Run(async () => 
-                await CrawlerService.ConfigureAsync(_eventBus));
+                await CrawlerService.StartAsync(_eventBus));
 
 
             //SCRAPER SERVICE
             Task.Run(async () => 
-                await ScraperService.ConfigureAsync(_eventBus));
+                await ScraperService.StartAsync(_eventBus));
 
 
             //PARSER SERVICE
             Task.Run(async () =>
-                await ParserService.ConfigureAsync(_eventBus));
+                await ParserService.StartAsync(_eventBus));
 
 
             //NORMALISATION SERVICE
             Task.Run(async () =>
-                await NormalisationService.ConfigureAsync(_eventBus));
+                await NormalisationService.StartAsync(_eventBus));
 
             //GRAPHING SERVICE
             Task.Run(async () =>
-                await GraphingService.ConfigureAsync(_eventBus));
+                await GraphingService.StartAsync(_eventBus));
 
             //STREAMING SERVICE
-            //Task.Run(() => StreamingFactory.SetupAsync(_eventBus));
+            //Task.Run(() => StreamingFactory.StartAsync(_eventBus));
         }
 
 
 
-        public async Task Start()
+        public async Task Run()
         {
             while (true)
             {
@@ -92,7 +92,7 @@ namespace WebMapper.Cli
                 correlationId: Guid.NewGuid());
 
             crawlPageEvent.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
-            crawlPageEvent.ClientAccepts = "text/html";
+            crawlPageEvent.ClientAccepts = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
 
             //crawlPageEvent.PathFilters = new string[] { "/movie/", "/tv/", "/person/" }; //https://www.themoviedb.org/movie/
             //crawlPageEvent.PathFilters = new string[] { "/artist/", "/album/", "/track/" }; //https://www.theaudiodb.com/chart_artists
@@ -102,7 +102,6 @@ namespace WebMapper.Cli
             crawlPageEvent.MaxDepth = 5;
 
             await _eventBus.PublishAsync(crawlPageEvent);
-            Console.WriteLine($"{url.AbsoluteUri} was submitted.");
         }
 
 

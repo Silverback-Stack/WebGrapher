@@ -7,57 +7,81 @@ using System.Threading.Tasks;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Logging.Core;
+using Requests.Core;
 
 namespace ScraperService
 {
+
     public abstract class BaseScraper : IScraper, IEventBusLifecycle
     {
-        internal readonly ILogger _logger;
-        private readonly IEventBus _eventBus;
+        protected readonly ILogger _logger;
+        protected readonly IEventBus _eventBus;
+        protected readonly IRequestSender _requestSender;
 
-        public BaseScraper(ILogger logger, IEventBus eventBus)
+        public BaseScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender)
         {
             _logger = logger;
             _eventBus = eventBus;
+            _requestSender = requestSender;
         }
 
-        public void Start()
-        {
-            Subscribe();
-        }
-
-        public void Subscribe()
+        public void SubscribeAll()
         {
             _eventBus.Subscribe<ScrapePageEvent>(EventHandler);
         }
 
-        public void Unsubscribe()
+        public void UnsubscribeAll()
         {
             _eventBus.Unsubscribe<ScrapePageEvent>(EventHandler);
         }
 
         private async Task EventHandler(ScrapePageEvent evt)
         {
-            var responseDto = await GetAsync(
-                evt.CrawlPageEvent.Url, 
-                evt.CrawlPageEvent.UserAgent, 
+            var response = await GetAsync(
+                evt.CrawlPageEvent.Url,
+                evt.CrawlPageEvent.UserAgent,
                 evt.CrawlPageEvent.ClientAccepts);
 
-            if (responseDto != null && responseDto.StatusCode == HttpStatusCode.OK)
+            if (response != null)
             {
-                await _eventBus.PublishAsync(new ParsePageEvent
-                {
-                    CrawlPageEvent = evt.CrawlPageEvent,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    HtmlContent = responseDto.HtmlContent,
-                    LastModified = responseDto.LastModified,
-                    StatusCode = responseDto.StatusCode
-                });
+                await PublishScrapePageResultEvent(evt, response);
+
+                if (response.StatusCode == HttpStatusCode.OK)
+                    await PublishParsePageEvent(evt, response);
             }
+
             await Task.CompletedTask;
         }
 
-        public abstract Task<ScrapeResponse> GetAsync(Uri url, string userAgent, string clientAccept);
+        private async Task PublishScrapePageResultEvent(
+            ScrapePageEvent evt, 
+            ScrapeResponseItem response)
+        {
+            await _eventBus.PublishAsync(new ScrapePageResultEvent()
+            {
+                CrawlPageEvent = evt.CrawlPageEvent,
+                StatusCode = response.StatusCode,
+                CreatedAt = DateTimeOffset.UtcNow,
+                LastModified = response.LastModified,
+                RetryAfter = response.RetryAfter
+            });
+        }
+
+        private async Task PublishParsePageEvent(
+            ScrapePageEvent evt,
+            ScrapeResponseItem response)
+        {
+            await _eventBus.PublishAsync(new ParsePageEvent
+            {
+                CrawlPageEvent = evt.CrawlPageEvent,
+                CreatedAt = DateTimeOffset.UtcNow,
+                HtmlContent = response.Content,
+                LastModified = response.LastModified,
+                StatusCode = response.StatusCode
+            });
+        }
+
+        public abstract Task<ScrapeResponseItem?> GetAsync(Uri url, string? userAgent, string? clientAccept);
 
     }
 

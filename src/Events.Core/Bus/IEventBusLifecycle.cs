@@ -11,12 +11,12 @@ namespace Events.Core.Bus
         /// <summary>
         /// Registers event handlers or subscriptions for this service.
         /// </summary>
-        void Subscribe();
+        void SubscribeAll();
 
         /// <summary>
         /// Unsubscribes or cleans up event handlers.
         /// </summary>
-        void Unsubscribe();
+        void UnsubscribeAll();
 
     }
 }

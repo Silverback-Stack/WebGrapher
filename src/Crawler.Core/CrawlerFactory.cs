@@ -18,7 +18,9 @@ namespace Crawler.Core
             ICache cache,
             IRequestSender requestSender)
         {
-            return new PageCrawler(logger, eventBus, cache, requestSender);
+            var service = new PageCrawler(logger, eventBus, cache, requestSender);
+            service.SubscribeAll();
+            return service;
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Requests.Core
 {
-    public record RequestResponse
+    public record RequestResponseItem
     {
         public string? Content { get; init; }
         public string? ContentType { get; init; }
@@ -10,7 +10,6 @@ namespace Requests.Core
         public DateTimeOffset? LastModified { get; init; }
         public DateTimeOffset? Expires { get; init; }
         public DateTimeOffset? RetryAfter { get; init; }
-        public int RetryAttempt { get; init; }
     }
 
 }

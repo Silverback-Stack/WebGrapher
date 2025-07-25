@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 
 namespace ScraperService
 {
-    public record ScrapeResponse
+    public record ScrapeResponseItem
     {
-        public required string HtmlContent { get; set; }
+        public required string Content { get; set; }
         public HttpStatusCode StatusCode { get; set; }
-        public DateTimeOffset LastModified { get; set; }
+        public DateTimeOffset? LastModified { get; set; }
+        public DateTimeOffset? RetryAfter { get; set; }
     }
 }

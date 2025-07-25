@@ -12,7 +12,7 @@ internal class Program
         try
         {
             var app = new App();
-            await app.Start();
+            await app.Run();
 
         }
         catch (Exception ex) //global exception handler

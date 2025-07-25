@@ -27,17 +27,17 @@ namespace Crawler.Core.Policies
 
         protected string CacheKey(Uri url) => url.Authority;
 
-        protected SiteItem? GetSiteItem(Uri url)
+        protected async Task<SiteItem?> GetSiteItemAsync(Uri url)
         {
             var cacheKey = CacheKey(url);
-            return _cache.Get<SiteItem>(cacheKey);
+            return await _cache.GetAsync<SiteItem>(cacheKey);
         }
 
-        protected void SetSiteItem(SiteItem item)
+        protected async Task SetSiteItemAsync(SiteItem item)
         {
             var cacheKey = CacheKey(item.Url);
             var expiryDuration = TimeSpan.FromDays(DEFAULT_ABSOLUTE_EXPIRY_DAYS);
-            _cache.Set<SiteItem>(cacheKey, item, expiryDuration);
+            await _cache.SetAsync<SiteItem>(cacheKey, item, expiryDuration);
         }
 
         protected SiteItem NewSiteItem(

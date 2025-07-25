@@ -27,16 +27,12 @@ namespace Graphing.Core
             _graphAnalyser = new MemoryGraphAnalyser(_nodes);
         }
 
-        public void Start()
-        {
-            Subscribe();
-        }
-        public void Subscribe()
+        public void SubscribeAll()
         {
             _eventBus.Subscribe<GraphPageEvent>(EventHandler);
         }
 
-        public void Unsubscribe()
+        public void UnsubscribeAll()
         {
             _eventBus.Subscribe<GraphPageEvent>(EventHandler);
         }
@@ -96,7 +92,7 @@ namespace Graphing.Core
             return false;
         }
 
-        public Node AddNode(string key, string title, string keywords, DateTimeOffset sourceLastModified, IEnumerable<string> edges)
+        public Node AddNode(string key, string title, string keywords, DateTimeOffset? sourceLastModified, IEnumerable<string> edges)
         {
             if (_nodes.TryGetValue(key, out var node))
             {

@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
+using Requests.Core;
 
 namespace ScraperService
 {
     public interface IScraper
     {
-        void Start();
-        Task<ScrapeResponse> GetAsync(Uri url, string userAgent, string clientAccept);
+        Task<ScrapeResponseItem?> GetAsync(Uri url, string? userAgent, string? clientAccept);
     }
 }

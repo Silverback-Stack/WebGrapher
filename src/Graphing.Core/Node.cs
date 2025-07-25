@@ -21,7 +21,7 @@ namespace Graphing.Core
             CreatedAt = DateTimeOffset.UtcNow;
         }
 
-        public Node(string id, string title, string keywords, DateTimeOffset sourceLastModified, IEnumerable<string> edges)
+        public Node(string id, string title, string keywords, DateTimeOffset? sourceLastModified, IEnumerable<string> edges)
         {
             Id = id;
             Title = title;

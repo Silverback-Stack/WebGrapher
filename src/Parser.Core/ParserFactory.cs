@@ -12,7 +12,9 @@ namespace ParserService
     {
         public static IPageParser CreateParser(ILogger logger, IEventBus eventBus)
         {
-            return new HtmlAgilityPackPageParser(logger, eventBus);
+            var service = new HtmlAgilityPackPageParser(logger, eventBus);
+            service.SubscribeAll();
+            return service;
         }
     }
 }
