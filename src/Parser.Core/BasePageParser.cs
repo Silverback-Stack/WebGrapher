@@ -48,7 +48,6 @@ namespace ParserService
                     LastModified = evt.LastModified
                 });
             }
-            await Task.CompletedTask;
         }
 
         public abstract Page Parse(string content);

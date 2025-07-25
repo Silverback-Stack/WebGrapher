@@ -16,9 +16,10 @@ namespace Service.Scraper.Tests
         private Mock<IEventBus> _eventBus;
         private Mock<IRequestSender> _requestSender;
         private IScraper _scraper;
+
         private Uri _url;
-        private string _userAgent = "UserAgent";
-        private string _clientAccepts = "text/html";
+        private string? _userAgent = null;
+        private string? _clientAccepts = null;
 
         [SetUp]
         public void Setup()

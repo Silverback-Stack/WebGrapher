@@ -19,23 +19,24 @@ namespace Crawler.Core
         protected readonly IRateLimitPolicy _rateLimitPolicy;
         protected readonly IRobotsPolicy _robotsPolicy;
 
-        protected const int DEFAULT_ABSOLUTE_EXPIRY_MINUTES = 60;
         protected const int DEFAULT_MAX_CRAWL_DEPTH = 5;
 
         public PageCrawler(
             ILogger logger, 
             IEventBus eventBus,
             ICache cache,
-            IRequestSender requestSender)
+            IRequestSender requestSender,
+            IHistoryPolicy historyPolicy,
+            IRateLimitPolicy rateLimitPolicy,
+            IRobotsPolicy robotsPolicy)
         {
             _eventBus = eventBus;
             _logger = logger;
             _cache = cache;
             _requestSender = requestSender;
-
-            _historyPolicy = new HistoryPolicy(logger, cache, requestSender);
-            _rateLimitPolicy = new RateLimitPolicy(logger, cache, requestSender);
-            _robotsPolicy = new RobotsPolicy(logger, cache, requestSender);
+            _historyPolicy = historyPolicy;
+            _rateLimitPolicy = rateLimitPolicy;
+            _robotsPolicy = robotsPolicy;
         }
 
         public void SubscribeAll()
@@ -53,7 +54,6 @@ namespace Crawler.Core
         private async Task EventHandler(CrawlPageEvent evt)
         {
             await CrawlPage(evt);
-            await Task.CompletedTask;
         }
         private async Task EventHandler(ScrapePageResultEvent evt)
         {
@@ -62,10 +62,9 @@ namespace Crawler.Core
                 evt.StatusCode,
                 evt.RetryAfter);
 
+            //need a better check for retry policy here - TooManyRequests is not exclusive (check already written function)
             if (evt.StatusCode == HttpStatusCode.TooManyRequests)
                 await PublishCrawlPageEvent(evt.CrawlPageEvent, evt.RetryAfter);
-
-            await Task.CompletedTask;
         }
 
         public async Task CrawlPage(CrawlPageEvent evt)
@@ -91,10 +90,11 @@ namespace Crawler.Core
 
         private async Task PublishCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
         {
+            var attempt = evt.Attempt + 1;
             await _eventBus.PublishAsync(new CrawlPageEvent(
                     evt,
                     evt.Url,
-                    evt.Attempt++,
+                    attempt,
                     evt.Depth), retryAfter);
         }
 

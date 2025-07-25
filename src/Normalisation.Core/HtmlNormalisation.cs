@@ -54,7 +54,6 @@ namespace Normalisation.Core
                 StatusCode = evt.StatusCode,
                 SourceLastModified = evt.LastModified
             });
-            await Task.CompletedTask;
         }
 
         public string NormaliseTitle(string text)
