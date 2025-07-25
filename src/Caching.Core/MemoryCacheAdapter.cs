@@ -19,7 +19,7 @@ namespace Caching.Core
             _cache = new MemoryCache(new MemoryCacheOptions());
         }
 
-        public T? Get<T>(string key)
+        public async Task<T?> GetAsync<T>(string key)
         {
             var item = _cache.TryGetValue(key, out var value) ? (T?)value : default;
 
@@ -31,7 +31,7 @@ namespace Caching.Core
             return item;
         }
 
-        public void Set<T>(string key, T value, TimeSpan? expiration = null)
+        public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
             var options = new MemoryCacheEntryOptions();
 
@@ -46,12 +46,12 @@ namespace Caching.Core
                 _logger.LogInformation($"Cache Set: {key} was stored to the cache.");
         }
 
-        public void Remove(string key)
+        public async Task RemoveAsync(string key)
         {
             _cache.Remove(key);
         }
 
-        public bool Exists(string key)
+        public async Task<bool> ExistsAsync(string key)
         {
             return _cache.TryGetValue(key, out _);
         }

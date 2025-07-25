@@ -4,7 +4,6 @@ namespace Graphing.Core
 {
     public interface IGraph : IDisposable
     {
-        void Start();
         IGraphAnalyser GraphAnalyser { get; }
 
         bool IsNodePopulated(string id);
@@ -13,7 +12,7 @@ namespace Graphing.Core
             string id, 
             string title, 
             string keywords,
-            DateTimeOffset sourceLastModified,
+            DateTimeOffset? sourceLastModified,
             IEnumerable<string> edges);
 
         void RemoveNode(string id);

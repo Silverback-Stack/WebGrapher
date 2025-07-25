@@ -10,6 +10,6 @@ namespace Crawler.Core.Policies
 {
     public interface IHistoryPolicy
     {
-        void SetResponseStatus(Uri url, HttpStatusCode statusCode, DateTimeOffset? retryAfter);
+        Task SetResponseStatus(Uri url, HttpStatusCode statusCode, DateTimeOffset? retryAfter);
     }
 }

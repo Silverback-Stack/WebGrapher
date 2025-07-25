@@ -10,9 +10,9 @@ namespace Events.Core.EventTypes
     public record ParsePageEvent
     {
         public required CrawlPageEvent CrawlPageEvent { get; set; }
-        public string HtmlContent { get; set; }
+        public required string HtmlContent { get; set; }
         public HttpStatusCode StatusCode { get; set; }
-        public DateTimeOffset LastModified { get; set; }
+        public DateTimeOffset? LastModified { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
     }
 }

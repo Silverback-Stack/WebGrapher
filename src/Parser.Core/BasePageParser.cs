@@ -21,17 +21,12 @@ namespace ParserService
             _eventBus = eventBus;
         }
 
-        public void Start()
-        {
-            Subscribe();
-        }
-
-        public void Subscribe()
+        public void SubscribeAll()
         {
             _eventBus.Subscribe<ParsePageEvent>(EventHandler);
         }
 
-        public void Unsubscribe()
+        public void UnsubscribeAll()
         {
             _eventBus.Unsubscribe<ParsePageEvent>(EventHandler);
         }

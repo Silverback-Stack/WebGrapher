@@ -8,6 +8,6 @@ namespace Crawler.Core.Policies
 {
     public interface IRobotsPolicy
     {
-        Task<bool> IsAllowed(Uri url, string? userAgent);
+        Task<bool> IsAllowedAsync(Uri url, string? userAgent);
     }
 }

@@ -23,17 +23,12 @@ namespace Normalisation.Core
             _eventBus = eventBus;
         }
 
-        public void Start()
-        {
-            Subscribe();
-        }
-
-        public void Subscribe()
+        public void SubscribeAll()
         {
             _eventBus.Subscribe<NormalisePageEvent>(EventHandler);
         }
 
-        public void Unsubscribe()
+        public void UnsubscribeAll()
         {
             _eventBus.Unsubscribe<NormalisePageEvent>(EventHandler);
         }

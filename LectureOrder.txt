@@ -1,0 +1,56 @@
+
+Introduction
+- show what we will build
+
+Introduction to Micro Services
+- what they are
+- benefits of using
+
+
+Product Setup
+- visual studio & core version
+- create folder structure src, tests
+- create blank project
+- create console app interface to request Url
+- demonstration
+
+
+Logging Library
+- create Logging class library
+- add to console app
+- add file logging
+- add console logging
+- demonstration
+
+
+RequestSender Library
+- create RequestSender class library
+- including logging reference
+- tempory add to console app
+- demonstration
+
+
+Caching Library
+- create Caching class library
+- add to RequestSender
+- demonstration
+
+
+Crawler Service (Part 1)
+- create Crawler class library
+- reference Logging
+- reference RequestSender
+- create Interface
+- tempory create method to get url using RequestSender 
+- add factory to Console app
+- call method from console app setup service setup code only
+- demonstration
+
+
+Event Bus Service
+- create Events class libary
+- reference logging
+- wire up Console application
+- wire up Crawler service
+- pub/sub events to Console/Crawler
+- demonstration

@@ -20,32 +20,32 @@ namespace Caching.Core
             _db = redis.GetDatabase();
         }
 
-        public T? Get<T>(string key)
+        public async Task<T?> GetAsync<T>(string key)
         {
             _logger.LogInformation("Getting {key} from the cache.");
-            var value = _db.StringGet(key);
+            var value = await _db.StringGetAsync(key);
             return value.HasValue
                 ? JsonSerializer.Deserialize<T>(value)
                 : default;
         }
 
-        public void Set<T>(string key, T value, TimeSpan? expiration = null)
+        public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
             _logger.LogInformation("Setting {key} in the cache.");
             var json = JsonSerializer.Serialize(value);
-            _db.StringSet(key, json, expiration);
+            await _db.StringSetAsync(key, json, expiration);
         }
 
-        public void Remove(string key)
+        public async Task RemoveAsync(string key)
         {
             _logger.LogInformation("Removing {key} from the cache.");
-            _db.KeyDelete(key);
+            await _db.KeyDeleteAsync(key);
         }
 
-        public bool Exists(string key)
+        public async Task<bool> ExistsAsync(string key)
         {
             _logger.LogInformation("Checking {key} is in the cache.");
-            return _db.KeyExists(key);
+            return await _db.KeyExistsAsync(key);
         }
 
         public void Dispose()

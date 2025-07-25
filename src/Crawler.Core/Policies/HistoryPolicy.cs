@@ -17,9 +17,9 @@ namespace Crawler.Core.Policies
             ICache cache,
             IRequestSender requestSender) : base(logger, cache, requestSender) { }
 
-        public void SetResponseStatus(Uri url, HttpStatusCode statusCode, DateTimeOffset? retryAfter)
+        public async Task SetResponseStatus(Uri url, HttpStatusCode statusCode, DateTimeOffset? retryAfter)
         {
-            var siteItem = GetSiteItem(url);
+            var siteItem = await GetSiteItemAsync(url);
 
             if (siteItem == null)
                 siteItem = NewSiteItem(
@@ -27,7 +27,7 @@ namespace Crawler.Core.Policies
                     statusCode,
                     retryAfter);
 
-            SetSiteItem(siteItem);
+            await SetSiteItemAsync(siteItem);
         }
     }
 }

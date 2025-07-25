@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Caching.Core;
 using Events.Core.Bus;
 using Logging.Core;
+using Requests.Core;
 using ScraperService;
 using Serilog;
 
@@ -12,7 +14,7 @@ namespace WebMapper.Cli
 {
     internal class ScraperService
     {
-        public async static Task ConfigureAsync(IEventBus eventBus)
+        public async static Task StartAsync(IEventBus eventBus)
         {
             var scraperLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
@@ -26,9 +28,14 @@ namespace WebMapper.Cli
                 scraperLoggerConfig
             );
 
-            var service = ScraperFactory.Create(scraperLogger, eventBus);
-            service.Start();
+            var cache = CacheFactory.CreateCache(
+                CacheOptions.InMemory,
+                scraperLogger);
 
+            var requestSender = RequestFactory.CreateRequestSender(
+                scraperLogger, cache);
+
+            ScraperFactory.Create(scraperLogger, eventBus, requestSender);
         }
     }
 }

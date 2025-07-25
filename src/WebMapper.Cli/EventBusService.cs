@@ -11,7 +11,7 @@ namespace WebMapper.Cli
 {
     internal class EventBusService
     {
-        public static IEventBus Configure()
+        public static IEventBus Start()
         {
             var eventLoggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Debug()
