@@ -19,7 +19,7 @@ namespace Service.Scraper.Tests
 
         private Uri _url;
         private string? _userAgent = null;
-        private string? _clientAccepts = null;
+        private string? _userAccepts = null;
 
         [SetUp]
         public void Setup()
@@ -32,9 +32,11 @@ namespace Service.Scraper.Tests
             var contentMaxBytes = 0;
 
             _requestSender.Setup(rs => rs.GetStringAsync(
-                _url, _userAgent, _clientAccepts, contentMaxBytes, CancellationToken.None))
+                _url, _userAgent, _userAccepts, contentMaxBytes, CancellationToken.None))
                 .ReturnsAsync(new RequestResponseItem()
                 {
+                    OriginalUrl = _url,
+                    RedirectedUrl = null,
                     Content = "<html></html>",
                     StatusCode = HttpStatusCode.OK,
                     ContentType = "text/html",
@@ -49,7 +51,7 @@ namespace Service.Scraper.Tests
         [Test]
         public async Task GetAsync_WithResponseCode_ReturnsScrapeResponseItem()
         {
-            var response = await _scraper.GetAsync(_url, _userAgent, _clientAccepts);
+            var response = await _scraper.GetAsync(_url, _userAgent, _userAccepts);
 
             Assert.IsNotNull(response);
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));

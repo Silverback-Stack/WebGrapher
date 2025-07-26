@@ -6,6 +6,6 @@ namespace Crawler.Core
 {
     public interface IPageCrawler
     {
-        Task CrawlPage(CrawlPageEvent evt);
+        Task EvaluatePageForCrawling(CrawlPageEvent evt);
     }
 }

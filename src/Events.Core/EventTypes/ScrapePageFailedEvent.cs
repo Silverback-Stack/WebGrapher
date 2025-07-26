@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Events.Core.EventTypes
 {
-    public record ScrapePageResultEvent
+    public record ScrapePageFailedEvent
     {
         public required CrawlPageEvent CrawlPageEvent { get; set; }
         public HttpStatusCode StatusCode {  get; set; }

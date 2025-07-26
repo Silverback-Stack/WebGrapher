@@ -19,7 +19,7 @@ namespace Events.Core.EventTypes
         public int Depth { get; set; }
         public IEnumerable<string>? PathFilters { get; set; }
         public string? UserAgent { get; set; }
-        public string? ClientAccepts { get; set; }
+        public string? UserAccepts { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
 
         private CrawlPageEvent() { }
@@ -41,7 +41,7 @@ namespace Events.Core.EventTypes
             MaxDepth = evt.MaxDepth;
             PathFilters = evt.PathFilters;
             UserAgent = evt.UserAgent;
-            ClientAccepts = evt.ClientAccepts;
+            UserAccepts = evt.UserAccepts;
             CreatedAt = DateTimeOffset.UtcNow;
         }
     }

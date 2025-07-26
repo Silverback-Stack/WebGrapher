@@ -40,7 +40,7 @@ namespace ScraperService
             var response = await GetAsync(
                 evt.CrawlPageEvent.Url,
                 evt.CrawlPageEvent.UserAgent,
-                evt.CrawlPageEvent.ClientAccepts);
+                evt.CrawlPageEvent.UserAccepts);
 
             if (response != null)
             {
@@ -57,7 +57,7 @@ namespace ScraperService
             ScrapePageEvent evt, 
             ScrapeResponseItem response)
         {
-            await _eventBus.PublishAsync(new ScrapePageResultEvent()
+            await _eventBus.PublishAsync(new ScrapePageFailedEvent()
             {
                 CrawlPageEvent = evt.CrawlPageEvent,
                 StatusCode = response.StatusCode,
@@ -81,7 +81,7 @@ namespace ScraperService
             });
         }
 
-        public abstract Task<ScrapeResponseItem?> GetAsync(Uri url, string? userAgent, string? clientAccept);
+        public abstract Task<ScrapeResponseItem?> GetAsync(Uri url, string? userAgent, string? userAccepts);
 
     }
 

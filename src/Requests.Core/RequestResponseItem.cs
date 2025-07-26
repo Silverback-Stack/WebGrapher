@@ -4,6 +4,8 @@ namespace Requests.Core
 {
     public record RequestResponseItem
     {
+        public required Uri OriginalUrl {  get; set; }
+        public Uri? RedirectedUrl { get; set; }
         public string? Content { get; init; }
         public string? ContentType { get; init; }
         public HttpStatusCode StatusCode { get; init; }

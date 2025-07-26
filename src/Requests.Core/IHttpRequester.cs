@@ -7,7 +7,7 @@ namespace Requests.Core
         Task<HttpResponseMessage?> GetAsync(
             Uri uri,
             string userAgent,
-            string acceptHeader,
+            string userAccepts,
             CancellationToken cancellationToken);
     }
 }
