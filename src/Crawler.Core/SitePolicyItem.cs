@@ -5,13 +5,12 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Crawler.Core.Policies
+namespace Crawler.Core
 {
-    public record SiteItem
+    public record SitePolicyItem
     {
-        public required Uri Url { get; set; }
-        public HttpStatusCode StatusCode { get; set; }
-        public string RobotsTxtContent { get; set; } = string.Empty;
+        public required string UrlAuthority { get; set; }
+        public string? RobotsTxtContent { get; set; }
         public DateTimeOffset FetchedAt { get; set; }
         public DateTimeOffset ExpiresAt { get; set; }
         public DateTimeOffset? RetryAfter { get; set; }

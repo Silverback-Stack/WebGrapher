@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Caching.Core;
-using Crawler.Core.Policies;
 using Events.Core.Bus;
 using Logging.Core;
 using Requests.Core;
@@ -19,12 +18,10 @@ namespace Crawler.Core
             ICache cache,
             IRequestSender requestSender)
         {
-            IHistoryPolicy historyPolicy = new HistoryPolicy(logger, cache, requestSender);
-            IRateLimitPolicy rateLimitPolicy = new RateLimitPolicy(logger, cache, requestSender);
-            IRobotsPolicy robotsPolicy = new RobotsPolicy(logger, cache, requestSender);
+            ISitePolicyResolver sitePolicyResolver = new SitePolicyResolver(logger, requestSender);
 
             var service = new PageCrawler(
-                logger, eventBus, cache, requestSender, historyPolicy, rateLimitPolicy, robotsPolicy);
+                logger, eventBus, cache, requestSender, sitePolicyResolver);
 
             service.SubscribeAll();
             return service;

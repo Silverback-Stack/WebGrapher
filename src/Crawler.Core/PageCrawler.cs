@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 using Caching.Core;
-using Crawler.Core.Policies;
+using Caching.Core.Helpers;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Logging.Core;
@@ -15,78 +15,66 @@ namespace Crawler.Core
         protected readonly ILogger _logger;
         protected readonly ICache _cache;
         protected readonly IRequestSender _requestSender;
-        protected readonly IHistoryPolicy _historyPolicy;
-        protected readonly IRateLimitPolicy _rateLimitPolicy;
-        protected readonly IRobotsPolicy _robotsPolicy;
+        protected readonly ISitePolicyResolver _sitePolicy;
 
         protected const int DEFAULT_MAX_CRAWL_DEPTH = 5;
+        protected const int SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES = 20;
 
         public PageCrawler(
-            ILogger logger, 
+            ILogger logger,
             IEventBus eventBus,
             ICache cache,
             IRequestSender requestSender,
-            IHistoryPolicy historyPolicy,
-            IRateLimitPolicy rateLimitPolicy,
-            IRobotsPolicy robotsPolicy)
+            ISitePolicyResolver sitePolicyResolver)
         {
             _eventBus = eventBus;
             _logger = logger;
             _cache = cache;
             _requestSender = requestSender;
-            _historyPolicy = historyPolicy;
-            _rateLimitPolicy = rateLimitPolicy;
-            _robotsPolicy = robotsPolicy;
+            _sitePolicy = sitePolicyResolver;
         }
 
         public void SubscribeAll()
         {
             _eventBus.Subscribe<CrawlPageEvent>(EventHandler);
-            _eventBus.Subscribe<ScrapePageResultEvent>(EventHandler);
+            _eventBus.Subscribe<ScrapePageFailedEvent>(EventHandler);
         }
 
         public void UnsubscribeAll()
         {
             _eventBus.Unsubscribe<CrawlPageEvent>(EventHandler);
-            _eventBus.Unsubscribe<ScrapePageResultEvent>(EventHandler);
+            _eventBus.Unsubscribe<ScrapePageFailedEvent>(EventHandler);
         }
 
         private async Task EventHandler(CrawlPageEvent evt)
         {
-            await CrawlPage(evt);
+            await EvaluatePageForCrawling(evt);
         }
-        private async Task EventHandler(ScrapePageResultEvent evt)
+        private async Task EventHandler(ScrapePageFailedEvent evt)
         {
-            await _historyPolicy.SetResponseStatus(
-                evt.CrawlPageEvent.Url,
-                evt.StatusCode,
-                evt.RetryAfter);
+            //when a scraped page returns response other than OK
+            //publish ScrapePageFailedEvent <- notice the rename to failed!
 
-            //need a better check for retry policy here - TooManyRequests is not exclusive (check already written function)
-            if (evt.StatusCode == HttpStatusCode.TooManyRequests)
-                await PublishCrawlPageEvent(evt.CrawlPageEvent, evt.RetryAfter);
+            //when a page fails for RateLimiting:
+            //get policy from cache
+            //update retry after <- only update if it is later than value currently set!!
+            //update modified date
+            //set policy to cache (only if data changed)
+
+            //if policy_isRateLimited:
+            //schedule page crawl event in the future!!
+            await PublishCrawlPageEvent(evt.CrawlPageEvent, evt.RetryAfter);
+                
         }
 
-        public async Task CrawlPage(CrawlPageEvent evt)
+        private async Task PublishScrapePageEvent(CrawlPageEvent evt)
         {
-            if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
-                return;
-
-            var rateLimit = await _rateLimitPolicy.IsRateLimitedAsync(evt.Url);
-            if (rateLimit.IsRateLimited)
+            await _eventBus.PublishAsync(new ScrapePageEvent
             {
-                await PublishCrawlPageEvent(evt, rateLimit.RetryAfter);
-                return;
-            }
-
-            if (await _robotsPolicy.IsAllowedAsync(evt.Url, evt.UserAgent) == false)
-                return;
-
-            await PublishScrapePageEvent(evt);
+                CrawlPageEvent = evt,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
         }
-
-        private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
-            currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_CRAWL_DEPTH);
 
         private async Task PublishCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
         {
@@ -98,13 +86,51 @@ namespace Crawler.Core
                     evt.Depth), retryAfter);
         }
 
-        private async Task PublishScrapePageEvent(CrawlPageEvent evt)
+        public async Task EvaluatePageForCrawling(CrawlPageEvent evt)
         {
-            await _eventBus.PublishAsync(new ScrapePageEvent
+            if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
+                return;
+
+            var sitePolicy = await GetSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts);
+
+            if (_sitePolicy.IsRateLimited(sitePolicy))
+                await PublishCrawlPageEvent(evt, sitePolicy.RetryAfter);
+
+            else if (await _sitePolicy.IsPermittedByRobotsTxt(
+                evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy))
+                await PublishScrapePageEvent(evt);
+
+            await SetSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy);
+        }
+        
+        private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
+            currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_CRAWL_DEPTH);
+
+        private async Task<SitePolicyItem> GetSitePolicyAsync(Uri url, string? userAgent, string? userAccepts)
+        {
+            var cacheKey = CacheKeyHelper.Generate(url, userAgent, userAccepts);
+            var sitePolicy = await _cache.GetAsync<SitePolicyItem?>(cacheKey);
+            if (sitePolicy == null)
             {
-                CrawlPageEvent = evt,
-                CreatedAt = DateTimeOffset.UtcNow
-            });
+                sitePolicy = new SitePolicyItem()
+                {
+                    UrlAuthority = url.Authority,
+                    FetchedAt = DateTimeOffset.UtcNow,
+                    ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES),
+                    RetryAfter = null,
+                    RobotsTxtContent = null
+                };
+            }
+            return sitePolicy;
+        }
+
+        private async Task SetSitePolicyAsync(Uri url, string? userAgent, string? userAccepts, SitePolicyItem? sitePolicy)
+        {
+            if (sitePolicy != null) {
+                var cacheKey = CacheKeyHelper.Generate(url, userAgent, userAccepts);
+                var expiryDuration = TimeSpan.FromMinutes(SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES);
+                await _cache.SetAsync<SitePolicyItem>(cacheKey, sitePolicy, expiryDuration);
+            }
         }
 
     }

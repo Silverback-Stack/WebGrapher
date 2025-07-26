@@ -22,7 +22,7 @@ namespace Caching.Core
             if (item == null)
                 _logger.LogInformation($"Cache Miss: {key} was not found in the cache.");
             else
-                _logger.LogInformation($"Cache Hit: {key} was found in the cache.");
+                _logger.LogInformation($"Cache Hit: {key} was found in the cache.", context: item);
 
             return item;
         }
@@ -37,9 +37,9 @@ namespace Caching.Core
             var item = _cache.Set(key, value, options);
 
             if (item == null)
-                _logger.LogInformation($"Cache Set Failed: {key} was not stored to the cache.");
+                _logger.LogInformation($"Cache Set Failed: {key} was not stored to the cache.", context: item);
             else
-                _logger.LogInformation($"Cache Set: {key} was stored to the cache.");
+                _logger.LogInformation($"Cache Set: {key} was stored to the cache.", context: item);
         }
 
         public async Task RemoveAsync(string key)

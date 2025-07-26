@@ -8,7 +8,7 @@ namespace Requests.Core
         Task<RequestResponseItem?> GetStringAsync(
             Uri url, 
             string? userAgent, 
-            string? clientAccepts, 
+            string? userAccepts, 
             int contentMaxBytes = 0,
             CancellationToken cancellationToken = default);
     }

@@ -13,8 +13,9 @@ namespace Requests.Core
         /// Transforms HttpResponseMessage into RequestResponseItem dto.
         /// </summary>
         public async Task<RequestResponseItem> TransformAsync(
+            Uri url,
             HttpResponseMessage response, 
-            string clientAccepts, 
+            string userAccepts, 
             int contentMaxBytes = 0, 
             CancellationToken cancellationToken = default)
         {
@@ -23,13 +24,15 @@ namespace Requests.Core
             }
 
             string? content = null;
+            var originalUrl = url;
+            var redirectedUrl = response.RequestMessage?.RequestUri;
             var statusCode = response.StatusCode;
             var contentType = response.Content?.Headers?.ContentType?.MediaType;
             var lastModified = response.Content?.Headers?.LastModified?.UtcDateTime ?? DateTimeOffset.UtcNow;
             var expires = response.Content?.Headers?.Expires;
             var retryAfter = GetRetryAfterOffset(response.StatusCode, response?.Headers?.RetryAfter);
 
-            if (!IsContentAcceptable(contentType, clientAccepts))
+            if (!IsContentAcceptable(contentType, userAccepts))
                 statusCode = HttpStatusCode.NotAcceptable;
 
             if (statusCode != HttpStatusCode.OK)
@@ -39,6 +42,8 @@ namespace Requests.Core
 
             return new RequestResponseItem
             {
+                OriginalUrl = originalUrl,
+                RedirectedUrl = redirectedUrl,
                 Content = content,
                 ContentType = contentType,
                 StatusCode = statusCode,
@@ -77,12 +82,12 @@ namespace Requests.Core
             return null;
         }
 
-        public static bool IsContentAcceptable(string? contentType, string clientAccepts)
+        public static bool IsContentAcceptable(string? contentType, string userAccepts)
         {
-            if (string.IsNullOrEmpty(contentType) || string.IsNullOrEmpty(clientAccepts))
+            if (string.IsNullOrEmpty(contentType) || string.IsNullOrEmpty(userAccepts))
                 return false;
 
-            return clientAccepts.Split(',')
+            return userAccepts.Split(',')
                 .Any(s => MediaTypeWithQualityHeaderValue
                     .TryParse(s, out var v) && (v.MediaType == "*/*" || v.MediaType == contentType || v.MediaType
                         .EndsWith("/*") && contentType

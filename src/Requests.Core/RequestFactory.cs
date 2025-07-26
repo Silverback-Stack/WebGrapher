@@ -8,7 +8,13 @@ namespace Requests.Core
     {
         public static IRequestSender CreateRequestSender(ILogger logger, ICache cache)
         {
-            IHttpRequester httpRequester = new HttpClientAdapter(new HttpClient());
+            var handler = new HttpClientHandler
+            {
+                AllowAutoRedirect = true,
+                MaxAutomaticRedirections = 5
+            };
+            IHttpRequester httpRequester = new HttpClientAdapter(new HttpClient(handler));
+
             IRequestTransformer requestTransformer = new RequestTransformer();
 
             return new RequestSender(logger, cache, httpRequester, requestTransformer);
