@@ -9,10 +9,11 @@ namespace Crawler.Core
 {
     public record SitePolicyItem
     {
-        public required string UrlAuthority { get; set; }
-        public string? RobotsTxtContent { get; set; }
-        public DateTimeOffset FetchedAt { get; set; }
-        public DateTimeOffset ExpiresAt { get; set; }
-        public DateTimeOffset? RetryAfter { get; set; }
+        public required string UrlAuthority { get; init; }
+        public string? RobotsTxtContent { get; init; }
+        public DateTimeOffset CreatedAt { get; init; }
+        public DateTimeOffset ExpiresAt { get; init; }
+        public DateTimeOffset ModifiedAt { get; init; }
+        public DateTimeOffset? RetryAfter { get; init; }
     }
 }

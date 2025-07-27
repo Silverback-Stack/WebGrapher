@@ -25,10 +25,10 @@ namespace Requests.Core
             _requestTransformer = requestTransformer;
         }
 
-        public async Task<RequestResponseItem?> GetStringAsync(Uri url, CancellationToken cancellationToken = default) =>
+        public async Task<ResponseEnvelope<ResponseItem>?> GetStringAsync(Uri url, CancellationToken cancellationToken = default) =>
             await GetStringAsync(url, userAgent: string.Empty, userAccepts: string.Empty, contentMaxBytes: 0, cancellationToken);
 
-        public async Task<RequestResponseItem?> GetStringAsync(
+        public async Task<ResponseEnvelope<ResponseItem>?> GetStringAsync(
             Uri url, 
             string? userAgent, 
             string? userAccepts, 
@@ -44,20 +44,24 @@ namespace Requests.Core
             try
             {
                 var cacheKey = CacheKeyHelper.Generate(url, userAgent, userAccepts);
-                var cachedItem = await _cache.GetAsync<RequestResponseItem>(cacheKey);
-                if (cachedItem != null) return cachedItem;
-
+                var cachedItem = await _cache.GetAsync<ResponseItem>(cacheKey);
+                if (cachedItem != null)
+                {
+                    _logger.LogInformation($"Get: {url.AbsoluteUri} Status: Cached");
+                    return new ResponseEnvelope<ResponseItem>(cachedItem, IsFromCache: true);
+                }
+                    
                 var response = await _httpRequester.GetAsync(url, userAgent, userAccepts, cancellationToken);
                 var responseItem = await _requestTransformer.TransformAsync(url, response, userAccepts, contentMaxBytes, cancellationToken);
 
-                _logger.LogInformation($"Get: {url.AbsoluteUri} Status Code: {responseItem.StatusCode}");
+                _logger.LogInformation($"Get: {url.AbsoluteUri} Status: {responseItem.StatusCode}");
 
                 await _cache.SetAsync(
                     cacheKey, 
                     responseItem, 
                     CacheDurationHelper.Clamp(responseItem?.Expires));
 
-                return responseItem;
+                return new ResponseEnvelope<ResponseItem>(responseItem, IsFromCache: false);
             }
             catch (Exception ex)
             {

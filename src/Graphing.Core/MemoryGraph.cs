@@ -46,7 +46,7 @@ namespace Graphing.Core
             }
 
             var node = AddNode(
-                        evt.CrawlPageEvent.Url.AbsoluteUri,
+                        evt.Url.AbsoluteUri,
                         evt.Title,
                         evt.Keywords,
                         evt.SourceLastModified,
@@ -64,11 +64,13 @@ namespace Graphing.Core
 
                 if (!IsNodePopulated(edge))
                 {
+                    var depth = evt.CrawlPageEvent.Depth + 1;
+
                     var crawlPageEvent = new CrawlPageEvent(
                         evt.CrawlPageEvent, 
                         edgeUri,
                         attempt: 1,
-                        evt.CrawlPageEvent.Depth++);
+                        depth);
 
                     await _eventBus.PublishAsync(crawlPageEvent);
                 }

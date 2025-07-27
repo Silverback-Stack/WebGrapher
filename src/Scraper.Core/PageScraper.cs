@@ -21,13 +21,15 @@ namespace Scraper.Core
                 clientAccept,
                 DEFAULT_CONTENT_MAX_BYTES);
 
-            if (response != null) { 
+            if (response?.Data != null) { 
                 return new ScrapeResponseItem()
                 {
-                    Content = response.Content ?? string.Empty,
-                    StatusCode = response.StatusCode,
-                    LastModified = response.LastModified,
-                    RetryAfter = response.RetryAfter
+                    Url = response.Data.Url,
+                    Content = response.Data.Content ?? string.Empty,
+                    StatusCode = response.Data.StatusCode,
+                    LastModified = response.Data.LastModified,
+                    RetryAfter = response.Data.RetryAfter,
+                    IsFromCache = response.IsFromCache
                 };
             }
 

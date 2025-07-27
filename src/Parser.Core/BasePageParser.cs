@@ -33,23 +33,27 @@ namespace ParserService
 
         private async Task EventHandler(ParsePageEvent evt)
         {
-            var pageDto = Parse(evt.HtmlContent);
+            var pageItem = Parse(evt.Content);
 
-            if (pageDto != null)
+            if (pageItem != null)
             {
                 await _eventBus.PublishAsync(new NormalisePageEvent
                 {
                     CrawlPageEvent = evt.CrawlPageEvent,
-                    Title = pageDto.Title,
-                    Keywords = pageDto.Content,
-                    Links = pageDto.Links,
+                    Url = evt.Url,
+                    Title = pageItem.Title,
+                    Keywords = pageItem.Content,
+                    Links = pageItem.Links,
                     CreatedAt = DateTimeOffset.UtcNow,
                     StatusCode = evt.StatusCode,
                     LastModified = evt.LastModified
                 });
+
+                var linkType = evt.CrawlPageEvent.FollowExternalLinks ? "external" : "internal";
+                _logger.LogInformation($"Parsed Page: {evt.Url} found {pageItem.Links.Count()} {linkType} links");
             }
         }
 
-        public abstract Page Parse(string content);
+        public abstract PageItem Parse(string content);
     }
 }

@@ -14,12 +14,13 @@ namespace WebMapper.Cli
     {
         public static async Task StartAsync(IEventBus eventBus)
         {
-            using var normalisationLoggerConfig = new LoggerConfiguration()
+            var normalisationLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/normalisation.log", rollingInterval: RollingInterval.Day)
+                    .WriteTo.Console(Serilog.Events.LogEventLevel.Information)
                     .CreateLogger();
 
-            using var normalisationLogger = LoggerFactory.CreateLogger(
+            var normalisationLogger = LoggerFactory.CreateLogger(
                 "NormalisationService",
                 LoggerOptions.Serilog,
                 normalisationLoggerConfig

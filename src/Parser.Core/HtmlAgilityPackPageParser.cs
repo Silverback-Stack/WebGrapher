@@ -14,12 +14,12 @@ namespace ParserService
     {
         public HtmlAgilityPackPageParser(ILogger logger, IEventBus eventBus) : base(logger, eventBus) { }
 
-        public override Page Parse(string content)
+        public override PageItem Parse(string content)
         {
             var htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(content);
 
-            return new Page
+            return new PageItem
             {
                 Title = ExtractTitle(htmlDocument),
                 Content = ExtractContentAsPlainText(htmlDocument),

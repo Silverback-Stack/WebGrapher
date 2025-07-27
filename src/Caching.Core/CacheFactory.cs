@@ -5,12 +5,12 @@ namespace Caching.Core
 {
     public static class CacheFactory
     {
-        public static ICache CreateCache(CacheOptions options, ILogger logger)
+        public static ICache CreateCache(string serviceName, CacheOptions options, ILogger logger)
         {
             switch (options)
             {
                 case CacheOptions.InMemory:
-                    return new MemoryCacheAdapter(logger);
+                    return new MemoryCacheAdapter(serviceName, logger);
 
                 case CacheOptions.Redis:
                     throw new NotImplementedException();
