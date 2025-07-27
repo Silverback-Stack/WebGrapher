@@ -5,6 +5,6 @@ namespace ParserService
 {
     public interface IPageParser
     {
-        Page Parse(string content);
+        PageItem Parse(string content);
     }
 }

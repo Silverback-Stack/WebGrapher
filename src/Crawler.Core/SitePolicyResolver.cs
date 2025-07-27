@@ -41,7 +41,10 @@ namespace Crawler.Core
                 userAgent,
                 userAccepts);
 
-            sitePolicyItem.RobotsTxtContent = response?.Content;
+            sitePolicyItem = sitePolicyItem with
+            {
+                RobotsTxtContent = response?.Data?.Content
+            };
 
             return sitePolicyItem;
         }

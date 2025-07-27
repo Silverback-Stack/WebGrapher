@@ -12,9 +12,9 @@ namespace Requests.Core
         /// <summary>
         /// Transforms HttpResponseMessage into RequestResponseItem dto.
         /// </summary>
-        public async Task<RequestResponseItem> TransformAsync(
+        public async Task<ResponseItem> TransformAsync(
             Uri url,
-            HttpResponseMessage response, 
+            HttpResponseMessage? response, 
             string userAccepts, 
             int contentMaxBytes = 0, 
             CancellationToken cancellationToken = default)
@@ -24,25 +24,24 @@ namespace Requests.Core
             }
 
             string? content = null;
-            var originalUrl = url;
-            var redirectedUrl = response.RequestMessage?.RequestUri;
             var statusCode = response.StatusCode;
             var contentType = response.Content?.Headers?.ContentType?.MediaType;
             var lastModified = response.Content?.Headers?.LastModified?.UtcDateTime ?? DateTimeOffset.UtcNow;
             var expires = response.Content?.Headers?.Expires;
             var retryAfter = GetRetryAfterOffset(response.StatusCode, response?.Headers?.RetryAfter);
+            var redirectedUrl = response?.RequestMessage?.RequestUri;
 
             if (!IsContentAcceptable(contentType, userAccepts))
                 statusCode = HttpStatusCode.NotAcceptable;
 
-            if (statusCode != HttpStatusCode.OK)
+            if (statusCode == HttpStatusCode.OK)
             {
-                content = await ReadAsStringAsync(response.Content, contentMaxBytes, cancellationToken);
+                content = await ReadAsStringAsync(response?.Content, contentMaxBytes, cancellationToken);
             }
 
-            return new RequestResponseItem
+            return new ResponseItem
             {
-                OriginalUrl = originalUrl,
+                OriginalUrl = url,
                 RedirectedUrl = redirectedUrl,
                 Content = content,
                 ContentType = contentType,

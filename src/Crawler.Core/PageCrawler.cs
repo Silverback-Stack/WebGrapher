@@ -52,19 +52,7 @@ namespace Crawler.Core
         }
         private async Task EventHandler(ScrapePageFailedEvent evt)
         {
-            //when a scraped page returns response other than OK
-            //publish ScrapePageFailedEvent <- notice the rename to failed!
-
-            //when a page fails for RateLimiting:
-            //get policy from cache
-            //update retry after <- only update if it is later than value currently set!!
-            //update modified date
-            //set policy to cache (only if data changed)
-
-            //if policy_isRateLimited:
-            //schedule page crawl event in the future!!
-            await PublishCrawlPageEvent(evt.CrawlPageEvent, evt.RetryAfter);
-                
+            await RetryPageCrawl(evt);
         }
 
         private async Task PublishScrapePageEvent(CrawlPageEvent evt)
@@ -76,7 +64,7 @@ namespace Crawler.Core
             });
         }
 
-        private async Task PublishCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
+        private async Task PublishScheduledCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
         {
             var attempt = evt.Attempt + 1;
             await _eventBus.PublishAsync(new CrawlPageEvent(
@@ -84,6 +72,31 @@ namespace Crawler.Core
                     evt.Url,
                     attempt,
                     evt.Depth), retryAfter);
+        }
+
+        private async Task RetryPageCrawl(ScrapePageFailedEvent evt)
+        {
+            if (evt.RetryAfter is null) return;
+
+            var sitePolicy = await GetSitePolicyAsync(
+                    evt.CrawlPageEvent.Url, evt.CrawlPageEvent.UserAgent, evt.CrawlPageEvent.UserAccepts);
+
+            if (sitePolicy.RetryAfter is not null &&
+                sitePolicy.RetryAfter < evt.RetryAfter)
+            {
+                sitePolicy = sitePolicy with
+                {
+                    RetryAfter = evt.RetryAfter,
+                    ModifiedAt = DateTimeOffset.UtcNow
+                };
+            };
+
+            await SetSitePolicyAsync(evt.CrawlPageEvent.Url, evt.CrawlPageEvent.UserAgent, evt.CrawlPageEvent.UserAccepts, sitePolicy);
+
+            //schedule future page crawl event honoring site RetryAfter requirement
+            await PublishScheduledCrawlPageEvent(evt.CrawlPageEvent, evt.RetryAfter);
+
+            _logger.LogInformation($"Crawl Scheduled: {evt.CrawlPageEvent.Url} has been scheduled to be crawled at {evt.RetryAfter.Value:HH:mm}.");
         }
 
         public async Task EvaluatePageForCrawling(CrawlPageEvent evt)
@@ -94,7 +107,7 @@ namespace Crawler.Core
             var sitePolicy = await GetSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts);
 
             if (_sitePolicy.IsRateLimited(sitePolicy))
-                await PublishCrawlPageEvent(evt, sitePolicy.RetryAfter);
+                await PublishScheduledCrawlPageEvent(evt, sitePolicy.RetryAfter);
 
             else if (await _sitePolicy.IsPermittedByRobotsTxt(
                 evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy))
@@ -115,7 +128,8 @@ namespace Crawler.Core
                 sitePolicy = new SitePolicyItem()
                 {
                     UrlAuthority = url.Authority,
-                    FetchedAt = DateTimeOffset.UtcNow,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    ModifiedAt = DateTimeOffset.UtcNow,
                     ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES),
                     RetryAfter = null,
                     RobotsTxtContent = null

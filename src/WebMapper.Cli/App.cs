@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Events.Core.Bus;
@@ -87,19 +88,25 @@ namespace WebMapper.Cli
         private async Task SubmitUrl(Uri url)
         {
             var crawlPageEvent = new CrawlPageEvent(
-                url, 
-                containerId: Guid.Parse("00000000-0000-0000-0000-000000000001"), 
-                correlationId: Guid.NewGuid());
+                url,
+                containerId: Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                correlationId: Guid.NewGuid(),
+                followExternalLinks: false,
+                removeQueryStrings: true,
+                maxDepth: 5,
 
-            crawlPageEvent.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
-            crawlPageEvent.UserAccepts = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
+                //https://www.themoviedb.org/movie/
+                pathFilters: new string[] { "/movie/", "/tv/", "/person/" },
 
-            //crawlPageEvent.PathFilters = new string[] { "/movie/", "/tv/", "/person/" }; //https://www.themoviedb.org/movie/
-            //crawlPageEvent.PathFilters = new string[] { "/artist/", "/album/", "/track/" }; //https://www.theaudiodb.com/chart_artists
-            crawlPageEvent.PathFilters = new string[] { "/title/", "/name/" }; //https://www.imdb.com/
-            crawlPageEvent.FollowExternalLinks = false;
-            crawlPageEvent.RemoveQueryStrings = true;
-            crawlPageEvent.MaxDepth = 5;
+                //https://www.theaudiodb.com/chart_artists
+                //pathFilters: new string[] { "/artist/", "/album/", "/track/" }; 
+
+                //https://www.imdb.com/
+                //pathFilters: new string[] { "/title/", "/name/" }; 
+
+                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+                userAccepts: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+                );
 
             await _eventBus.PublishAsync(crawlPageEvent);
         }

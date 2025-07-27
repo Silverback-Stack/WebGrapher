@@ -19,7 +19,7 @@ namespace WebMapper.Cli
             var crawlerLoggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File("logs/crawler.log", rollingInterval: RollingInterval.Day)
-                .WriteTo.Console()
+                .WriteTo.Console(Serilog.Events.LogEventLevel.Information)
                 .CreateLogger();
 
             var crawlerLogger = LoggerFactory.CreateLogger(
@@ -29,6 +29,7 @@ namespace WebMapper.Cli
             );
 
             var cache = CacheFactory.CreateCache(
+                "CrawlerService",
                 CacheOptions.InMemory,
                 crawlerLogger);
 

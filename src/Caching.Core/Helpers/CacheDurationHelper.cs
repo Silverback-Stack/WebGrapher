@@ -8,7 +8,7 @@ namespace Caching.Core.Helpers
 {
     public static class CacheDurationHelper
     {
-        private const int DEFAULT_MAX_ABSOLUTE_EXPIRY_MINUTES = 5;
+        private const int DEFAULT_MAX_ABSOLUTE_EXPIRY_MINUTES = 20;
 
         /// <summary>
         /// Clamps the expiry duration to the maximul value specified.
@@ -18,10 +18,12 @@ namespace Caching.Core.Helpers
         {
             if (!expires.HasValue) return null;
 
+            if (expires <= DateTimeOffset.UtcNow) return null;
+
             var cacheDuration = expires.Value - DateTimeOffset.UtcNow;
             var maxDuration = TimeSpan.FromMinutes(maxDurationInMinutes);
 
-            //override servers expires header if greater than our own
+            //override expires if greater than our own
             if (cacheDuration > maxDuration)
                 cacheDuration = maxDuration;
 

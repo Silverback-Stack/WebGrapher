@@ -16,7 +16,7 @@ namespace WebMapper.Cli
             var eventLoggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File("logs/eventbus.log", rollingInterval: RollingInterval.Day)
-                .WriteTo.Console()
+                .WriteTo.Console(Serilog.Events.LogEventLevel.Information)
                 .CreateLogger();
 
             var eventLogger = LoggerFactory.CreateLogger(

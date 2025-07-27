@@ -29,7 +29,7 @@ namespace Events.Core.Bus
         }
         public override void Dispose()
         {
-            _logger.LogInformation($"Disposing: {typeof(MemoryEventBusAdapter).Name}, handlers cleared.");
+            _logger.LogDebug($"Disposing: {typeof(MemoryEventBusAdapter).Name}, handlers cleared.");
             _handlers.Clear();
         }
 
@@ -67,7 +67,7 @@ namespace Events.Core.Bus
 
             if (delay > TimeSpan.Zero)
             {
-                _logger.LogInformation($"Event scheduled: {typeof(TEvent).Name}, will be published after {delay.TotalSeconds} seconds.");
+                _logger.LogDebug($"Event scheduled: {typeof(TEvent).Name}, will be published after {delay.TotalSeconds} seconds.");
                 await Task.Delay(delay, cancellationToken);
             }
 
@@ -76,7 +76,7 @@ namespace Events.Core.Bus
                 foreach (var handler in subscribers.Cast<Func<TEvent, Task>>())
                 {
                     _ = handler(@event); // fire-and-forget; can choose to await if you want sequential
-                    _logger.LogInformation($"Event published: {typeof(TEvent).Name}");
+                    _logger.LogDebug($"Event published: {typeof(TEvent).Name}");
                 }
             }
         }

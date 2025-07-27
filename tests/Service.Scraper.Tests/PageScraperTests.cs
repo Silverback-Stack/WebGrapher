@@ -31,19 +31,36 @@ namespace Service.Scraper.Tests
             _url = new Uri("http://example.com/page.html");
             var contentMaxBytes = 0;
 
-            _requestSender.Setup(rs => rs.GetStringAsync(
-                _url, _userAgent, _userAccepts, contentMaxBytes, CancellationToken.None))
-                .ReturnsAsync(new RequestResponseItem()
+            var reponse = new ResponseEnvelope<ResponseItem>(
+                new ResponseItem()
                 {
                     OriginalUrl = _url,
                     RedirectedUrl = null,
                     Content = "<html></html>",
-                    StatusCode = HttpStatusCode.OK,
                     ContentType = "text/html",
+                    StatusCode = HttpStatusCode.OK,
                     Expires = DateTimeOffset.UtcNow.AddDays(1),
                     LastModified = DateTimeOffset.UtcNow,
                     RetryAfter = null
-                });
+                },
+                false);
+
+            _requestSender.Setup(rs => rs.GetStringAsync(
+                _url, _userAgent, _userAccepts, contentMaxBytes, CancellationToken.None))
+                .ReturnsAsync(
+                    new ResponseEnvelope<ResponseItem>(
+                        new ResponseItem()
+                        {
+                            OriginalUrl = _url,
+                            RedirectedUrl = null,
+                            Content = "<html></html>",
+                            ContentType = "text/html",
+                            StatusCode = HttpStatusCode.OK,
+                            Expires = DateTimeOffset.UtcNow.AddDays(1),
+                            LastModified = DateTimeOffset.UtcNow,
+                            RetryAfter = null
+                        },
+                        IsFromCache: false));
 
             _scraper = new PageScraper(_logger.Object, _eventBus.Object, _requestSender.Object);
         }

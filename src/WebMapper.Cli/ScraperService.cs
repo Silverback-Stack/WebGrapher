@@ -19,7 +19,7 @@ namespace WebMapper.Cli
             var scraperLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/scraper.log", rollingInterval: RollingInterval.Day)
-                    .WriteTo.Console()
+                    .WriteTo.Console(Serilog.Events.LogEventLevel.Information)
                     .CreateLogger();
 
             var scraperLogger = LoggerFactory.CreateLogger(
@@ -29,6 +29,7 @@ namespace WebMapper.Cli
             );
 
             var cache = CacheFactory.CreateCache(
+                "ScraperService",
                 CacheOptions.InMemory,
                 scraperLogger);
 

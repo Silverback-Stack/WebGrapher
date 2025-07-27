@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Logging.Core;
@@ -37,23 +34,27 @@ namespace ScraperService
 
         private async Task EventHandler(ScrapePageEvent evt)
         {
-            var response = await GetAsync(
+            var scrapeResponseItem = await GetAsync(
                 evt.CrawlPageEvent.Url,
                 evt.CrawlPageEvent.UserAgent,
                 evt.CrawlPageEvent.UserAccepts);
 
-            if (response != null)
-            {
-                await PublishScrapePageResultEvent(evt, response);
+            if (scrapeResponseItem is null)
+                return;
 
-                if (response.StatusCode == HttpStatusCode.OK)
-                    await PublishParsePageEvent(evt, response);
+            if (scrapeResponseItem.StatusCode != HttpStatusCode.OK)
+            {
+                await PublishScrapePageFailedEvent(evt, scrapeResponseItem);
+                return;
             }
 
-            await Task.CompletedTask;
+            if (!scrapeResponseItem.IsFromCache)
+            {
+                await PublishParsePageEvent(evt, scrapeResponseItem);
+            }
         }
 
-        private async Task PublishScrapePageResultEvent(
+        private async Task PublishScrapePageFailedEvent(
             ScrapePageEvent evt, 
             ScrapeResponseItem response)
         {
@@ -68,16 +69,17 @@ namespace ScraperService
         }
 
         private async Task PublishParsePageEvent(
-            ScrapePageEvent evt,
-            ScrapeResponseItem response)
+            ScrapePageEvent scrapeEvent,
+            ScrapeResponseItem scrapeResponse)
         {
             await _eventBus.PublishAsync(new ParsePageEvent
             {
-                CrawlPageEvent = evt.CrawlPageEvent,
-                CreatedAt = DateTimeOffset.UtcNow,
-                HtmlContent = response.Content,
-                LastModified = response.LastModified,
-                StatusCode = response.StatusCode
+                CrawlPageEvent = scrapeEvent.CrawlPageEvent,
+                Url = scrapeResponse.Url,
+                Content = scrapeResponse.Content,
+                LastModified = scrapeResponse.LastModified,
+                StatusCode = scrapeResponse.StatusCode,
+                CreatedAt = DateTimeOffset.UtcNow
             });
         }
 

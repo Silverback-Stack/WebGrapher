@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,31 +10,46 @@ namespace Events.Core.EventTypes
 {
     public record CrawlPageEvent
     {
-        public Uri Url { get; set; }
-        public int Attempt { get; set; }
-        public Guid ContainerId { get; set; }
-        public Guid CorrelationId { get; set; }
-        public bool FollowExternalLinks { get; set; }
-        public bool RemoveQueryStrings { get; set; }
-        public int MaxDepth { get; set; }
-        public int Depth { get; set; }
-        public IEnumerable<string>? PathFilters { get; set; }
-        public string? UserAgent { get; set; }
-        public string? UserAccepts { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
+        public Uri Url { get; init; }
+        public Guid ContainerId { get; init; }
+        public Guid CorrelationId { get; init; }
+        public bool FollowExternalLinks { get; init; }
+        public bool RemoveQueryStrings { get; init; }
+        public int MaxDepth { get; init; }
+        public int Depth { get; init; }
+        public IEnumerable<string>? PathFilters { get; init; }
+        public string? UserAgent { get; init; }
+        public string? UserAccepts { get; init; }
+        public DateTimeOffset CreatedAt { get; init; }
+        public int Attempt {  get; init; }
 
         private CrawlPageEvent() { }
 
-        public CrawlPageEvent(Uri url, Guid containerId, Guid correlationId) { 
+        public CrawlPageEvent(
+            Uri url, 
+            Guid containerId, 
+            Guid correlationId, 
+            bool followExternalLinks,
+            bool removeQueryStrings,
+            int maxDepth,
+            IEnumerable<string>? pathFilters,
+            string? userAgent,
+            string? userAccepts) { 
+
             Url = url;
             ContainerId = containerId;
             CorrelationId = correlationId;
+            FollowExternalLinks = followExternalLinks;
+            RemoveQueryStrings = removeQueryStrings;
+            MaxDepth = maxDepth;
+            PathFilters = pathFilters;
+            UserAgent = userAgent;
+            UserAccepts = userAccepts;
         }
 
         public CrawlPageEvent(CrawlPageEvent evt, Uri url, int attempt, int depth) 
         {
             Url = url;
-            Attempt = attempt;
             Depth = depth;
             ContainerId = evt.ContainerId;
             CorrelationId = evt.CorrelationId;
@@ -43,6 +59,7 @@ namespace Events.Core.EventTypes
             UserAgent = evt.UserAgent;
             UserAccepts = evt.UserAccepts;
             CreatedAt = DateTimeOffset.UtcNow;
+            Attempt = attempt;
         }
     }
 }

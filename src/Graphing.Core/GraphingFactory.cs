@@ -12,7 +12,9 @@ namespace Graphing.Core
     {
         public static IGraph Create(ILogger logger, IEventBus eventBus)
         {
-            return new MemoryGraph(logger, eventBus);
+            var service = new MemoryGraph(logger, eventBus);
+            service.SubscribeAll();
+            return service;
         }
     }
 }
