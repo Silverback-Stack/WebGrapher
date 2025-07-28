@@ -99,10 +99,11 @@ namespace WebMapper.Cli
                 //pathFilters: new string[] { "/movie/", "/tv/", "/person/" },
 
                 //https://www.theaudiodb.com/chart_artists
-                //pathFilters: new string[] { "/artist/", "/album/", "/track/" }; 
+                //pathFilters: new string[] { "/artist/", "/album/", "/track/" },
+                pathFilters: new string[] { "/artist/", "/album/" },
 
                 //https://www.imdb.com/
-                pathFilters: new string[] { "/title/", "/name/" }; 
+                //pathFilters: new string[] { "/title/", "/name/" },
 
                 userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
                 userAccepts: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"

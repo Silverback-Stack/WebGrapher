@@ -18,26 +18,30 @@ namespace Crawler.Core
             _requestSender = requestSender;
         }
 
-        public bool IsRateLimited(SitePolicyItem sitePolicyItem)
+        public bool IsRateLimited(SitePolicyItem policy)
         {
-            return sitePolicyItem.RetryAfter is not null && 
-                DateTimeOffset.UtcNow < sitePolicyItem.RetryAfter;
+            return policy.IsRateLimited;
         }
 
-        public bool IsPermittedByRobotsTxt(Uri url, string? userAgent, SitePolicyItem sitePolicyItem)
+        public SitePolicyItem MergePolicies(SitePolicyItem existingPolicy, SitePolicyItem newPolicy)
         {
-            if (string.IsNullOrWhiteSpace(sitePolicyItem.RobotsTxtContent))
+            return existingPolicy.MergePolicy(newPolicy);
+        }
+
+        public bool IsPermittedByRobotsTxt(Uri url, string? userAgent, SitePolicyItem policy)
+        {
+            if (string.IsNullOrWhiteSpace(policy.RobotsTxtContent)) 
                 return true;
 
-            if (userAgent == null) userAgent = string.Empty;
+            if (string.IsNullOrWhiteSpace(userAgent))
+            {
+                throw new ArgumentException("UserAgent is required to check against RobotsTxt.");
+            }
 
             var robots = new RobotsTxt();
-            robots.Load(sitePolicyItem.RobotsTxtContent);
+            robots.Load(policy.RobotsTxtContent);
 
             var isAllowed = robots.IsAllowed(userAgent, url.AbsolutePath);
-
-            if (!isAllowed)
-                _logger.LogInformation($"Policy denied: RobotsTxt policy denied access to {url} for agent {userAgent}");
 
             return isAllowed;
         }

@@ -65,7 +65,6 @@ namespace Crawler.Core
                     evt.Url,
                     attempt,
                     evt.Depth), retryAfter);
-            _logger.LogInformation($"Rate Limited: {evt.Url} will be crawled after {retryAfter?.ToString("HH:mm:ss")} with attempt {attempt}.");
         }
 
         private async Task HandleCrawlPageEvent(CrawlPageEvent evt)
@@ -77,39 +76,46 @@ namespace Crawler.Core
             await RetryPageCrawl(evt);
         }
 
-
+        /// <summary>
+        /// Evaluates whether the page can be crawled based on retry limits, depth,
+        /// rate limiting, and robots.txt permissions. If allowed, publishes a scrape event.
+        /// </summary>
         public async Task EvaluatePageForCrawling(CrawlPageEvent evt)
         {
-            if (HasReachedMaxAttempt(evt.Attempt) || 
-                HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
-                return; //TODO: Log inforamtiont hat request was abandoned due to either attempts or link depth
+            if (HasExhaustedRetries(evt.Attempt))
+            {
+                _logger.LogInformation($"Abandoned: {evt.Url} reached the maximum number of retry attempts.");
+                return;
+            }
+
+            if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
+            {
+                _logger.LogInformation($"Stopped: {evt.Url} reached the maximum link depth to crawl and was stopped.");
+                return;
+            }
 
             var sitePolicy = await GetOrCreateSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts);
 
+            //Is Site Rate Limited
             if (_sitePolicy.IsRateLimited(sitePolicy))
             {
+                _logger.LogInformation($"Rate Limited: {evt.Url} will be crawled after {sitePolicy.RetryAfter?.ToString("HH:mm:ss")} with attempt {evt.Attempt}.");
+
                 await PublishScheduledCrawlPageEvent(evt, sitePolicy.RetryAfter);
-            }
-            else
-            {
-                var robotsTxt = sitePolicy.RobotsTxtContent;
-                if (robotsTxt is null)
-                {
-                    robotsTxt = await _sitePolicy.GetRobotsTxtContentAsync(evt.Url, evt.UserAgent, evt.UserAccepts);
-                    sitePolicy = sitePolicy with
-                    {
-                        RobotsTxtContent = robotsTxt
-                    };
-                }
-                if (_sitePolicy.IsPermittedByRobotsTxt(
-                    evt.Url, evt.UserAgent, sitePolicy))
-                {
-                    await PublishScrapePageEvent(evt);
-                }
+                await SetSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy);
+                return;
             }
 
-            await SetSitePolicyAsync(
-                evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy);
+            if (_sitePolicy.IsPermittedByRobotsTxt(evt.Url, evt.UserAgent, sitePolicy))
+            {
+                await PublishScrapePageEvent(evt);
+            } 
+            else
+            {
+                _logger.LogInformation($"Robots Denied: {evt.Url} could not be accessed due to RobotsTxt policy for user agent {evt.UserAgent}");
+            }
+                        
+            await SetSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy);
         }
 
         private async Task RetryPageCrawl(ScrapePageFailedEvent evt)
@@ -119,27 +125,24 @@ namespace Crawler.Core
             var sitePolicy = await GetOrCreateSitePolicyAsync(
                     evt.CrawlPageEvent.Url, evt.CrawlPageEvent.UserAgent, evt.CrawlPageEvent.UserAccepts);
 
-            if (sitePolicy.RetryAfter is null ||
-                sitePolicy.RetryAfter < evt.RetryAfter)
+            var newPolicy = sitePolicy with
             {
-                sitePolicy = sitePolicy with
-                {
-                    RetryAfter = evt.RetryAfter,
-                    ModifiedAt = DateTimeOffset.UtcNow
-                };
+                RetryAfter = evt.RetryAfter
             };
 
             await SetSitePolicyAsync(
                 evt.CrawlPageEvent.Url, 
                 evt.CrawlPageEvent.UserAgent,
-                evt.CrawlPageEvent.UserAccepts, 
-                sitePolicy);
+                evt.CrawlPageEvent.UserAccepts,
+                newPolicy);
 
-            await PublishScheduledCrawlPageEvent(evt.CrawlPageEvent, evt.RetryAfter);
+            _logger.LogInformation($"Retrying: {evt.CrawlPageEvent.Url} scheduled for retry after {newPolicy.RetryAfter?.ToString("HH:mm:ss")}");
+
+            await PublishScheduledCrawlPageEvent(evt.CrawlPageEvent, newPolicy.RetryAfter);
         }
 
 
-        private static bool HasReachedMaxAttempt(int currentAttempt) =>
+        private static bool HasExhaustedRetries(int currentAttempt) =>
             currentAttempt >= DEFAULT_MAX_CRAWL_ATTEMPTS;
 
         private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
@@ -154,6 +157,8 @@ namespace Crawler.Core
 
             if (sitePolicy == null)
             {
+                var robotsTxtContent = await _sitePolicy.GetRobotsTxtContentAsync(url, userAgent, userAccepts);
+
                 sitePolicy = new SitePolicyItem
                 {
                     UrlAuthority = url.Authority,
@@ -161,7 +166,7 @@ namespace Crawler.Core
                     ModifiedAt = DateTimeOffset.UtcNow,
                     ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES),
                     RetryAfter = null,
-                    RobotsTxtContent = null
+                    RobotsTxtContent = robotsTxtContent
                 };
             }
 
@@ -170,9 +175,11 @@ namespace Crawler.Core
             return sitePolicy;
         }
 
-
-
-        //TODO: refacter this method - see Copilot chat
+        /// <summary>
+        /// PATTERN: Optermistic Concurrency with merge-on-write
+        /// Rather than locking data as with pessimistic concurrency..
+        /// Each service reads the latest version of the data, applies its changes and merges it with the latest version in the cache at right time write it back only if no one else has written 
+        /// </summary>
         private async Task SetSitePolicyAsync(Uri url, string? userAgent, string? userAccepts, SitePolicyItem? sitePolicy)
         {
             if (sitePolicy == null) return;
@@ -181,43 +188,11 @@ namespace Crawler.Core
             var cacheKey = CacheKeyHelper.Generate(url.Authority, userAgent, userAccepts);
 
             var existingSitePolicy = await _cache.GetAsync<SitePolicyItem>(cacheKey);
-            if (existingSitePolicy == null)
-            {
-                await _cache.SetAsync<SitePolicyItem>(cacheKey, sitePolicy, expiryDuration);
-                return;
-            }
 
-            //Merge RetryAfter to resolve clash:
-            DateTimeOffset? retryAfter = null;
-            if (existingSitePolicy.RetryAfter is null)
-            {
-                retryAfter = sitePolicy.RetryAfter;
-            }
-            else if (sitePolicy.RetryAfter is null)
-            {
-                retryAfter = existingSitePolicy.RetryAfter;
-            }
-            else
-            {
-                retryAfter = existingSitePolicy.RetryAfter > sitePolicy.RetryAfter
-                    ? existingSitePolicy.RetryAfter
-                    : sitePolicy.RetryAfter;
-            }
+            if (existingSitePolicy != null)
+                sitePolicy = existingSitePolicy.MergePolicy(sitePolicy);
 
-
-            var robotsTxtContent = existingSitePolicy.RobotsTxtContent is null &&
-                sitePolicy.RobotsTxtContent is not null
-                ? sitePolicy.RobotsTxtContent
-                : existingSitePolicy.RobotsTxtContent;
-
-
-            var mergedPolicy = existingSitePolicy with
-            {
-                RetryAfter = retryAfter,
-                RobotsTxtContent = robotsTxtContent
-            };
-
-            await _cache.SetAsync<SitePolicyItem>(cacheKey, mergedPolicy, expiryDuration);
+            await _cache.SetAsync<SitePolicyItem>(cacheKey, sitePolicy, expiryDuration);
         }
 
     }
