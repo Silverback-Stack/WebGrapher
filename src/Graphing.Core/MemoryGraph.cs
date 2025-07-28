@@ -72,7 +72,11 @@ namespace Graphing.Core
                         attempt: 1,
                         depth);
 
-                    await _eventBus.PublishAsync(crawlPageEvent);
+                    //|TODO: extract to a utlility function in Shared.Requests
+                    //use here and also for scrapepageerrors scheduling
+                    var delaySeconds = new Random().Next(5);
+
+                    await _eventBus.PublishAsync(crawlPageEvent, DateTimeOffset.UtcNow.AddSeconds(delaySeconds));
                 }
             }
         }

@@ -12,8 +12,10 @@ namespace WebMapper.Cli
 {
     internal class GraphingService
     {
-        public static async Task StartAsync(IEventBus eventBus)
+        public static async Task InitializeAsync(IEventBus eventBus)
         {
+            var serviceName = typeof(GraphingService).Name;
+
             var graphingLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/grapher.log", rollingInterval: RollingInterval.Day)
@@ -21,7 +23,7 @@ namespace WebMapper.Cli
                     .CreateLogger();
 
             var graphingLogger = LoggerFactory.CreateLogger(
-                "GraphingService",
+                serviceName,
                 LoggerOptions.Serilog,
                 graphingLoggerConfig
             );

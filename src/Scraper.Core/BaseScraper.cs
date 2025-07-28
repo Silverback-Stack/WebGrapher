@@ -42,6 +42,8 @@ namespace ScraperService
             if (scrapeResponseItem is null)
                 return;
 
+            _logger.LogInformation($"Fetched: {evt.CrawlPageEvent.Url} Attempt {evt.CrawlPageEvent.Attempt} Status: {scrapeResponseItem.StatusCode}");
+
             if (scrapeResponseItem.StatusCode != HttpStatusCode.OK)
             {
                 await PublishScrapePageFailedEvent(evt, scrapeResponseItem);

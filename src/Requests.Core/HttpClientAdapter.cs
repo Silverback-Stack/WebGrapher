@@ -2,7 +2,7 @@
 
 namespace Requests.Core
 {
-    internal class HttpClientAdapter : IHttpRequester
+    public class HttpClientAdapter : IHttpRequester
     {
         private readonly HttpClient _client;
 

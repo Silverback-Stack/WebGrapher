@@ -13,6 +13,8 @@ namespace WebMapper.Cli
     {
         public static IEventBus Start()
         {
+            var serviceName = typeof(EventBusService).Name;
+
             var eventLoggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File("logs/eventbus.log", rollingInterval: RollingInterval.Day)
@@ -20,7 +22,7 @@ namespace WebMapper.Cli
                 .CreateLogger();
 
             var eventLogger = LoggerFactory.CreateLogger(
-                "EventsService",
+                serviceName,
                 LoggerOptions.Serilog,
                 eventLoggerConfig);
 

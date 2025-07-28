@@ -24,32 +24,7 @@ namespace Crawler.Core
                 DateTimeOffset.UtcNow < sitePolicyItem.RetryAfter;
         }
 
-        public async Task<bool> IsPermittedByRobotsTxt(Uri url, string? userAgent, string? userAccepts, SitePolicyItem sitePolicyItem)
-        {
-            if (sitePolicyItem.RobotsTxtContent == null)
-                sitePolicyItem = await GetRobotsTxtAsync(url, userAgent, userAccepts, sitePolicyItem);
-
-            return IsPermittedByRobotsTxt(userAgent, url, sitePolicyItem);
-        }
-
-        private async Task<SitePolicyItem> GetRobotsTxtAsync(Uri url, string? userAgent, string? userAccepts, SitePolicyItem sitePolicyItem)
-        {
-            var robotsTxtUrl = new Uri($"{url.Scheme}://{url.Host}/robots.txt");
-
-            var response = await _requestSender.GetStringAsync(
-                robotsTxtUrl,
-                userAgent,
-                userAccepts);
-
-            sitePolicyItem = sitePolicyItem with
-            {
-                RobotsTxtContent = response?.Data?.Content
-            };
-
-            return sitePolicyItem;
-        }
-
-        private bool IsPermittedByRobotsTxt(string? userAgent, Uri url, SitePolicyItem sitePolicyItem)
+        public bool IsPermittedByRobotsTxt(Uri url, string? userAgent, SitePolicyItem sitePolicyItem)
         {
             if (string.IsNullOrWhiteSpace(sitePolicyItem.RobotsTxtContent))
                 return true;
@@ -66,5 +41,18 @@ namespace Crawler.Core
 
             return isAllowed;
         }
+
+        public async Task<string?> GetRobotsTxtContentAsync(Uri url, string? userAgent, string? userAccepts)
+        {
+            var robotsTxtUrl = new Uri($"{url.Scheme}://{url.Host}/robots.txt");
+
+            var response = await _requestSender.GetStringAsync(
+                robotsTxtUrl,
+                userAgent,
+                userAccepts);
+
+            return response?.Data?.Content;
+        }
+
     }
 }

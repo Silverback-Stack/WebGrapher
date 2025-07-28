@@ -21,26 +21,26 @@ namespace WebMapper.Cli
 
             //CRAWLER SERVICE
             Task.Run(async () => 
-                await CrawlerService.StartAsync(_eventBus));
+                await CrawlerService.InitializeAsync(_eventBus));
 
 
             //SCRAPER SERVICE
             Task.Run(async () => 
-                await ScraperService.StartAsync(_eventBus));
+                await ScraperService.InitializeAsync(_eventBus));
 
 
             //PARSER SERVICE
             Task.Run(async () =>
-                await ParserService.StartAsync(_eventBus));
+                await ParserService.InitializeAsync(_eventBus));
 
 
             //NORMALISATION SERVICE
             Task.Run(async () =>
-                await NormalisationService.StartAsync(_eventBus));
+                await NormalisationService.InitializeAsync(_eventBus));
 
             //GRAPHING SERVICE
             Task.Run(async () =>
-                await GraphingService.StartAsync(_eventBus));
+                await GraphingService.InitializeAsync(_eventBus));
 
             //STREAMING SERVICE
             //Task.Run(() => StreamingFactory.StartAsync(_eventBus));
@@ -96,13 +96,13 @@ namespace WebMapper.Cli
                 maxDepth: 5,
 
                 //https://www.themoviedb.org/movie/
-                pathFilters: new string[] { "/movie/", "/tv/", "/person/" },
+                //pathFilters: new string[] { "/movie/", "/tv/", "/person/" },
 
                 //https://www.theaudiodb.com/chart_artists
                 //pathFilters: new string[] { "/artist/", "/album/", "/track/" }; 
 
                 //https://www.imdb.com/
-                //pathFilters: new string[] { "/title/", "/name/" }; 
+                pathFilters: new string[] { "/title/", "/name/" }; 
 
                 userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
                 userAccepts: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
