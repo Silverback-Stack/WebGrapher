@@ -21,26 +21,26 @@ namespace WebMapper.Cli
 
             //CRAWLER SERVICE
             Task.Run(async () => 
-                await CrawlerService.StartAsync(_eventBus));
+                await CrawlerService.InitializeAsync(_eventBus));
 
 
             //SCRAPER SERVICE
             Task.Run(async () => 
-                await ScraperService.StartAsync(_eventBus));
+                await ScraperService.InitializeAsync(_eventBus));
 
 
             //PARSER SERVICE
             Task.Run(async () =>
-                await ParserService.StartAsync(_eventBus));
+                await ParserService.InitializeAsync(_eventBus));
 
 
             //NORMALISATION SERVICE
             Task.Run(async () =>
-                await NormalisationService.StartAsync(_eventBus));
+                await NormalisationService.InitializeAsync(_eventBus));
 
             //GRAPHING SERVICE
             Task.Run(async () =>
-                await GraphingService.StartAsync(_eventBus));
+                await GraphingService.InitializeAsync(_eventBus));
 
             //STREAMING SERVICE
             //Task.Run(() => StreamingFactory.StartAsync(_eventBus));
@@ -87,6 +87,11 @@ namespace WebMapper.Cli
         /// <returns></returns>
         private async Task SubmitUrl(Uri url)
         {
+            //Accept examples:
+
+            //HTML AND IMAGES
+            //Accept: text/html,image/*;q=0.9
+
             var crawlPageEvent = new CrawlPageEvent(
                 url,
                 containerId: Guid.Parse("00000000-0000-0000-0000-000000000001"),
@@ -96,16 +101,22 @@ namespace WebMapper.Cli
                 maxDepth: 5,
 
                 //https://www.themoviedb.org/movie/
-                pathFilters: new string[] { "/movie/", "/tv/", "/person/" },
+                //pathFilters: new string[] { "/movie/", "/tv/", "/person/" },
 
                 //https://www.theaudiodb.com/chart_artists
-                //pathFilters: new string[] { "/artist/", "/album/", "/track/" }; 
+                //pathFilters: new string[] { "/artist/", "/album/", "/track/" },
+                //pathFilters: new string[] { "/artist/", "/album/" },
 
                 //https://www.imdb.com/
-                //pathFilters: new string[] { "/title/", "/name/" }; 
+                //pathFilters: new string[] { "/title/", "/name/" },
+
+                //https://en.wikipedia.org/wiki/Terminator_2%3A_Judgment_Day
+                pathFilters: new string[] { },
 
                 userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-                userAccepts: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+                //userAccepts: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+                //userAccepts: "text/html,image/*;q=0.9"
+                userAccepts: "text/html"
                 );
 
             await _eventBus.PublishAsync(crawlPageEvent);

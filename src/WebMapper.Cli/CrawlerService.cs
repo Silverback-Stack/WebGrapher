@@ -14,8 +14,10 @@ namespace WebMapper.Cli
 {
     internal class CrawlerService
     {
-        public async static Task StartAsync(IEventBus eventBus)
+        public async static Task InitializeAsync(IEventBus eventBus)
         {
+            var serviceName = typeof(CrawlerService).Name;
+
             var crawlerLoggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File("logs/crawler.log", rollingInterval: RollingInterval.Day)
@@ -23,13 +25,13 @@ namespace WebMapper.Cli
                 .CreateLogger();
 
             var crawlerLogger = LoggerFactory.CreateLogger(
-                "CrawlerService",
+                serviceName,
                 LoggerOptions.Serilog,
                 crawlerLoggerConfig
             );
 
             var cache = CacheFactory.CreateCache(
-                "CrawlerService",
+                serviceName,
                 CacheOptions.InMemory,
                 crawlerLogger);
 

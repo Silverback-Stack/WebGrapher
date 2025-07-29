@@ -14,8 +14,10 @@ namespace WebMapper.Cli
 {
     internal class ScraperService
     {
-        public async static Task StartAsync(IEventBus eventBus)
+        public async static Task InitializeAsync(IEventBus eventBus)
         {
+            var serviceName = typeof(ScraperService).Name;
+
             var scraperLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/scraper.log", rollingInterval: RollingInterval.Day)
@@ -23,13 +25,13 @@ namespace WebMapper.Cli
                     .CreateLogger();
 
             var scraperLogger = LoggerFactory.CreateLogger(
-                "ScraperService",
+                serviceName,
                 LoggerOptions.Serilog,
                 scraperLoggerConfig
             );
 
             var cache = CacheFactory.CreateCache(
-                "ScraperService",
+                serviceName,
                 CacheOptions.InMemory,
                 scraperLogger);
 

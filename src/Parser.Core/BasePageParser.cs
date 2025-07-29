@@ -50,7 +50,7 @@ namespace ParserService
                 });
 
                 var linkType = evt.CrawlPageEvent.FollowExternalLinks ? "external" : "internal";
-                _logger.LogInformation($"Parsed Page: {evt.Url} found {pageItem.Links.Count()} {linkType} links");
+                _logger.LogDebug($"Parsed Page: {evt.Url} found {pageItem.Links.Count()} {linkType} links");
             }
         }
 

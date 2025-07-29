@@ -12,59 +12,53 @@ namespace Crawler.Core
         private readonly ILogger _logger;
         private readonly IRequestSender _requestSender;
 
+        private const string ROBOTS_TXT_USER_ACCEPTS_OVERRIDE = "text/html,text/plain";
+
         public SitePolicyResolver(ILogger logger, IRequestSender requestSender)
         {
             _logger = logger;
             _requestSender = requestSender;
         }
 
-        public bool IsRateLimited(SitePolicyItem sitePolicyItem)
+        public bool IsRateLimited(SitePolicyItem policy)
         {
-            return sitePolicyItem.RetryAfter is not null && 
-                DateTimeOffset.UtcNow < sitePolicyItem.RetryAfter;
+            return policy.IsRateLimited;
         }
 
-        public async Task<bool> IsPermittedByRobotsTxt(Uri url, string? userAgent, string? userAccepts, SitePolicyItem sitePolicyItem)
+        public SitePolicyItem MergePolicies(SitePolicyItem existingPolicy, SitePolicyItem newPolicy)
         {
-            if (sitePolicyItem.RobotsTxtContent == null)
-                sitePolicyItem = await GetRobotsTxtAsync(url, userAgent, userAccepts, sitePolicyItem);
-
-            return IsPermittedByRobotsTxt(userAgent, url, sitePolicyItem);
+            return existingPolicy.MergePolicy(newPolicy);
         }
 
-        private async Task<SitePolicyItem> GetRobotsTxtAsync(Uri url, string? userAgent, string? userAccepts, SitePolicyItem sitePolicyItem)
+        public bool IsPermittedByRobotsTxt(Uri url, string? userAgent, SitePolicyItem policy)
+        {
+            if (string.IsNullOrWhiteSpace(policy.RobotsTxtContent)) 
+                return true;
+
+            if (string.IsNullOrWhiteSpace(userAgent))
+            {
+                throw new ArgumentException("UserAgent is required to check against RobotsTxt.");
+            }
+
+            var robots = new RobotsTxt();
+            robots.Load(policy.RobotsTxtContent);
+
+            var isAllowed = robots.IsAllowed(userAgent, url.AbsolutePath);
+
+            return isAllowed;
+        }
+
+        public async Task<string?> GetRobotsTxtContentAsync(Uri url, string? userAgent, string? userAccepts)
         {
             var robotsTxtUrl = new Uri($"{url.Scheme}://{url.Host}/robots.txt");
 
             var response = await _requestSender.GetStringAsync(
                 robotsTxtUrl,
                 userAgent,
-                userAccepts);
+                ROBOTS_TXT_USER_ACCEPTS_OVERRIDE);
 
-            sitePolicyItem = sitePolicyItem with
-            {
-                RobotsTxtContent = response?.Data?.Content
-            };
-
-            return sitePolicyItem;
+            return response?.Data?.Content;
         }
 
-        private bool IsPermittedByRobotsTxt(string? userAgent, Uri url, SitePolicyItem sitePolicyItem)
-        {
-            if (string.IsNullOrWhiteSpace(sitePolicyItem.RobotsTxtContent))
-                return true;
-
-            if (userAgent == null) userAgent = string.Empty;
-
-            var robots = new RobotsTxt();
-            robots.Load(sitePolicyItem.RobotsTxtContent);
-
-            var isAllowed = robots.IsAllowed(userAgent, url.AbsolutePath);
-
-            if (!isAllowed)
-                _logger.LogInformation($"Policy denied: RobotsTxt policy denied access to {url} for agent {userAgent}");
-
-            return isAllowed;
-        }
     }
 }

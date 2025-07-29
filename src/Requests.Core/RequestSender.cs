@@ -43,18 +43,18 @@ namespace Requests.Core
 
             try
             {
-                var cacheKey = CacheKeyHelper.Generate(url, userAgent, userAccepts);
+                var cacheKey = CacheKeyHelper.Generate(url.AbsoluteUri, userAgent, userAccepts);
                 var cachedItem = await _cache.GetAsync<ResponseItem>(cacheKey);
                 if (cachedItem != null)
                 {
-                    _logger.LogInformation($"Get: {url.AbsoluteUri} Status: Cached");
+                    _logger.LogDebug($"Get: {url.AbsoluteUri} Status: Cached");
                     return new ResponseEnvelope<ResponseItem>(cachedItem, IsFromCache: true);
                 }
                     
                 var response = await _httpRequester.GetAsync(url, userAgent, userAccepts, cancellationToken);
                 var responseItem = await _requestTransformer.TransformAsync(url, response, userAccepts, contentMaxBytes, cancellationToken);
 
-                _logger.LogInformation($"Get: {url.AbsoluteUri} Status: {responseItem.StatusCode}");
+                _logger.LogDebug($"Get: {url.AbsoluteUri} Status: {responseItem.StatusCode}");
 
                 await _cache.SetAsync(
                     cacheKey, 

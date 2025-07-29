@@ -13,12 +13,29 @@ namespace Shared.Caching.Tests
         [Test]
         public void Clamp_ExpiryFarInFuture_ReturnsClampedDuration()
         {
-            var expiresActual = DateTimeOffset.UtcNow.AddYears(1);
+            var expiresActual = DateTimeOffset.UtcNow.AddMinutes(60);
             var expiresActualAsTimeSpan = expiresActual - DateTimeOffset.UtcNow;
 
-            var result = CacheDurationHelper.Clamp(expiresActual, maxDurationInMinutes: 1);
+            var minDirationInMinutes = 10;
+            var maxDirationInMinutes = 20;
+            var result = CacheDurationHelper.Clamp(expiresActual, minDirationInMinutes, maxDirationInMinutes);
 
-            Assert.That(result, Is.LessThan(expiresActualAsTimeSpan));
+            Assert.That(result, Is
+                .GreaterThanOrEqualTo(TimeSpan.FromMinutes(minDirationInMinutes))
+                .And.LessThanOrEqualTo(TimeSpan.FromMinutes(maxDirationInMinutes)));
+        }
+
+        [Test]
+        public void Clamp_ExpiryInPast_ReturnsNull()
+        {
+            var expiresActual = DateTimeOffset.UtcNow.AddMinutes(-10);
+            var expiresActualAsTimeSpan = expiresActual - DateTimeOffset.UtcNow;
+
+            var minDirationInMinutes = 10;
+            var maxDirationInMinutes = 20;
+            var result = CacheDurationHelper.Clamp(expiresActual, minDirationInMinutes, maxDirationInMinutes);
+
+            Assert.That(result, Is.Null);
         }
     }
 }

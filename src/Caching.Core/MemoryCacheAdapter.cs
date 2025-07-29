@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Reflection;
+using System.Threading;
 using Logging.Core;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -22,14 +26,7 @@ namespace Caching.Core
         public async Task<T?> GetAsync<T>(string key)
         {
             key = GetScopedKey(key);
-            var item = _cache.TryGetValue(key, out var value) ? (T?)value : default;
-
-            //if (item == null)
-            //    _logger.LogDebug($"Cache Miss: {typeof(T).Name} with key {key} was not found in the cache.");
-            //else
-            //    _logger.LogDebug($"Cache Hit: {typeof(T).Name} with key {key} was found in the cache.", context: item);
-
-            return item;
+            return _cache.TryGetValue(key, out var value) ? (T?)value : default;
         }
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
@@ -40,12 +37,7 @@ namespace Caching.Core
             if (expiration.HasValue)
                 options.SetAbsoluteExpiration(expiration.Value);
 
-            var item = _cache.Set(key, value, options);
-
-            //if (item == null)
-            //    _logger.LogDebug($"Cache Set Failed: {typeof(T).Name} with key {key} was not stored to the cache.", context: item);
-            //else
-            //    _logger.LogDebug($"Cache Set: {typeof(T).Name} with key {key} was stored to the cache.", context: item);
+            _cache.Set(key, value, options);
         }
 
         public async Task RemoveAsync(string key)

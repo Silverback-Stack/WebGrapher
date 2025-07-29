@@ -12,8 +12,10 @@ namespace WebMapper.Cli
 {
     internal class NormalisationService
     {
-        public static async Task StartAsync(IEventBus eventBus)
+        public static async Task InitializeAsync(IEventBus eventBus)
         {
+            var serviceName = typeof(NormalisationService).Name;
+
             var normalisationLoggerConfig = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.File("logs/normalisation.log", rollingInterval: RollingInterval.Day)
@@ -21,7 +23,7 @@ namespace WebMapper.Cli
                     .CreateLogger();
 
             var normalisationLogger = LoggerFactory.CreateLogger(
-                "NormalisationService",
+                serviceName,
                 LoggerOptions.Serilog,
                 normalisationLoggerConfig
             );

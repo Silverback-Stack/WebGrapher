@@ -11,17 +11,18 @@ namespace Events.Core.EventTypes
     public record CrawlPageEvent
     {
         public Uri Url { get; init; }
+        public int Attempt { get; init; } = 1;
+        public int Depth { get; init; } = 0;
         public Guid ContainerId { get; init; }
         public Guid CorrelationId { get; init; }
         public bool FollowExternalLinks { get; init; }
-        public bool RemoveQueryStrings { get; init; }
         public int MaxDepth { get; init; }
-        public int Depth { get; init; }
+        public bool RemoveQueryStrings { get; init; }
         public IEnumerable<string>? PathFilters { get; init; }
         public string? UserAgent { get; init; }
         public string? UserAccepts { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
-        public int Attempt {  get; init; }
+
 
         private CrawlPageEvent() { }
 
@@ -50,6 +51,7 @@ namespace Events.Core.EventTypes
         public CrawlPageEvent(CrawlPageEvent evt, Uri url, int attempt, int depth) 
         {
             Url = url;
+            Attempt = attempt;
             Depth = depth;
             ContainerId = evt.ContainerId;
             CorrelationId = evt.CorrelationId;
@@ -59,7 +61,6 @@ namespace Events.Core.EventTypes
             UserAgent = evt.UserAgent;
             UserAccepts = evt.UserAccepts;
             CreatedAt = DateTimeOffset.UtcNow;
-            Attempt = attempt;
         }
     }
 }

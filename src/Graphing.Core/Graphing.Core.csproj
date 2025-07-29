@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Events.Core\Events.Core.csproj" />
+    <ProjectReference Include="..\Requests.Core\Requests.Core.csproj" />
   </ItemGroup>
 
 </Project>

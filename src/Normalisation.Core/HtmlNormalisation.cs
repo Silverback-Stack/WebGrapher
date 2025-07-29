@@ -57,7 +57,7 @@ namespace Normalisation.Core
             });
 
             var linkType = evt.CrawlPageEvent.FollowExternalLinks ? "external" : "internal";
-            _logger.LogInformation($"Normalised Page: {evt.Url} with filtered {normalisedLinks.Count()} links and {normalisedKeywords.Count()} keywords.");
+            _logger.LogDebug($"Normalised Page: {evt.Url} found {normalisedLinks.Count()} {linkType} links and extracted {normalisedKeywords.Count()} keywords.");
         }
 
         public string NormaliseTitle(string text)

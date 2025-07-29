@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Net;
-using System.Reflection.Metadata;
-using System.Security;
-using System.Text;
-using System.Text.Json;
-using System.Xml.Linq;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
+using Events.Core.Helpers;
 using Graphing.Core.Exporters;
 using Logging.Core;
 
@@ -39,7 +34,7 @@ namespace Graphing.Core
 
         private async Task EventHandler(GraphPageEvent evt)
         {
-            if (_graphAnalyser.TotalNodes() > 100 && _graphAnalyser.TotalEdges() > 100)
+            if (_graphAnalyser.TotalNodes() > 1000 && _graphAnalyser.TotalEdges() > 1000)
             {
                 var gexfExporter = new GexfGraphExporter();
                 var data = gexfExporter.Export(_nodes);
@@ -72,7 +67,8 @@ namespace Graphing.Core
                         attempt: 1,
                         depth);
 
-                    await _eventBus.PublishAsync(crawlPageEvent);
+                    var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
+                    await _eventBus.PublishAsync(crawlPageEvent, scheduledOffset);
                 }
             }
         }
