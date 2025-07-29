@@ -49,26 +49,6 @@ namespace Crawler.Core
             _eventBus.Unsubscribe<CrawlPageEvent>(HandleCrawlPageEvent);
             _eventBus.Unsubscribe<ScrapePageFailedEvent>(HandleScrapePageFailedEvent);
         }
-        private async Task PublishScrapePageEvent(CrawlPageEvent evt)
-        {
-            await _eventBus.PublishAsync(new ScrapePageEvent
-            {
-                CrawlPageEvent = evt,
-                CreatedAt = DateTimeOffset.UtcNow
-            });
-        }
-
-        private async Task PublishScheduledCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
-        {
-            var attempt = evt.Attempt + 1;
-            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(retryAfter);
-
-            await _eventBus.PublishAsync(new CrawlPageEvent(
-                    evt,
-                    evt.Url,
-                    attempt,
-                    evt.Depth), scheduledOffset);
-        }
 
         private async Task HandleCrawlPageEvent(CrawlPageEvent evt)
         {
@@ -83,7 +63,7 @@ namespace Crawler.Core
         /// Evaluates whether the page can be crawled based on retry limits, depth,
         /// rate limiting, and robots.txt permissions. If allowed, publishes a scrape event.
         /// </summary>
-        public async Task EvaluatePageForCrawling(CrawlPageEvent evt)
+        private async Task EvaluatePageForCrawling(CrawlPageEvent evt)
         {
             if (HasExhaustedRetries(evt.Attempt))
             {
@@ -144,12 +124,33 @@ namespace Crawler.Core
             await PublishScheduledCrawlPageEvent(evt.CrawlPageEvent, newPolicy.RetryAfter);
         }
 
-
         private static bool HasExhaustedRetries(int currentAttempt) =>
             currentAttempt >= DEFAULT_MAX_CRAWL_ATTEMPTS;
 
         private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
             currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_CRAWL_DEPTH);
+
+        private async Task PublishScrapePageEvent(CrawlPageEvent evt)
+        {
+            await _eventBus.PublishAsync(new ScrapePageEvent
+            {
+                CrawlPageEvent = evt,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        private async Task PublishScheduledCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
+        {
+            var attempt = evt.Attempt + 1;
+            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(retryAfter);
+
+            await _eventBus.PublishAsync(new CrawlPageEvent(
+                    evt,
+                    evt.Url,
+                    attempt,
+                    evt.Depth), scheduledOffset);
+        }
+
 
 
         private async Task<SitePolicyItem> GetOrCreateSitePolicyAsync(Uri url, string? userAgent, string? userAccepts)

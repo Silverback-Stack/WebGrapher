@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Data.SqlTypes;
-using System.Reflection.Metadata;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Logging.Core;
@@ -15,7 +13,7 @@ namespace Normalisation.Core
         private const int MAX_TITLE_LENGTH = 200;
         private const int MAX_KEYWORD_LENGTH = 4000;
         private const int MAX_LINKS_PER_PAGE = 1000;
-        private static readonly string[] ALLOWABLE_SCHEMAS = ["http", "https"];
+        private static readonly string[] ALLOWABLE_LINK_SCHEMAS = ["http", "https"];
 
         public HtmlNormalisation(ILogger logger, IEventBus eventBus)
         {
@@ -35,7 +33,7 @@ namespace Normalisation.Core
 
         private async Task EventHandler(NormalisePageEvent evt)
         {
-            var normalisedTitle = NormaliseKeywords(evt.Title);
+            var normalisedTitle = NormaliseTitle(evt.Title);
             var normalisedKeywords = NormaliseKeywords(evt.Keywords);
             var normalisedLinks = NormaliseLinks(
                 evt.Links, 
@@ -60,8 +58,10 @@ namespace Normalisation.Core
             _logger.LogDebug($"Normalised Page: {evt.Url} found {normalisedLinks.Count()} {linkType} links and extracted {normalisedKeywords.Count()} keywords.");
         }
 
-        public string NormaliseTitle(string text)
+        public string NormaliseTitle(string? text)
         {
+            if (text == null) return string.Empty;
+
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
             text = TextNormaliser.Truncate(text, MAX_TITLE_LENGTH);
@@ -69,16 +69,20 @@ namespace Normalisation.Core
             return text;
         }
 
-        public string NormaliseContent(string text)
+        public string NormaliseContent(string? text)
         {
+            if (text == null) return string.Empty;
+
             text = TextNormaliser.CollapseWhitespace(text);
             text = TextNormaliser.Truncate(text, MAX_KEYWORD_LENGTH);
 
             return text;
         }
 
-        public string NormaliseKeywords(string text)
+        public string NormaliseKeywords(string? text)
         {
+            if (text == null) return string.Empty;
+
             text = TextNormaliser.ToLowerCase(text);
             text = TextNormaliser.RemovePunctuation(text);
             text = TextNormaliser.RemoveSpecialCharacters(text);
@@ -96,10 +100,10 @@ namespace Normalisation.Core
             Uri baseUrl, 
             bool allowExternal, 
             bool removeQueryStrings, 
-            IEnumerable<string> pathFilters)
+            IEnumerable<string>? pathFilters)
         {
             links = UrlNormaliser.MakeAbsolute(links, baseUrl);
-            links = UrlNormaliser.FilterBySchema(links, ALLOWABLE_SCHEMAS);
+            links = UrlNormaliser.FilterBySchema(links, ALLOWABLE_LINK_SCHEMAS);
             links = allowExternal ? links : UrlNormaliser.RemoveExternalLinks(links, baseUrl);
             links = removeQueryStrings ? UrlNormaliser.RemoveQueryStrings(links) : links;
             links = UrlNormaliser.FilterByPath(links, pathFilters);

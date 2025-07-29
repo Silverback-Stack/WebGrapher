@@ -24,15 +24,20 @@ namespace ScraperService
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<ScrapePageEvent>(EventHandler);
+            _eventBus.Subscribe<ScrapePageEvent>(HandleScrapePageEvent);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<ScrapePageEvent>(EventHandler);
+            _eventBus.Unsubscribe<ScrapePageEvent>(HandleScrapePageEvent);
         }
 
-        private async Task EventHandler(ScrapePageEvent evt)
+        private async Task HandleScrapePageEvent(ScrapePageEvent evt)
+        {
+            await ScrapePage(evt);
+        }
+
+        private async Task ScrapePage(ScrapePageEvent evt)
         {
             var scrapeResponseItem = await GetAsync(
                 evt.CrawlPageEvent.Url,
@@ -60,7 +65,7 @@ namespace ScraperService
             ScrapePageEvent evt, 
             ScrapeResponseItem response)
         {
-            await _eventBus.PublishAsync(new ScrapePageFailedEvent()
+            await _eventBus.PublishAsync(new ScrapePageFailedEvent
             {
                 CrawlPageEvent = evt.CrawlPageEvent,
                 StatusCode = response.StatusCode,
@@ -69,7 +74,6 @@ namespace ScraperService
                 RetryAfter = response.RetryAfter
             });
         }
-
         private async Task PublishParsePageEvent(
             ScrapePageEvent scrapeEvent,
             ScrapeResponseItem scrapeResponse)
