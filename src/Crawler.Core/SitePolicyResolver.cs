@@ -12,6 +12,8 @@ namespace Crawler.Core
         private readonly ILogger _logger;
         private readonly IRequestSender _requestSender;
 
+        private const string ROBOTS_TXT_USER_ACCEPTS_OVERRIDE = "text/html,text/plain";
+
         public SitePolicyResolver(ILogger logger, IRequestSender requestSender)
         {
             _logger = logger;
@@ -53,7 +55,7 @@ namespace Crawler.Core
             var response = await _requestSender.GetStringAsync(
                 robotsTxtUrl,
                 userAgent,
-                userAccepts);
+                ROBOTS_TXT_USER_ACCEPTS_OVERRIDE);
 
             return response?.Data?.Content;
         }

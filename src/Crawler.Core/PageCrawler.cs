@@ -5,6 +5,7 @@ using Caching.Core;
 using Caching.Core.Helpers;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
+using Events.Core.Helpers;
 using Logging.Core;
 using Microsoft.Extensions.Logging.Abstractions;
 using Requests.Core;
@@ -60,11 +61,13 @@ namespace Crawler.Core
         private async Task PublishScheduledCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
         {
             var attempt = evt.Attempt + 1;
+            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(retryAfter);
+
             await _eventBus.PublishAsync(new CrawlPageEvent(
                     evt,
                     evt.Url,
                     attempt,
-                    evt.Depth), retryAfter);
+                    evt.Depth), scheduledOffset);
         }
 
         private async Task HandleCrawlPageEvent(CrawlPageEvent evt)
@@ -178,7 +181,7 @@ namespace Crawler.Core
         /// <summary>
         /// PATTERN: Optermistic Concurrency with merge-on-write
         /// Rather than locking data as with pessimistic concurrency..
-        /// Each service reads the latest version of the data, applies its changes and merges it with the latest version in the cache at right time write it back only if no one else has written 
+        /// Each service reads the latest version of the data, applies its changes and merges it with the latest version in the cache at write time
         /// </summary>
         private async Task SetSitePolicyAsync(Uri url, string? userAgent, string? userAccepts, SitePolicyItem? sitePolicy)
         {

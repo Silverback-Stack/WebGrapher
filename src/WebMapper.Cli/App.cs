@@ -87,6 +87,11 @@ namespace WebMapper.Cli
         /// <returns></returns>
         private async Task SubmitUrl(Uri url)
         {
+            //Accept examples:
+
+            //HTML AND IMAGES
+            //Accept: text/html,image/*;q=0.9
+
             var crawlPageEvent = new CrawlPageEvent(
                 url,
                 containerId: Guid.Parse("00000000-0000-0000-0000-000000000001"),
@@ -100,13 +105,18 @@ namespace WebMapper.Cli
 
                 //https://www.theaudiodb.com/chart_artists
                 //pathFilters: new string[] { "/artist/", "/album/", "/track/" },
-                pathFilters: new string[] { "/artist/", "/album/" },
+                //pathFilters: new string[] { "/artist/", "/album/" },
 
                 //https://www.imdb.com/
                 //pathFilters: new string[] { "/title/", "/name/" },
 
+                //https://en.wikipedia.org/wiki/Terminator_2%3A_Judgment_Day
+                pathFilters: new string[] { },
+
                 userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-                userAccepts: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+                //userAccepts: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+                //userAccepts: "text/html,image/*;q=0.9"
+                userAccepts: "text/html"
                 );
 
             await _eventBus.PublishAsync(crawlPageEvent);
