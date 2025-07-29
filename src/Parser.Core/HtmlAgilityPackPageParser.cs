@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using Events.Core.Bus;
 using HtmlAgilityPack;
 using Logging.Core;
@@ -12,6 +8,10 @@ namespace ParserService
 {
     public class HtmlAgilityPackPageParser : BasePageParser
     {
+        private const string TITLE_XPATH = "//head/title";
+        private const string LINKS_XPATH = "//a[@href]";
+
+
         public HtmlAgilityPackPageParser(ILogger logger, IEventBus eventBus) : base(logger, eventBus) { }
 
         public override PageItem Parse(string content)
@@ -29,7 +29,7 @@ namespace ParserService
 
         private string ExtractTitle(HtmlDocument htmlDocument)
         {
-            var title = htmlDocument.DocumentNode.SelectSingleNode("//head/title");
+            var title = htmlDocument.DocumentNode.SelectSingleNode(TITLE_XPATH);
             return title != null ? title.InnerText : string.Empty;
         }
 
@@ -43,18 +43,13 @@ namespace ParserService
             var links = new List<string>();
 
             //select all <a> tags with href
-            var tags = htmlDocument.DocumentNode.SelectNodes("//a[@href]");
+            var tags = htmlDocument.DocumentNode.SelectNodes(LINKS_XPATH);
             if (tags != null)
             {
-                for (int i = 0; i < tags.Count; i++)
+                foreach (var tag in tags)
                 {
-                    var href = tags[i].GetAttributeValue("href", "");
-                    href = WebUtility.HtmlDecode(href);
-
-                    if (href != string.Empty)
-                    {
-                        links.Add(href);
-                    }
+                    var href = WebUtility.HtmlDecode(tag.GetAttributeValue("href", ""));
+                    if (!string.IsNullOrEmpty(href)) links.Add(href);
                 }
             }
             return links;

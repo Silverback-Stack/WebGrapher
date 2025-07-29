@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Normalisation.Core
 {
@@ -18,9 +13,6 @@ namespace Normalisation.Core
         {
             var baseUrl = $"{url.Scheme}://{url.Authority}";
 
-            if (string.IsNullOrWhiteSpace(baseUrl))
-                throw new ArgumentNullException(nameof(baseUrl), "Url must be provided.");
-
             if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri))
             {
                 throw new ArgumentException(nameof(baseUrl), $"Invalid Url: {url}");
@@ -31,7 +23,7 @@ namespace Normalisation.Core
 
         public static Uri RemoveFragments(Uri uri)
         {
-            if (uri.Fragment.Any())
+            if (!string.IsNullOrEmpty(uri.Fragment))
             {
                 return new Uri(uri.GetLeftPart(UriPartial.Query));
             }
@@ -74,9 +66,9 @@ namespace Normalisation.Core
                 schemas.Any(schema => url.StartsWith(schema + ":", StringComparison.OrdinalIgnoreCase)));
         }
 
-        public static IEnumerable<string> FilterByPath(IEnumerable<string> urls, IEnumerable<string> paths)
+        public static IEnumerable<string> FilterByPath(IEnumerable<string> urls, IEnumerable<string>? paths)
         {
-            if (!paths.Any()) return urls;
+            if (paths is null || !paths.Any()) return urls;
             
             return urls.Where(url =>
                 Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
