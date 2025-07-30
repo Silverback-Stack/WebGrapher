@@ -6,7 +6,7 @@ using System.Threading;
 using Logging.Core;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace Caching.Core
+namespace Caching.Core.Adapters.Memory
 {
     public class MemoryCacheAdapter : ICache
     {
@@ -16,7 +16,7 @@ namespace Caching.Core
 
         public MemoryCacheAdapter(string serviceName, ILogger logger)
         {
-            _serviceName = serviceName; 
+            _serviceName = serviceName;
             _logger = logger;
             _cache = new MemoryCache(new MemoryCacheOptions());
         }

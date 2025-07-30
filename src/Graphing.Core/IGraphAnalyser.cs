@@ -1,4 +1,6 @@
 ﻿
+using Graphing.Core.Models;
+
 namespace Graphing.Core
 {
     public interface IGraphAnalyser

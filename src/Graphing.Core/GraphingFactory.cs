@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Events.Core.Bus;
+using Graphing.Core.Adapters.Memory;
 using Logging.Core;
 
 namespace Graphing.Core
@@ -12,7 +9,7 @@ namespace Graphing.Core
     {
         public static IGraph Create(ILogger logger, IEventBus eventBus)
         {
-            var service = new MemoryGraph(logger, eventBus);
+            var service = new MemoryGraphAdapter(logger, eventBus);
             service.SubscribeAll();
             return service;
         }

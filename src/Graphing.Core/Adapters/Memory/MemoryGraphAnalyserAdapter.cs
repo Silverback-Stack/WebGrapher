@@ -1,17 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+using Graphing.Core.Models;
 
-namespace Graphing.Core
+namespace Graphing.Core.Adapters.Memory
 {
-    public class MemoryGraphAnalyser : IGraphAnalyser
+    public class MemoryGraphAnalyserAdapter : IGraphAnalyser
     {
         protected readonly Dictionary<string, Node> _nodes;
 
-        public MemoryGraphAnalyser(Dictionary<string, Node> data)
+        public MemoryGraphAnalyserAdapter(Dictionary<string, Node> data)
         {
             _nodes = data;
         }
@@ -90,8 +86,8 @@ namespace Graphing.Core
 
             return _nodes.Values
                 .Where(page =>
-                    (!string.IsNullOrEmpty(page.Title) && page.Title.ToLowerInvariant().Contains(keyword)) ||
-                    (!string.IsNullOrEmpty(page.Keywords) && page.Keywords.ToLowerInvariant().Contains(keyword)))
+                    !string.IsNullOrEmpty(page.Title) && page.Title.ToLowerInvariant().Contains(keyword) ||
+                    !string.IsNullOrEmpty(page.Keywords) && page.Keywords.ToLowerInvariant().Contains(keyword))
                 .ToList();
         }
 

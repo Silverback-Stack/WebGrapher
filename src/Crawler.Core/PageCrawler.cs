@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Net;
-using System.Runtime.InteropServices;
 using Caching.Core;
 using Caching.Core.Helpers;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Events.Core.Helpers;
 using Logging.Core;
-using Microsoft.Extensions.Logging.Abstractions;
 using Requests.Core;
 
 namespace Crawler.Core
@@ -21,7 +18,7 @@ namespace Crawler.Core
         protected readonly ISitePolicyResolver _sitePolicy;
 
         protected const int DEFAULT_MAX_CRAWL_ATTEMPTS = 3;
-        protected const int DEFAULT_MAX_CRAWL_DEPTH = 5;
+        protected const int DEFAULT_MAX_CRAWL_DEPTH = 3;
         protected const int SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES = 20;
 
         public PageCrawler(
@@ -63,7 +60,7 @@ namespace Crawler.Core
         /// Evaluates whether the page can be crawled based on retry limits, depth,
         /// rate limiting, and robots.txt permissions. If allowed, publishes a scrape event.
         /// </summary>
-        private async Task EvaluatePageForCrawling(CrawlPageEvent evt)
+        public async Task EvaluatePageForCrawling(CrawlPageEvent evt)
         {
             if (HasExhaustedRetries(evt.Attempt))
             {
@@ -150,8 +147,6 @@ namespace Crawler.Core
                     attempt,
                     evt.Depth), scheduledOffset);
         }
-
-
 
         private async Task<SitePolicyItem> GetOrCreateSitePolicyAsync(Uri url, string? userAgent, string? userAccepts)
         {
