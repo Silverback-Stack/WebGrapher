@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Logging.Core;
 
-namespace Events.Core.Bus
+namespace Events.Core.Bus.Adapters.Memory
 {
     public class MemoryEventBusAdapter : BaseEventBus
     {
@@ -36,7 +36,7 @@ namespace Events.Core.Bus
         public override void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
         {
             _handlers.AddOrUpdate(typeof(TEvent),
-                _ => new List<Delegate> { handler }, 
+                _ => new List<Delegate> { handler },
                 (_, list) => { list.Add(handler); return list; }
             );
             _logger.LogInformation($"Event subscribed: {typeof(TEvent).Name}");
@@ -62,7 +62,7 @@ namespace Events.Core.Bus
             CancellationToken cancellationToken = default) where TEvent : class
         {
             var delay = scheduledEnqueueTime.HasValue
-                ? scheduledEnqueueTime.Value - DateTimeOffset.UtcNow 
+                ? scheduledEnqueueTime.Value - DateTimeOffset.UtcNow
                 : TimeSpan.Zero;
 
             if (delay > TimeSpan.Zero)

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Data;
 
-namespace Graphing.Core
+namespace Graphing.Core.Models
 {
     public class Node
     {

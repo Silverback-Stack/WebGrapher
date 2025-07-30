@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Requests.Core
+namespace Requests.Core.Adapters
 {
     public class HttpClientAdapter : IHttpRequester
     {

@@ -1,4 +1,5 @@
 ﻿using Events.Core.Bus;
+using Graphing.Core.Models;
 
 namespace Graphing.Core
 {

@@ -21,7 +21,7 @@ namespace WebMapper.Cli
                 .WriteTo.Console(Serilog.Events.LogEventLevel.Information)
                 .CreateLogger();
 
-            var eventLogger = LoggerFactory.CreateLogger(
+            var eventLogger = Logging.Core.LoggerFactory.CreateLogger(
                 serviceName,
                 LoggerOptions.Serilog,
                 eventLoggerConfig);

@@ -1,6 +1,7 @@
 ﻿using System;
 using Caching.Core;
 using Logging.Core;
+using Requests.Core.Adapters;
 
 namespace Requests.Core
 {

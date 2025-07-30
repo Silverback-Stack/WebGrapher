@@ -1,4 +1,5 @@
 ﻿using System;
+using Caching.Core.Adapters.Memory;
 using Logging.Core;
 
 namespace Caching.Core

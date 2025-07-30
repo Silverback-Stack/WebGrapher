@@ -3,23 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
-namespace Logging.Core
+namespace Logging.Core.Adapters
 {
-    public class SerilogLoggerAdapter : BaseLogger
+    public class MicrosoftLoggerAdapter : BaseLogger
     {
-        private readonly Serilog.ILogger _logger;
+        private readonly Microsoft.Extensions.Logging.ILogger _logger;
 
-        public SerilogLoggerAdapter(string name, Serilog.ILogger logger) : base(name)
+        public MicrosoftLoggerAdapter(string name, Microsoft.Extensions.Logging.ILogger logger) : base(name)
         {
             _logger = logger;
         }
 
         protected override void Log(
-            LogLevel level, 
-            string message, 
-            string? correlationId = null, 
+            LogLevel level,
+            string message,
+            string? correlationId = null,
             object? context = null)
         {
 
@@ -35,23 +35,23 @@ namespace Logging.Core
             switch (level)
             {
                 case LogLevel.Debug:
-                    _logger.Debug(message);
+                    _logger.LogDebug(message);
                     break;
 
                 case LogLevel.Info:
-                    _logger.Information(message);
+                    _logger.LogInformation(message);
                     break;
 
                 case LogLevel.Warn:
-                    _logger.Warning(message);
+                    _logger.LogWarning(message);
                     break;
 
                 case LogLevel.Error:
-                    _logger.Error(message);
+                    _logger.LogError(message);
                     break;
 
                 case LogLevel.Critical:
-                    _logger.Fatal(message);
+                    _logger.LogCritical(message);
                     break;
 
                 default:
@@ -62,9 +62,11 @@ namespace Logging.Core
         {
             if (_logger is IDisposable disposable)
             {
-                Log(LogLevel.Info, $"Disposing: {typeof(SerilogLoggerAdapter).Name}.");
+                Log(LogLevel.Info, $"Disposing: {typeof(MicrosoftLoggerAdapter).Name}.");
                 disposable.Dispose();
             }
         }
+
     }
+
 }

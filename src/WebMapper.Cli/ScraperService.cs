@@ -24,7 +24,7 @@ namespace WebMapper.Cli
                     .WriteTo.Console(Serilog.Events.LogEventLevel.Information)
                     .CreateLogger();
 
-            var scraperLogger = LoggerFactory.CreateLogger(
+            var scraperLogger = Logging.Core.LoggerFactory.CreateLogger(
                 serviceName,
                 LoggerOptions.Serilog,
                 scraperLoggerConfig

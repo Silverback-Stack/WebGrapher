@@ -11,7 +11,6 @@ namespace ParserService
         private const string TITLE_XPATH = "//head/title";
         private const string LINKS_XPATH = "//a[@href]";
 
-
         public HtmlAgilityPackPageParser(ILogger logger, IEventBus eventBus) : base(logger, eventBus) { }
 
         public override PageItem Parse(string content)

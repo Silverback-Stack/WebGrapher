@@ -22,7 +22,7 @@ namespace WebMapper.Cli
                     .WriteTo.Console(Serilog.Events.LogEventLevel.Information)
                     .CreateLogger();
 
-            var parserLogger = LoggerFactory.CreateLogger(
+            var parserLogger = Logging.Core.LoggerFactory.CreateLogger(
                 serviceName,
                 LoggerOptions.Serilog,
                 parserLoggerConfig

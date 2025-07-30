@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Serilog;
 
-namespace Logging.Core
+namespace Logging.Core.Adapters
 {
-    public class MicrosoftLoggerAdapter : BaseLogger
+    public class SerilogLoggerAdapter : BaseLogger
     {
-        private readonly Microsoft.Extensions.Logging.ILogger _logger;
+        private readonly Serilog.ILogger _logger;
 
-        public MicrosoftLoggerAdapter(string name, Microsoft.Extensions.Logging.ILogger logger) : base(name)
+        public SerilogLoggerAdapter(string name, Serilog.ILogger logger) : base(name)
         {
             _logger = logger;
         }
@@ -35,23 +35,23 @@ namespace Logging.Core
             switch (level)
             {
                 case LogLevel.Debug:
-                    _logger.LogDebug(message);
+                    _logger.Debug(message);
                     break;
 
                 case LogLevel.Info:
-                    _logger.LogInformation(message);
+                    _logger.Information(message);
                     break;
 
                 case LogLevel.Warn:
-                    _logger.LogWarning(message);
+                    _logger.Warning(message);
                     break;
 
                 case LogLevel.Error:
-                    _logger.LogError(message);
+                    _logger.Error(message);
                     break;
 
                 case LogLevel.Critical:
-                    _logger.LogCritical(message);
+                    _logger.Fatal(message);
                     break;
 
                 default:
@@ -60,12 +60,11 @@ namespace Logging.Core
         }
         public override void Dispose()
         {
-            if (_logger is IDisposable disposable) {
-                Log(LogLevel.Info, $"Disposing: {typeof(MicrosoftLoggerAdapter).Name}.");
+            if (_logger is IDisposable disposable)
+            {
+                Log(LogLevel.Info, $"Disposing: {typeof(SerilogLoggerAdapter).Name}.");
                 disposable.Dispose();
-            }       
+            }
         }
-
     }
-
 }

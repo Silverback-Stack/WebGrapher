@@ -43,7 +43,7 @@ namespace WebMapper.Cli
                 await GraphingService.InitializeAsync(_eventBus));
 
             //STREAMING SERVICE
-            //Task.Run(() => StreamingFactory.StartAsync(_eventBus));
+            Task.Run(() => StreamingService.InitializeAsync(_eventBus));
         }
 
 
