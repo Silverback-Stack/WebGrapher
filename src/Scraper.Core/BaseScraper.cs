@@ -3,10 +3,10 @@ using System.Net;
 using System.Text;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Requests.Core;
 
-namespace ScraperService
+namespace Scraper.Core
 {
 
     public abstract class BaseScraper : IScraper, IEventBusLifecycle
@@ -47,7 +47,7 @@ namespace ScraperService
             if (scrapeResponseItem is null)
                 return;
 
-            _logger.LogInformation($"Fetched: {evt.CrawlPageEvent.Url} Attempt {evt.CrawlPageEvent.Attempt} Status: {scrapeResponseItem.StatusCode}");
+            _logger.LogInformation($"Fetched: {evt.CrawlPageEvent.Url} Attempt {evt.CrawlPageEvent.Attempt} Status: {scrapeResponseItem.StatusCode} Cached: {scrapeResponseItem.IsFromCache}");
 
             if (scrapeResponseItem.StatusCode != HttpStatusCode.OK)
             {
@@ -55,10 +55,7 @@ namespace ScraperService
                 return;
             }
 
-            if (!scrapeResponseItem.IsFromCache)
-            {
-                await PublishParsePageEvent(evt, scrapeResponseItem);
-            }
+            await PublishParsePageEvent(evt, scrapeResponseItem);
         }
 
         private async Task PublishScrapePageFailedEvent(

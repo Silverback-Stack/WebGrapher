@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 
-namespace ScraperService
+namespace Scraper.Core
 {
     public record ScrapeResponseItem
     {

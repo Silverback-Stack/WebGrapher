@@ -1,6 +1,6 @@
 ﻿using System;
 using Caching.Core.Adapters.Memory;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Caching.Core
 {

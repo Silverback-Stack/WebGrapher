@@ -1,9 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using WebMapper.Cli;
-using Logging.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 internal class Program
 {
@@ -11,14 +11,15 @@ internal class Program
     {
         try
         {
-            var app = new App();
-            await app.Run();
-
+            var webMapper = new WebMapperApp();
+            await webMapper.Run();
         }
         catch (Exception ex) //global exception handler
         {
             Console.WriteLine($"Critical Exception: {ex.Message} Inner Exception: {ex.InnerException?.Message}");
         }
+
+
 
         Console.WriteLine("The application was terminated.");
         Console.ReadKey();

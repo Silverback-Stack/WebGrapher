@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Net;
-using System.Text;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Toimik.RobotsProtocol;
 
@@ -12,6 +10,7 @@ namespace Crawler.Core
         private readonly ILogger _logger;
         private readonly IRequestSender _requestSender;
 
+        private const string ROBOTS_TXT_USER_AGENT_OVERRIDE = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
         private const string ROBOTS_TXT_USER_ACCEPTS_OVERRIDE = "text/html,text/plain";
 
         public SitePolicyResolver(ILogger logger, IRequestSender requestSender)
@@ -37,7 +36,7 @@ namespace Crawler.Core
 
             if (string.IsNullOrWhiteSpace(userAgent))
             {
-                throw new ArgumentException("UserAgent is required to check against RobotsTxt.");
+                userAgent = ROBOTS_TXT_USER_AGENT_OVERRIDE;
             }
 
             var robots = new RobotsTxt();

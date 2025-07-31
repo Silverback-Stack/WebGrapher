@@ -2,7 +2,7 @@
 using Events.Core.Bus;
 using Graphing.Core.Exporters;
 using Graphing.Core.Models;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Graphing.Core.Adapters.Memory
 {
@@ -41,6 +41,7 @@ namespace Graphing.Core.Adapters.Memory
             //REMOVE THIS AND IMPLEMENT EXPORT OF DATA
             ExportData();
 
+            _logger.LogWarning($"Adding node key: {key}");
 
             if (_nodes.TryGetValue(key, out var node))
             {
@@ -54,10 +55,15 @@ namespace Graphing.Core.Adapters.Memory
                 node = new Node(key, title, keywords, sourceLastModified, edges);
             }
 
+            //create a node for each edge:
             foreach (var edge in node.Edges)
             {
                 if (!_nodes.ContainsKey(edge))
+                {
+                    _logger.LogWarning($"creating new node for edge: {edge}");
                     _nodes[edge] = new Node(edge); //add placeholder node
+                }
+                    
             }
 
             _nodes[key] = node;
@@ -83,5 +89,6 @@ namespace Graphing.Core.Adapters.Memory
                 var data = gexfExporter.Export(_nodes);
             }
         }
+
     }
 }

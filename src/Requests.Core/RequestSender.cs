@@ -3,7 +3,7 @@ using System.Net;
 using System.Text;
 using Caching.Core;
 using Caching.Core.Helpers;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Requests.Core
 {

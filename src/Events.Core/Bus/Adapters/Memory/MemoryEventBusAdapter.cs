@@ -1,12 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics.Tracing;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Events.Core.Bus.Adapters.Memory
 {
@@ -67,8 +61,16 @@ namespace Events.Core.Bus.Adapters.Memory
 
             if (delay > TimeSpan.Zero)
             {
-                _logger.LogDebug($"Event scheduled: {typeof(TEvent).Name}, will be published after {delay.TotalSeconds} seconds.");
-                await Task.Delay(delay, cancellationToken);
+                try
+                {
+                    _logger.LogDebug($"Event scheduled: {typeof(TEvent).Name}, will be published after {delay.TotalSeconds} seconds.");
+                    await Task.Delay(delay, cancellationToken);
+                }
+                catch (Exception)
+                {
+                    _logger.LogWarning($"Timout: {typeof(TEvent).Name}, delay cancelled after {delay.TotalSeconds} seconds.");
+                    return;
+                }
             }
 
             if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))

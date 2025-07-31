@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Net;
 
-
 namespace Events.Core.EventTypes
 {
     public record ScrapePageFailedEvent

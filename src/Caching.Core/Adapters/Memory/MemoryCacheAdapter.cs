@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Reflection;
-using System.Threading;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Caching.Core.Adapters.Memory

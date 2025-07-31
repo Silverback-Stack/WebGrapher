@@ -1,10 +1,10 @@
 ﻿using System;
 using Events.Core.Bus;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Scraper.Core;
 
-namespace ScraperService
+namespace Scraper.Core
 {
     public static class ScraperFactory
     {

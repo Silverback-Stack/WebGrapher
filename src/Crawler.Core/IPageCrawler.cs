@@ -1,6 +1,4 @@
-﻿
-using Events.Core.Bus;
-using Events.Core.EventTypes;
+﻿using Events.Core.EventTypes;
 
 namespace Crawler.Core
 {

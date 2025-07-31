@@ -1,6 +1,6 @@
 ﻿using System;
 using Events.Core.Bus;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Streaming.Core.Models;
 
 namespace Streaming.Core

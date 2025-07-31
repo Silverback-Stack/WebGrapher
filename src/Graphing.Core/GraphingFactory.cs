@@ -1,7 +1,7 @@
 ﻿using System;
 using Events.Core.Bus;
 using Graphing.Core.Adapters.Memory;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Graphing.Core
 {

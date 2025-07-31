@@ -1,5 +1,5 @@
 ﻿using System;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Events.Core.Bus
 {

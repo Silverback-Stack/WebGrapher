@@ -3,7 +3,7 @@ using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Events.Core.Helpers;
 using Graphing.Core.Models;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Graphing.Core
 {
@@ -41,30 +41,37 @@ namespace Graphing.Core
                         evt.Title,
                         evt.Keywords,
                         evt.SourceLastModified,
-                        evt.Links);
+                        evt.Links.Select(u => u.AbsoluteUri));
 
             await FollowEdges(evt, node);
         }
 
         private async Task FollowEdges(GraphPageEvent evt, Node node)
         {
+            if (evt.CrawlPageEvent.Depth > 1)
+            {
+                return;
+            };
+
             foreach (var edge in node.Edges)
             {
-                if (!Uri.TryCreate(edge, UriKind.Absolute, out var edgeUri))
-                    continue;
+                var depth = evt.CrawlPageEvent.Depth + 1;
+
+                _logger.LogWarning($"Processing {edge} depth {depth}");
 
                 if (!IsNodePopulated(edge))
                 {
-                    var depth = evt.CrawlPageEvent.Depth + 1;
-
                     var crawlPageEvent = new CrawlPageEvent(
                         evt.CrawlPageEvent,
-                        edgeUri,
+                        new Uri(edge),
                         attempt: 1,
                         depth);
 
                     var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
                     await _eventBus.PublishAsync(crawlPageEvent, scheduledOffset);
+                } else
+                {
+                    _logger.LogWarning($"Skipping {edge} depth {depth} as already processed");
                 }
             }
         }
