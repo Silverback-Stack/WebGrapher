@@ -1,15 +1,11 @@
 ﻿using System;
+using System.IO;
 
 namespace Normalisation.Core
 {
     public static class UrlNormaliser
     {
-        public static IEnumerable<string> Truncate(IEnumerable<string> urls, int size)
-        {
-            return urls.Take(size);
-        }
-
-        public static Uri GetBaseUrl(Uri url)
+        private static Uri GetBaseUrl(Uri url)
         {
             var baseUrl = $"{url.Scheme}://{url.Authority}";
 
@@ -21,35 +17,26 @@ namespace Normalisation.Core
             return baseUri;
         }
 
-        public static Uri RemoveFragments(Uri uri)
-        {
-            if (!string.IsNullOrEmpty(uri.Fragment))
-            {
-                return new Uri(uri.GetLeftPart(UriPartial.Query));
-            }
-            return uri;
-        }
-
-        public static IEnumerable<string> MakeAbsolute(IEnumerable<string> urls, Uri baseUrl)
+        public static HashSet<Uri> MakeAbsolute(IEnumerable<string> urls, Uri baseUrl)
         {
             var baseUri = GetBaseUrl(baseUrl);
-            var uniqueUrls = new HashSet<string>();
+            var uniqueUrls = new HashSet<Uri>();
 
             foreach (var url in urls)
             {
                 if (string.IsNullOrWhiteSpace(url))
                     continue;
 
-                string absolute;
+                Uri absolute;
 
                 if (Uri.TryCreate(url, UriKind.Absolute, out var abs))
                 {
-                    absolute = abs.AbsoluteUri;
+                    absolute = abs;
                 }
                 else
                 {
                     var combined = new Uri(baseUri, url);
-                    absolute = RemoveFragments(combined).AbsoluteUri;
+                    absolute = RemoveFragment(combined);
                 }
 
                 uniqueUrls.Add(absolute);
@@ -58,56 +45,82 @@ namespace Normalisation.Core
             return uniqueUrls;
         }
 
-        public static IEnumerable<string> FilterBySchema(IEnumerable<string> urls, IEnumerable<string> schemas)
+        private static Uri RemoveFragment(Uri uri)
+        {
+            if (!string.IsNullOrEmpty(uri.Fragment))
+            {
+                return new Uri(uri.GetLeftPart(UriPartial.Query));
+            }
+            return uri;
+        }
+
+        public static HashSet<Uri> FilterBySchema(HashSet<Uri> urls, IEnumerable<string> schemas)
         {
             if (!schemas.Any()) return urls;
 
-            return urls.Where(url =>
-                schemas.Any(schema => url.StartsWith(schema + ":", StringComparison.OrdinalIgnoreCase)));
+            return urls.Where(u => schemas.Contains(u.Scheme)).ToHashSet();
         }
 
-        public static IEnumerable<string> FilterByPath(IEnumerable<string> urls, IEnumerable<string>? paths)
+        public static HashSet<Uri> FilterByPath(HashSet<Uri> urls, IEnumerable<string>? paths)
         {
             if (paths is null || !paths.Any()) return urls;
             
-            return urls.Where(url =>
-                Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
-                paths.Any(p => uri.AbsolutePath.Contains(p, StringComparison.OrdinalIgnoreCase))
-            );
+            return urls.Where(u => 
+                paths.Any(p => u.AbsolutePath.Contains(p, StringComparison.OrdinalIgnoreCase))
+            ).ToHashSet();
         }
 
-        public static IEnumerable<string> RemoveExternalLinks(IEnumerable<string> urls, Uri baseUrl)
+        public static HashSet<Uri> RemoveExternalLinks(HashSet<Uri> urls, Uri baseUrl)
         {
-            return urls.Where(url => IsInternalLink(url, baseUrl));
+            return urls.Where(url => IsInternalLink(url, baseUrl)).ToHashSet();
         }
 
-        private static bool IsInternalLink(string url, Uri baseUrl)
+        private static bool IsInternalLink(Uri url, Uri baseUrl)
         {
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            {
-                if (uri.Authority == baseUrl.Authority)
-                    return true;
-            }
-            return false;
+            return url.Authority == baseUrl.Authority;
         }
 
-        public static IEnumerable<string> RemoveQueryStrings(IEnumerable<string> urls)
+        public static HashSet<Uri> RemoveQueryStrings(HashSet<Uri> urls)
         {
-            var results = new HashSet<string>();
+            var results = new HashSet<Uri>();
+
             foreach (var url in urls)
             {
-                if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                var builder = new UriBuilder(url)
                 {
-                    if (uri.Query.Any()) {
-                        results.Add(new UriBuilder(uri) { Query = string.Empty }.Uri.AbsoluteUri);
-                    } 
-                    else
-                    {
-                        results.Add(url);
-                    }
-                }
+                    Query = string.Empty
+                };
+
+                results.Add(builder.Uri);
             }
             return results;
+        }
+
+        public static HashSet<Uri> RemoveCyclicalLinks(HashSet<Uri> urls, Uri baseUrl)
+        {
+            return urls.Where(u => !u.Equals(baseUrl)).ToHashSet();
+        }
+
+        public static HashSet<Uri> RemoveTrailingSlash(HashSet<Uri> urls)
+        {
+            var results = new HashSet<Uri>();
+
+            foreach (var url in urls)
+            {
+                var path = url.AbsolutePath;
+                var builder = new UriBuilder(url)
+                {
+                    Path = path == "/" ? path : path.TrimEnd('/')
+                };
+
+                results.Add(builder.Uri);
+            }
+
+            return results;
+        }
+        public static HashSet<Uri> Truncate(HashSet<Uri> urls, int size)
+        {
+            return urls.Take(size).ToHashSet();
         }
 
     }

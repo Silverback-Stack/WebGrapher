@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-using System.Data;
-
+﻿
 namespace Graphing.Core.Models
 {
     public class Node
@@ -17,7 +15,7 @@ namespace Graphing.Core.Models
             Id = id;
             Title = string.Empty;
             Keywords = string.Empty;
-            SourceLastModifed = null;
+            SourceLastModifed = null; //dummy node 
             CreatedAt = DateTimeOffset.UtcNow;
         }
 
@@ -26,7 +24,7 @@ namespace Graphing.Core.Models
             Id = id;
             Title = title;
             Keywords = keywords;
-            SourceLastModifed = sourceLastModified;
+            SourceLastModifed = sourceLastModified ?? DateTimeOffset.UtcNow; //marks as populated even if no value was provided by web reponse
             CreatedAt = DateTimeOffset.UtcNow;
             SetEdges(edges);
         }

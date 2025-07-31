@@ -1,7 +1,7 @@
 ﻿using System;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Normalisation.Core
 {
@@ -95,21 +95,32 @@ namespace Normalisation.Core
             return text;
         }
 
-        public IEnumerable<string> NormaliseLinks(
+        public IEnumerable<Uri> NormaliseLinks(
             IEnumerable<string> links, 
             Uri baseUrl, 
             bool allowExternal, 
             bool removeQueryStrings, 
             IEnumerable<string>? pathFilters)
         {
-            links = UrlNormaliser.MakeAbsolute(links, baseUrl);
-            links = UrlNormaliser.FilterBySchema(links, ALLOWABLE_LINK_SCHEMAS);
-            links = allowExternal ? links : UrlNormaliser.RemoveExternalLinks(links, baseUrl);
-            links = removeQueryStrings ? UrlNormaliser.RemoveQueryStrings(links) : links;
-            links = UrlNormaliser.FilterByPath(links, pathFilters);
-            links = UrlNormaliser.Truncate(links, MAX_LINKS_PER_PAGE);
+            var uniqueUrls = UrlNormaliser.MakeAbsolute(links, baseUrl);
 
-            return links;
+            uniqueUrls = UrlNormaliser.RemoveCyclicalLinks(uniqueUrls, baseUrl);
+
+            uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
+
+            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, ALLOWABLE_LINK_SCHEMAS);
+
+            if (!allowExternal)
+                uniqueUrls = UrlNormaliser.RemoveExternalLinks(uniqueUrls, baseUrl);
+
+            if (removeQueryStrings)
+                uniqueUrls = UrlNormaliser.RemoveQueryStrings(uniqueUrls);
+
+            uniqueUrls = UrlNormaliser.FilterByPath(uniqueUrls, pathFilters);
+
+            uniqueUrls = UrlNormaliser.Truncate(uniqueUrls, MAX_LINKS_PER_PAGE);
+
+            return uniqueUrls;
         }
     }
 }

@@ -1,6 +1,4 @@
 ﻿
-using Events.Core.Bus;
-
 namespace Normalisation.Core
 {
     public interface IHtmlNormalisation
@@ -11,7 +9,7 @@ namespace Normalisation.Core
         
         public string NormaliseKeywords(string text);
 
-        IEnumerable<string> NormaliseLinks(
+        IEnumerable<Uri> NormaliseLinks(
             IEnumerable<string> links, 
             Uri baseUrl, 
             bool allowExternal, 

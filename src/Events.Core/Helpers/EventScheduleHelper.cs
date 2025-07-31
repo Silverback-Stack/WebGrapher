@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace Events.Core.Helpers
 {
     public static class EventScheduleHelper
     {
-        private const int DEFAULT_MAX_DELAY_IN_SECONDS = 5;
+        private const int DEFAULT_MAX_DELAY_IN_SECONDS = 3;
 
         /// <summary>
         /// Adds a random delay up to maxSeconds to the specified DateTimeOffset.

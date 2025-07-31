@@ -1,6 +1,6 @@
 ﻿using System;
 using Caching.Core;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Requests.Core.Adapters;
 
 namespace Requests.Core

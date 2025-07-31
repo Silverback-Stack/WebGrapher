@@ -2,9 +2,9 @@
 using System.Net;
 using Events.Core.Bus;
 using HtmlAgilityPack;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
-namespace ParserService
+namespace Parser.Core
 {
     public class HtmlAgilityPackPageParser : BasePageParser
     {

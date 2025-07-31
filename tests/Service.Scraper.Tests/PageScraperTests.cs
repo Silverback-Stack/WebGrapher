@@ -1,11 +1,10 @@
 using System;
 using System.Net;
 using Events.Core.Bus;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Requests.Core;
 using Scraper.Core;
-using ScraperService;
 
 namespace Service.Scraper.Tests
 {

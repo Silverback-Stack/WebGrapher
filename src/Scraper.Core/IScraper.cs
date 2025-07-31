@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ScraperService
+namespace Scraper.Core
 {
     public interface IScraper
     {

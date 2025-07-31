@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Text.Json;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace Caching.Core.Adapters.Redis
@@ -18,7 +18,7 @@ namespace Caching.Core.Adapters.Redis
 
         public async Task<T?> GetAsync<T>(string key)
         {
-            _logger.LogInformation("Getting {key} from the cache.");
+            _logger.LogInformation($"Getting {key} from the cache.");
             var value = await _db.StringGetAsync(key);
             return value.HasValue
                 ? JsonSerializer.Deserialize<T>(value)
@@ -27,20 +27,20 @@ namespace Caching.Core.Adapters.Redis
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
-            _logger.LogInformation("Setting {key} in the cache.");
+            _logger.LogInformation($"Setting {key} in the cache.");
             var json = JsonSerializer.Serialize(value);
             await _db.StringSetAsync(key, json, expiration);
         }
 
         public async Task RemoveAsync(string key)
         {
-            _logger.LogInformation("Removing {key} from the cache.");
+            _logger.LogInformation($"Removing {key} from the cache.");
             await _db.KeyDeleteAsync(key);
         }
 
         public async Task<bool> ExistsAsync(string key)
         {
-            _logger.LogInformation("Checking {key} is in the cache.");
+            _logger.LogInformation($"Checking {key} is in the cache.");
             return await _db.KeyExistsAsync(key);
         }
 

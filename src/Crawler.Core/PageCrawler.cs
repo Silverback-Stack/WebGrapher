@@ -4,7 +4,7 @@ using Caching.Core.Helpers;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Events.Core.Helpers;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Requests.Core;
 
 namespace Crawler.Core
@@ -64,13 +64,13 @@ namespace Crawler.Core
         {
             if (HasExhaustedRetries(evt.Attempt))
             {
-                _logger.LogInformation($"Abandoned: {evt.Url} reached the maximum number of retry attempts.");
+                _logger.LogInformation($"Abandoned: {evt.Url} reached the maximum number of retry attempts. Attempt: {evt.Attempt}");
                 return;
             }
 
             if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
             {
-                _logger.LogInformation($"Stopped: {evt.Url} reached the maximum link depth to crawl and was stopped.");
+                _logger.LogInformation($"Stopped: {evt.Url} reached the maximum link depth to crawl and was stopped. Depth: {evt.Depth}");
                 return;
             }
 

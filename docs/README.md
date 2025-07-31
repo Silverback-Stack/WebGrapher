@@ -1,5 +1,20 @@
 ﻿Add information here
 
+PROJECT SETUP
+=============
+
++ Create directory file structure first, especially src folder
+
++ Create empty project in visual studio
+
++ Add the .gitignore to teh root folder to prevent GIT from versioning all sorts of crap
+  Make sure this entry is added to .gitignore to prevent GIT versioning logs:
+	# Logs
+	logs/
+	*.log
+
++ 
+
 todo: add licence 
 
 Micro services architecture

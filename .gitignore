@@ -338,3 +338,8 @@ license-error-*.md
 .terraform/
 .terraform.lock.hcl
 *.tfplan
+
+# Logs
+logs/
+*.log
+

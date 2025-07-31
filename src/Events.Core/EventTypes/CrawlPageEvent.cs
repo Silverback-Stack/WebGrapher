@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Events.Core.EventTypes
 {
@@ -13,7 +7,7 @@ namespace Events.Core.EventTypes
         public Uri Url { get; init; }
         public int Attempt { get; init; } = 1;
         public int Depth { get; init; } = 0;
-        public Guid ContainerId { get; init; }
+        public int MapId { get; init; }
         public Guid CorrelationId { get; init; }
         public bool FollowExternalLinks { get; init; }
         public int MaxDepth { get; init; }
@@ -28,7 +22,7 @@ namespace Events.Core.EventTypes
 
         public CrawlPageEvent(
             Uri url, 
-            Guid containerId, 
+            int mapId, 
             Guid correlationId, 
             bool followExternalLinks,
             bool removeQueryStrings,
@@ -38,7 +32,7 @@ namespace Events.Core.EventTypes
             string? userAccepts) { 
 
             Url = url;
-            ContainerId = containerId;
+            MapId = mapId;
             CorrelationId = correlationId;
             FollowExternalLinks = followExternalLinks;
             RemoveQueryStrings = removeQueryStrings;
@@ -53,9 +47,10 @@ namespace Events.Core.EventTypes
             Url = url;
             Attempt = attempt;
             Depth = depth;
-            ContainerId = evt.ContainerId;
+            MapId = evt.MapId;
             CorrelationId = evt.CorrelationId;
             FollowExternalLinks = evt.FollowExternalLinks;
+            RemoveQueryStrings = evt.RemoveQueryStrings;
             MaxDepth = evt.MaxDepth;
             PathFilters = evt.PathFilters;
             UserAgent = evt.UserAgent;

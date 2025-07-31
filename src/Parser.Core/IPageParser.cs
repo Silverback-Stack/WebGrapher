@@ -1,7 +1,5 @@
 ﻿
-using Events.Core.Bus;
-
-namespace ParserService
+namespace Parser.Core
 {
     public interface IPageParser
     {

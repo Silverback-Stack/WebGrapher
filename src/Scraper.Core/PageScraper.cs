@@ -1,8 +1,7 @@
 ﻿using System;
 using Events.Core.Bus;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 using Requests.Core;
-using ScraperService;
 
 namespace Scraper.Core
 {
@@ -10,8 +9,8 @@ namespace Scraper.Core
     {
         private const int DEFAULT_CONTENT_MAX_BYTES = 1_048_576; //1Mb
 
-        public PageScraper(ILogger appLogger, IEventBus eventBus, IRequestSender requestSender) 
-            : base(appLogger, eventBus, requestSender) { }
+        public PageScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender) 
+            : base(logger, eventBus, requestSender) { }
 
         public async override Task<ScrapeResponseItem?> GetAsync(Uri url, string? userAgent, string? clientAccept)
         {

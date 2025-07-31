@@ -1,9 +1,9 @@
 ﻿using System;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
-using Logging.Core;
+using Microsoft.Extensions.Logging;
 
-namespace ParserService
+namespace Parser.Core
 {
     public abstract class BasePageParser : IPageParser, IEventBusLifecycle
     {

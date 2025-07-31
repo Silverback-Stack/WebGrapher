@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Events.Core.Bus;
-using Logging.Core;
+﻿using Events.Core.Bus;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
+using Serilog.Events;
+using Serilog.Extensions.Logging;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-namespace WebMapper.Cli
+namespace WebMapper.Cli.Service.Streaming
 
 //NOTE:
 // YOU WILL NEED TO ADD PACKAGES:
@@ -30,31 +25,36 @@ namespace WebMapper.Cli
 {
     public class StreamingService
     {
-
-        private const string DEFAULT_STREAMING_HOST = "http://localhost:5000";
+        private const string HOST = "http://localhost:5001";
+        private static IHost? _host;
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
             var serviceName = typeof(StreamingService).Name;
+            var logFilePath = $"logs/{serviceName}.log";
 
-            var loggerConfig = new LoggerConfiguration()
-                    .MinimumLevel.Debug()
-                    .WriteTo.File("logs/streaming.log", rollingInterval: RollingInterval.Day)
-                    .WriteTo.Console(Serilog.Events.LogEventLevel.Information)
-                    .CreateLogger();
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
+                .WriteTo.Console(LogEventLevel.Information)
+                .CreateLogger();
+            ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
 
-            var logger = Logging.Core.LoggerFactory.CreateLogger(
-                serviceName,
-                LoggerOptions.Serilog,
-                loggerConfig
-            );
+            var logger = loggerFactory.CreateLogger<IGraphStreamer>();
 
 
+            var (host, hubContext) = await StartHubServerAsync();
+            _host = host;
 
-            string[] args = { };
+            StreamerFactory.Create(logger, eventBus, hubContext);
 
+            logger.LogInformation($"The Streaming Hub started: {HOST}");
+        }
+
+        private async static Task<(IHost host, IHubContext<GraphHub>)> StartHubServerAsync()
+        {
             // Create and build web host to get hubContext and host SignalR
-            using var host = Host.CreateDefaultBuilder(args)
+            var host = Host.CreateDefaultBuilder()
                 .ConfigureServices(services =>
                 {
                     services.AddSignalR();
@@ -70,7 +70,7 @@ namespace WebMapper.Cli
                             endpoints.MapGet("/", () => "SignalR server is running!");
                         });
                     })
-                    .UseUrls(DEFAULT_STREAMING_HOST);
+                    .UseUrls(HOST);
                 })
                 .ConfigureLogging(logging =>
                 {
@@ -79,16 +79,21 @@ namespace WebMapper.Cli
                 })
                 .Build();
 
-            // Resolve IHubContext from the container:
             var hubContext = host.Services.GetRequiredService<IHubContext<GraphHub>>();
 
+            await host.StartAsync();
 
-            StreamerFactory.Create(logger, eventBus, hubContext);
+            return (host, hubContext);
+        }
 
-            logger.LogInformation($"{serviceName} is listening on {DEFAULT_STREAMING_HOST}");
-
-            // Run the host so the hub is live:
-            await host.RunAsync();
+        public static async Task StopHubServerAsync()
+        {
+            if (_host != null)
+            {
+                await _host.StopAsync();
+                _host.Dispose();
+            }
+            Log.CloseAndFlush();
         }
 
     }
