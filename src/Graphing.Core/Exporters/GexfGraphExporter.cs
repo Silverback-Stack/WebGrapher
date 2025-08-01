@@ -46,9 +46,9 @@ namespace Graphing.Core.Exporters
             {
                 foreach (var targetId in node.Edges)
                 {
-                    if (graph.TryGetValue(targetId, out var targetNode) && targetNode.HasData)
+                    if (graph.TryGetValue(targetId.Id, out var targetNode) && targetNode.HasData)
                     {
-                        sb.AppendLine($"<edge id=\"e{edgeId++}\" source=\"{Escape(node.Id)}\" target=\"{Escape(targetId)}\" />");
+                        sb.AppendLine($"<edge id=\"e{edgeId++}\" source=\"{Escape(node.Id)}\" target=\"{Escape(targetId.Id)}\" />");
                     }
                 }
             }

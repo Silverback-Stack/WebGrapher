@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net;
-using System.Text;
 using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Microsoft.Extensions.Logging;
@@ -78,7 +77,8 @@ namespace Scraper.Core
             await _eventBus.PublishAsync(new ParsePageEvent
             {
                 CrawlPageEvent = scrapeEvent.CrawlPageEvent,
-                Url = scrapeResponse.Url,
+                RequestUrl = scrapeResponse.RequestUrl,
+                ResolvedUrl = scrapeResponse.ResolvedUrl,
                 Content = scrapeResponse.Content,
                 LastModified = scrapeResponse.LastModified,
                 StatusCode = scrapeResponse.StatusCode,

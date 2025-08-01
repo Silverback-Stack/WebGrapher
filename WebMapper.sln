@@ -50,6 +50,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Architecture.txt = docs\Architecture.txt
 		docs\Ideas.txt = docs\Ideas.txt
 		LectureOrder.txt = LectureOrder.txt
+		Node_Redirects.txt = Node_Redirects.txt
 		docs\README.md = docs\README.md
 	EndProjectSection
 EndProject

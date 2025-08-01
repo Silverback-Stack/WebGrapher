@@ -2,28 +2,32 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
-namespace Events.Core.Bus.Adapters.Memory
+namespace Events.Core.Bus.Adapters.InMemory
 {
-    public class MemoryEventBusAdapter : BaseEventBus
+    /// <summary>
+    /// In-memory event bus adapter for local development, 
+    /// can be swapped out with a distributed event bus adapter such as RabbitMQ or AzureServiceBus.
+    /// </summary>
+    public class InMemoryEventBusAdapter : BaseEventBus
     {
         private readonly ConcurrentDictionary<Type, List<Delegate>> _handlers = new();
 
-        public MemoryEventBusAdapter(ILogger logger) : base(logger) { }
+        public InMemoryEventBusAdapter(ILogger logger) : base(logger) { }
 
         public async override Task StartAsync()
         {
             //nothing to do for in-memory implementation
-            _logger.LogInformation($"Started: {typeof(MemoryEventBusAdapter).Name}");
+            _logger.LogInformation($"Started: {typeof(InMemoryEventBusAdapter).Name}");
         }
 
         public async override Task StopAsync()
         {
             //nothing to do for in-memory implementation
-            _logger.LogInformation($"Stopped: {typeof(MemoryEventBusAdapter).Name}");
+            _logger.LogInformation($"Stopped: {typeof(InMemoryEventBusAdapter).Name}");
         }
         public override void Dispose()
         {
-            _logger.LogDebug($"Disposing: {typeof(MemoryEventBusAdapter).Name}, handlers cleared.");
+            _logger.LogDebug($"Disposing: {typeof(InMemoryEventBusAdapter).Name}, handlers cleared.");
             _handlers.Clear();
         }
 

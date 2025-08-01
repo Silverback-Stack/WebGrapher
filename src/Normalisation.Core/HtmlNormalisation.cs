@@ -45,7 +45,8 @@ namespace Normalisation.Core
             await _eventBus.PublishAsync(new GraphPageEvent
             {
                 CrawlPageEvent = evt.CrawlPageEvent,
-                Url = evt.Url,
+                RequestUrl = evt.RequestUrl,
+                ResolvedUrl = evt.ResolvedUrl,
                 Title = normalisedTitle,
                 Keywords = normalisedKeywords,
                 Links = normalisedLinks,
@@ -55,7 +56,7 @@ namespace Normalisation.Core
             });
 
             var linkType = evt.CrawlPageEvent.FollowExternalLinks ? "external" : "internal";
-            _logger.LogDebug($"Normalised Page: {evt.Url} found {normalisedLinks.Count()} {linkType} links and extracted {normalisedKeywords.Count()} keywords.");
+            _logger.LogDebug($"Normalised Page: {evt.ResolvedUrl} found {normalisedLinks.Count()} {linkType} links and extracted {normalisedKeywords.Count()} keywords.");
         }
 
         public string NormaliseTitle(string? text)

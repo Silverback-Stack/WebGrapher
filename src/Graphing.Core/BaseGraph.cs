@@ -12,6 +12,8 @@ namespace Graphing.Core
         protected readonly ILogger _logger;
         protected readonly IEventBus _eventBus;
 
+        private const int NODE_STALE_DAYS = 30;
+
         protected BaseGraph(ILogger logger, IEventBus eventBus)
         {
             _logger = logger;
@@ -30,59 +32,98 @@ namespace Graphing.Core
 
         private async Task EventHandler(GraphPageEvent evt)
         {
-            //if (_graphAnalyser.TotalNodes() > 1000 && _graphAnalyser.TotalEdges() > 1000)
-            //{
-            //    var gexfExporter = new GexfGraphExporter();
-            //    var data = gexfExporter.Export(_nodes);
-            //}
+            await UpdateGraph(evt);
+        }
 
-            var node = AddNode(
-                        evt.Url.AbsoluteUri,
-                        evt.Title,
-                        evt.Keywords,
-                        evt.SourceLastModified,
-                        evt.Links.Select(u => u.AbsoluteUri));
+        private async Task UpdateGraph(GraphPageEvent evt)
+        {
+            if (evt.IsRedirect)
+            {
+                var redirectedNode = await GetNodeAsync(evt.RequestUrl.AbsoluteUri);
 
-            await FollowEdges(evt, node);
+                if (redirectedNode is null)
+                    redirectedNode = new Node(evt.RequestUrl.AbsoluteUri);
+
+                redirectedNode.SetRedirected(redirectedTo: evt.ResolvedUrl.AbsoluteUri);
+
+                redirectedNode.AddRedirectEdge(
+                    target: evt.ResolvedUrl.AbsoluteUri,
+                    redirectedFrom: evt.RequestUrl.AbsoluteUri);
+
+                await SetNodeAsync(redirectedNode);
+            }
+
+            var resolvedNode = await GetNodeAsync(evt.ResolvedUrl.AbsoluteUri);
+            var links = evt.Links.Select(l => l.AbsoluteUri);
+
+            if (resolvedNode is null)
+            {
+                resolvedNode = new Node(
+                    evt.ResolvedUrl.AbsoluteUri,
+                    evt.Title,
+                    evt.Keywords,
+                    evt.SourceLastModified,
+                    links);
+            }
+            else if (resolvedNode.State == NodeState.Dummy ||
+                (resolvedNode.State == NodeState.Populated 
+                    && resolvedNode.IsStale(NODE_STALE_DAYS)))
+            {
+                resolvedNode.SetPopulated(
+                    evt.Title,
+                    evt.Keywords,
+                    evt.SourceLastModified,
+                    links);
+            } 
+            else
+            {
+                //already fresh and populated
+                return;
+            }
+
+            await SetNodeAsync(resolvedNode);
+            await FollowEdges(evt, resolvedNode);
         }
 
         private async Task FollowEdges(GraphPageEvent evt, Node node)
         {
-            if (evt.CrawlPageEvent.Depth > 1)
-            {
-                return;
-            };
-
             foreach (var edge in node.Edges)
             {
-                var depth = evt.CrawlPageEvent.Depth + 1;
+                var edgeNode = await GetNodeAsync(edge.Id);
 
-                _logger.LogWarning($"Processing {edge} depth {depth}");
+                if (edgeNode is not null 
+                    && edgeNode.State == NodeState.Redirected)
+                    continue;
 
-                if (!IsNodePopulated(edge))
+                if (edgeNode is not null
+                    && edgeNode.State == NodeState.Populated
+                    && !edgeNode.IsStale(NODE_STALE_DAYS))
+                    continue;
+
+                if (edgeNode is null || edgeNode.State == NodeState.Dummy)
                 {
+                    var depth = evt.CrawlPageEvent.Depth + 1;
+
                     var crawlPageEvent = new CrawlPageEvent(
                         evt.CrawlPageEvent,
-                        new Uri(edge),
+                        new Uri(edge.Id),
                         attempt: 1,
                         depth);
 
                     var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
                     await _eventBus.PublishAsync(crawlPageEvent, scheduledOffset);
-                } else
-                {
-                    _logger.LogWarning($"Skipping {edge} depth {depth} as already processed");
+                    _logger.LogWarning($"Published crawl page event for edge: {edge.Id} depth: {depth}");
                 }
             }
         }
 
         public abstract IGraphAnalyser GraphAnalyser { get; }
 
-        public abstract Node AddNode(string id, string title, string keywords, DateTimeOffset? sourceLastModified, IEnumerable<string> edges);
+        public abstract Task<Node?> GetNodeAsync(string id);
 
-        public abstract bool IsNodePopulated(string id);
+          public abstract Task<Node?> SetNodeAsync(Node node);
 
-        public abstract void RemoveNode(string id);
+        public abstract Task DeleteNodeAsync(string id);
 
         public abstract void Dispose();
     }

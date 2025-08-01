@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using Graphing.Core.Models;
 
-namespace Graphing.Core.Adapters.Memory
+namespace Graphing.Core.Adapters.InMemory
 {
-    public class MemoryGraphAnalyserAdapter : IGraphAnalyser
+    public class InMemoryGraphAnalyserAdapter : IGraphAnalyser
     {
-        protected readonly Dictionary<string, Node> _nodes;
+        protected readonly ConcurrentDictionary<string, Node> _nodes;
 
-        public MemoryGraphAnalyserAdapter(Dictionary<string, Node> data)
+        public InMemoryGraphAnalyserAdapter(ConcurrentDictionary<string, Node> data)
         {
             _nodes = data;
         }
