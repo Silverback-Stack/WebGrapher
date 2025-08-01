@@ -1,9 +1,9 @@
 ﻿using System;
 using Graphing.Core.Models;
 
-namespace Graphing.Core.Adapters.AzureCosmoGraph
+namespace Graphing.Core.Adapters.CosmoGraph
 {
-    public class AzureCosmoGraphAnalyserAdapter : IGraphAnalyser
+    public class CosmoGraphAnalyserAdapter : IGraphAnalyser
     {
         public int AverageLinksPerNode()
         {

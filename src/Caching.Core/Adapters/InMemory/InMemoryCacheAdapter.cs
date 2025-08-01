@@ -2,15 +2,19 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace Caching.Core.Adapters.Memory
+namespace Caching.Core.Adapters.InMemory
 {
-    public class MemoryCacheAdapter : ICache
+    public class InMemoryCacheAdapter : ICache
     {
         private readonly string _serviceName;
         private readonly ILogger _logger;
         private readonly IMemoryCache _cache;
 
-        public MemoryCacheAdapter(string serviceName, ILogger logger)
+        /// <summary>
+        /// In-memory cache adapter for local development, 
+        /// can be swapped out with a distributed cache adapter such as Redis.
+        /// </summary>
+        public InMemoryCacheAdapter(string serviceName, ILogger logger)
         {
             _serviceName = serviceName;
             _logger = logger;
@@ -52,7 +56,7 @@ namespace Caching.Core.Adapters.Memory
         {
             if (_cache is IDisposable disposable)
             {
-                _logger.LogDebug($"Disposing: {typeof(MemoryCacheAdapter).Name}.");
+                _logger.LogDebug($"Disposing: {typeof(InMemoryCacheAdapter).Name}.");
                 disposable.Dispose();
             }
         }

@@ -1,5 +1,4 @@
-﻿using Events.Core.Bus;
-using Graphing.Core.Models;
+﻿using Graphing.Core.Models;
 
 namespace Graphing.Core
 {
@@ -7,16 +6,10 @@ namespace Graphing.Core
     {
         IGraphAnalyser GraphAnalyser { get; }
 
-        bool IsNodePopulated(string id);
+        Task<Node?> GetNodeAsync(string id);
 
-        Node AddNode(
-            string id, 
-            string title, 
-            string keywords,
-            DateTimeOffset? sourceLastModified,
-            IEnumerable<string> edges);
+        Task<Node?> SetNodeAsync(Node node);
 
-        void RemoveNode(string id);
-
+        Task DeleteNodeAsync(string id);
     }
 }

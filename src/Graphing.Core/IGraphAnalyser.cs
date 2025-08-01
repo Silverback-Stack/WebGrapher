@@ -1,5 +1,4 @@
-﻿
-using Graphing.Core.Models;
+﻿using Graphing.Core.Models;
 
 namespace Graphing.Core
 {

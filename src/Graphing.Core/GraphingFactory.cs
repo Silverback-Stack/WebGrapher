@@ -1,6 +1,6 @@
 ﻿using System;
 using Events.Core.Bus;
-using Graphing.Core.Adapters.Memory;
+using Graphing.Core.Adapters.InMemory;
 using Microsoft.Extensions.Logging;
 
 namespace Graphing.Core
@@ -9,7 +9,7 @@ namespace Graphing.Core
     {
         public static IGraph Create(ILogger logger, IEventBus eventBus)
         {
-            var service = new MemoryGraphAdapter(logger, eventBus);
+            var service = new InMemoryGraphAdapter(logger, eventBus);
             service.SubscribeAll();
             return service;
         }

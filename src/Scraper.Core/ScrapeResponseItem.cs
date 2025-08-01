@@ -5,7 +5,8 @@ namespace Scraper.Core
 {
     public record ScrapeResponseItem
     {
-        public required Uri Url { get; init; }
+        public required Uri RequestUrl { get; init; }
+        public required Uri ResolvedUrl { get; init; }
         public required string Content { get; init; }
         public HttpStatusCode StatusCode { get; init; }
         public DateTimeOffset? LastModified { get; init; }

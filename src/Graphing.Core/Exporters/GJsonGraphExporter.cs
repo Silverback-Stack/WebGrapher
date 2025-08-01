@@ -35,7 +35,7 @@ namespace Graphing.Core.Exporters
             {
                 foreach (var targetUrl in sourceNode.Edges)
                 {
-                    if (realNodes.ContainsKey(targetUrl))
+                    if (realNodes.ContainsKey(targetUrl.Id))
                     {
                         edges.Add(new { source = sourceNode.Id, target = targetUrl });
                     }

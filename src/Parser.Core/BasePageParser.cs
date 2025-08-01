@@ -35,7 +35,8 @@ namespace Parser.Core
                 await _eventBus.PublishAsync(new NormalisePageEvent
                 {
                     CrawlPageEvent = evt.CrawlPageEvent,
-                    Url = evt.Url,
+                    RequestUrl = evt.RequestUrl,
+                    ResolvedUrl = evt.ResolvedUrl,
                     Title = pageItem.Title,
                     Keywords = pageItem.Content,
                     Links = pageItem.Links,
@@ -45,7 +46,7 @@ namespace Parser.Core
                 });
 
                 var linkType = evt.CrawlPageEvent.FollowExternalLinks ? "external" : "internal";
-                _logger.LogDebug($"Parsed Page: {evt.Url} found {pageItem.Links.Count()} {linkType} links");
+                _logger.LogDebug($"Parsed Page: {evt.ResolvedUrl} found {pageItem.Links.Count()} {linkType} links");
             }
         }
 

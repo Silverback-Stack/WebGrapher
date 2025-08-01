@@ -20,10 +20,11 @@ namespace Scraper.Core
                 clientAccept,
                 DEFAULT_CONTENT_MAX_BYTES);
 
-            if (response?.Data != null) { 
+            if (response?.Data != null) {
                 return new ScrapeResponseItem()
                 {
-                    Url = response.Data.Url,
+                    RequestUrl = response.Data.OriginalUrl,
+                    ResolvedUrl = response.Data.Url,
                     Content = response.Data.Content ?? string.Empty,
                     StatusCode = response.Data.StatusCode,
                     LastModified = response.Data.LastModified,

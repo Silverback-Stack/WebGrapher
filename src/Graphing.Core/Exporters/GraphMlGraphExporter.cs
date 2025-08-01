@@ -40,9 +40,9 @@ namespace Graphing.Core.Exporters
             {
                 foreach (var targetUrl in sourceNode.Edges)
                 {
-                    if (realNodes.ContainsKey(targetUrl))
+                    if (realNodes.ContainsKey(targetUrl.Id))
                     {
-                        sb.AppendLine($"    <edge source=\"{SecurityElement.Escape(sourceNode.Id)}\" target=\"{SecurityElement.Escape(targetUrl)}\" />");
+                        sb.AppendLine($"    <edge source=\"{SecurityElement.Escape(sourceNode.Id)}\" target=\"{SecurityElement.Escape(targetUrl.Id)}\" />");
                     }
                 }
             }

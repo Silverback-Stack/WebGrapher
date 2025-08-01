@@ -3,20 +3,20 @@ using Events.Core.Bus;
 using Graphing.Core.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Graphing.Core.Adapters.AzureCosmoGraph
+namespace Graphing.Core.Adapters.CosmoGraph
 {
-    public class AzureCosmoGraphAdapter : BaseGraph
+    public class CosmoGraphAdapter : BaseGraph
     {
         private readonly IGraphAnalyser _graphAnalyser;
 
-        public AzureCosmoGraphAdapter(ILogger logger, IEventBus eventBus) : base(logger, eventBus)
+        public CosmoGraphAdapter(ILogger logger, IEventBus eventBus) : base(logger, eventBus)
         {
-            _graphAnalyser = new AzureCosmoGraphAnalyserAdapter();
+            _graphAnalyser = new CosmoGraphAnalyserAdapter();
         }
 
         public override IGraphAnalyser GraphAnalyser => throw new NotImplementedException();
 
-        public override Node AddNode(string id, string title, string keywords, DateTimeOffset? sourceLastModified, IEnumerable<string> edges)
+        public override Task DeleteNodeAsync(string id)
         {
             throw new NotImplementedException();
         }
@@ -26,12 +26,12 @@ namespace Graphing.Core.Adapters.AzureCosmoGraph
             throw new NotImplementedException();
         }
 
-        public override bool IsNodePopulated(string id)
+        public override Task<Node?> GetNodeAsync(string id)
         {
             throw new NotImplementedException();
         }
 
-        public override void RemoveNode(string id)
+        public override Task<Node?> SetNodeAsync(Node node)
         {
             throw new NotImplementedException();
         }
