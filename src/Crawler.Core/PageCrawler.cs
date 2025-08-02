@@ -37,23 +37,14 @@ namespace Crawler.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<CrawlPageEvent>(HandleCrawlPageEvent);
-            _eventBus.Subscribe<ScrapePageFailedEvent>(HandleScrapePageFailedEvent);
+            _eventBus.Subscribe<CrawlPageEvent>(EvaluatePageForCrawling);
+            _eventBus.Subscribe<ScrapePageFailedEvent>(RetryPageCrawl);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<CrawlPageEvent>(HandleCrawlPageEvent);
-            _eventBus.Unsubscribe<ScrapePageFailedEvent>(HandleScrapePageFailedEvent);
-        }
-
-        private async Task HandleCrawlPageEvent(CrawlPageEvent evt)
-        {
-            await EvaluatePageForCrawling(evt);
-        }
-        private async Task HandleScrapePageFailedEvent(ScrapePageFailedEvent evt)
-        {
-            await RetryPageCrawl(evt);
+            _eventBus.Unsubscribe<CrawlPageEvent>(EvaluatePageForCrawling);
+            _eventBus.Unsubscribe<ScrapePageFailedEvent>(RetryPageCrawl);
         }
 
         /// <summary>
@@ -62,15 +53,17 @@ namespace Crawler.Core
         /// </summary>
         public async Task EvaluatePageForCrawling(CrawlPageEvent evt)
         {
+            _logger.LogInformation($"Crawl request: {evt.Url} Depth: {evt.Depth} Attempt: {evt.Attempt}");
+
             if (HasExhaustedRetries(evt.Attempt))
             {
-                _logger.LogInformation($"Abandoned: {evt.Url} reached the maximum number of retry attempts. Attempt: {evt.Attempt}");
+                _logger.LogDebug($"Abandoned crawl: {evt.Url} max retries reached: {evt.Attempt})");
                 return;
             }
 
             if (HasReachedMaxDepth(evt.Depth, evt.MaxDepth))
             {
-                _logger.LogInformation($"Stopped: {evt.Url} reached the maximum link depth to crawl and was stopped. Depth: {evt.Depth}");
+                _logger.LogDebug($"Stopped crawl: {evt.Url} max depth reached: {evt.Depth})");
                 return;
             }
 
@@ -79,22 +72,24 @@ namespace Crawler.Core
             //Is Site Rate Limited
             if (_sitePolicy.IsRateLimited(sitePolicy))
             {
-                _logger.LogInformation($"Rate Limited: {evt.Url} will be crawled after {sitePolicy.RetryAfter?.ToString("HH:mm:ss")} with attempt {evt.Attempt}.");
-
                 await PublishScheduledCrawlPageEvent(evt, sitePolicy.RetryAfter);
                 await SetSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy);
+
+                _logger.LogDebug($"Rate limited: {evt.Url} retry scheduled after: {sitePolicy.RetryAfter?.ToString("HH:mm:ss")} Attempt: {evt.Attempt}");
                 return;
             }
 
             if (_sitePolicy.IsPermittedByRobotsTxt(evt.Url, evt.UserAgent, sitePolicy))
-            {
+            {                
                 await PublishScrapePageEvent(evt);
+
+                _logger.LogDebug($"Permitted by robots.txt: {evt.Url}, publishing scrape event. Depth: {evt.Depth}");
             } 
             else
             {
-                _logger.LogInformation($"Robots Denied: {evt.Url} could not be accessed due to RobotsTxt policy for user agent {evt.UserAgent}");
+                _logger.LogDebug($"Robots.txt denied: {evt.Url} for user agent '{evt.UserAgent}'");
             }
-                        
+
             await SetSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy);
         }
 
@@ -116,9 +111,9 @@ namespace Crawler.Core
                 evt.CrawlPageEvent.UserAccepts,
                 newPolicy);
 
-            _logger.LogInformation($"Retrying: {evt.CrawlPageEvent.Url} scheduled for retry after {newPolicy.RetryAfter?.ToString("HH:mm:ss")}");
-
             await PublishScheduledCrawlPageEvent(evt.CrawlPageEvent, newPolicy.RetryAfter);
+
+            _logger.LogDebug($"Retry scheduled: {evt.CrawlPageEvent.Url} after {newPolicy.RetryAfter?.ToString("HH:mm:ss")}. Next attempt: {evt.CrawlPageEvent.Attempt + 1}");
         }
 
         private static bool HasExhaustedRetries(int currentAttempt) =>
@@ -134,6 +129,8 @@ namespace Crawler.Core
                 CrawlPageEvent = evt,
                 CreatedAt = DateTimeOffset.UtcNow
             });
+
+            _logger.LogDebug($"ScrapePageEvent published: {evt.Url} Depth: {evt.Depth} Attempt: {evt.Attempt}");
         }
 
         private async Task PublishScheduledCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
@@ -142,10 +139,10 @@ namespace Crawler.Core
             var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(retryAfter);
 
             await _eventBus.PublishAsync(new CrawlPageEvent(
-                    evt,
-                    evt.Url,
-                    attempt,
-                    evt.Depth), scheduledOffset);
+                evt, evt.Url, attempt, evt.Depth), 
+                    priority: evt.Depth, scheduledOffset);
+
+            _logger.LogInformation($"Scheduled CrawlPageEvent: {evt.Url} at depth {evt.Depth}, attempt {attempt}, scheduled for {scheduledOffset?.ToString("HH:mm:ss")}");
         }
 
         private async Task<SitePolicyItem> GetOrCreateSitePolicyAsync(Uri url, string? userAgent, string? userAccepts)
@@ -167,6 +164,8 @@ namespace Crawler.Core
                     RetryAfter = null,
                     RobotsTxtContent = robotsTxtContent
                 };
+
+                _logger.LogDebug($"New site policy created for: {url.Authority}");
             }
 
             await SetSitePolicyAsync(url, userAgent, userAccepts, sitePolicy);
@@ -192,6 +191,9 @@ namespace Crawler.Core
                 sitePolicy = existingSitePolicy.MergePolicy(sitePolicy);
 
             await _cache.SetAsync<SitePolicyItem>(cacheKey, sitePolicy, expiryDuration);
+
+            _logger.LogDebug($"Site policy saved for: {url.Authority}, expires at: {sitePolicy?.ExpiresAt.ToString("HH:mm:ss")}");
+
         }
 
     }

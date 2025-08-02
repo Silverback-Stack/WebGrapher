@@ -2,7 +2,12 @@
 using Caching.Core;
 using Crawler.Core;
 using Events.Core.Bus;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Serilog;
 using Serilog.Events;
@@ -28,15 +33,13 @@ namespace WebMapper.Cli.Service.Crawler
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .WriteTo.Console(LogEventLevel.Debug)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
-
             var logger = loggerFactory.CreateLogger<IPageCrawler>();
 
             var host = await StartWebApiServerAsync(eventBus);
             _host = host;
-
 
             var cache = CacheFactory.CreateCache(
                 serviceName,
@@ -46,10 +49,12 @@ namespace WebMapper.Cli.Service.Crawler
             var requestSender = RequestFactory.CreateRequestSender(
                 logger, cache);
 
+            var sitePolicyResolver = new SitePolicyResolver(requestSender);
+
             logger.LogInformation($"The Crawler API started: {HOST}/{SWAGGER_ROUTE_PREFIX}");
 
             return CrawlerFactory.CreateCrawler(
-                logger, eventBus, cache, requestSender);
+                logger, eventBus, cache, requestSender, sitePolicyResolver);
         }
 
         private async static Task<IHost> StartWebApiServerAsync(IEventBus eventBus)
@@ -113,6 +118,7 @@ namespace WebMapper.Cli.Service.Crawler
             if (_host != null)
             {
                 await _host.StopAsync();
+                await _host.WaitForShutdownAsync();
                 _host.Dispose();
             }
             Log.CloseAndFlush();

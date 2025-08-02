@@ -37,35 +37,47 @@ namespace WebMapper.Cli
 
         public async Task Run()
         {
-            while (true)
+            var exit = false;
+            while (!exit)
             {
-                //READ INPUT:
-                var url = GetUrl();
+                Console.WriteLine("Enter URL to crawl (or type 'exit' to quit):");
 
-                //SUBMIT INPUT:
+                var input = GetInput();
+
+                if (string.Equals(input, "exit", StringComparison.OrdinalIgnoreCase)) {
+                    exit = true;
+                    continue;
+                }
+
+                var url = GetUri(input);
                 if (url != null)
+                {
                     await SubmitUrl(url);
+                } 
+                else
+                {
+                    Console.WriteLine("Invalid Url. Use format: https://www.example.com");
+                }               
             }
+
+            //cleanup
+            await CrawlerService.StopWebApiServerAsync();
+            await StreamingService.StopHubServerAsync();
         }
 
         /// <summary>
-        /// Reads the Url input from the console.
+        /// Reads the input from the console.
         /// </summary>
         /// <returns></returns>
-        private Uri? GetUrl()
+        private string? GetInput()
         {
             Console.WriteLine();
-            Console.WriteLine("Enter Url:");
-            var url = Console.ReadLine();
-
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            {
-                Console.WriteLine("Invalid Url. Format: https://www.example.com");
-                return null;
-            }
-
-            return uri;
+            return Console.ReadLine()?.Trim();
         }
+
+        private Uri? GetUri(string? input) =>
+            Uri.TryCreate(input, UriKind.Absolute, out var result) ? result : null;
+
 
         /// <summary>
         /// Submits a Url for processing.

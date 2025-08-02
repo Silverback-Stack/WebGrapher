@@ -1,0 +1,43 @@
+
+
+# Step-by-step: Create console app + add ASP.NET Core framework
+
+---
+
+### 1. Create a new console project
+
+
+* Open Visual Studio
+* Click **Create a new project**
+* Choose **Console App** (C#)
+* Name it (e.g., `MyConsoleWebApp`)
+* Click **Create**
+
+---
+
+### 2. Edit the project file (`MyConsoleWebApp.csproj`)
+
+Open the `.csproj` file and under ItemGroup add Microsoft.AspNetCore.App framework:
+
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>
+
+
+**Notes:**
+
+* The `<FrameworkReference>` brings in all ASP.NET Core shared runtime libraries (Kestrel, SignalR, Middleware, etc).
+
+---
+
+### 3. Add the NuGet package for hosting support
+
+You need to add the `Microsoft.Extensions.Hosting` package explicitly.
+
+<ItemGroup>
+  <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+</ItemGroup>
+
+Close and restart VS application.

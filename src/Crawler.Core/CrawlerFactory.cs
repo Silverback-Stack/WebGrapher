@@ -12,10 +12,9 @@ namespace Crawler.Core
             ILogger logger,
             IEventBus eventBus,
             ICache cache,
-            IRequestSender requestSender)
+            IRequestSender requestSender,
+            ISitePolicyResolver sitePolicyResolver)
         {
-            ISitePolicyResolver sitePolicyResolver = new SitePolicyResolver(logger, requestSender);
-
             var service = new PageCrawler(
                 logger, eventBus, cache, requestSender, sitePolicyResolver);
 

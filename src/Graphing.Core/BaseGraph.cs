@@ -111,7 +111,10 @@ namespace Graphing.Core
                         depth);
 
                     var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
-                    await _eventBus.PublishAsync(crawlPageEvent, scheduledOffset);
+
+                    await _eventBus.PublishAsync(
+                        crawlPageEvent, priority: depth, scheduledOffset);
+                    
                     _logger.LogWarning($"Published crawl page event for edge: {edge.Id} depth: {depth}");
                 }
             }

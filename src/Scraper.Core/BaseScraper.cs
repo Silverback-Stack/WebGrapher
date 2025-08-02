@@ -54,7 +54,10 @@ namespace Scraper.Core
                 return;
             }
 
-            await PublishParsePageEvent(evt, scrapeResponseItem);
+            if (!scrapeResponseItem.IsFromCache)
+            {
+                await PublishParsePageEvent(evt, scrapeResponseItem);
+            }
         }
 
         private async Task PublishScrapePageFailedEvent(

@@ -16,6 +16,7 @@ namespace Events.Core.Bus
         public abstract void Unsubscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class;
         public abstract Task PublishAsync<TEvent>(
             TEvent @event,
+            int priority = 0,
             DateTimeOffset? scheduledEnqueueTime = null,
             CancellationToken cancellationToken = default) where TEvent : class;
 
