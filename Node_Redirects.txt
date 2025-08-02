@@ -1,17 +1,9 @@
-﻿Here’s a **clear diagram** of how your `UpdateGraph` handles a redirect and what ends up in the graph.
-I'll draw it as text art so it’s clear how each part maps to your code logic.
-
----
-
+﻿
 ## 🧭 **Scenario:**
 
 User submits URL `B` to crawl → HTTP response redirects to `C`
 
----
 
-## 📝 **Diagram: UpdateGraph flow**
-
-```plaintext
 User submits request to crawl URL: B
 └─> Crawl result: IsRedirect = true
           RequestUrl = B
@@ -51,13 +43,8 @@ Check if Node C exists
 
 Else if Node C is Populated and fresh: do nothing
 
-```
 
----
 
-## 📦 **Result in the graph:**
-
-```plaintext
 Graph nodes:
 ─────────────
 Node B:
@@ -73,11 +60,9 @@ Node C:
         C --(FromSource)--> X
         C --(FromSource)--> Y
         ...
-```
 
----
 
-## 📌 **What happens next:**
+Then
 
 * `FollowEdges` walks the edges out of `C` (the resolved, populated node).
 * For each target node (e.g., X, Y, …):
@@ -85,20 +70,3 @@ Node C:
   * If missing or dummy → schedule crawl.
   * If already populated and fresh → skip.
 
----
-
-## ✅ **Summary of the diagram:**
-
-* You handle **both**:
-
-  * the redirecting node (`B`)
-  * the real content node (`C`)
-* You only crawl the redirecting node once; it never needs to be recrawled.
-* You maintain a clean, incremental graph.
-
----
-
-If you'd like,
-✨ I can also draw this as an actual diagram (boxes and arrows) using Graphviz or Mermaid,
-or generate a PNG.
-Just let me know! 🚀

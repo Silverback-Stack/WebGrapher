@@ -8,6 +8,7 @@
 
         Task PublishAsync<TEvent>(
             TEvent @event, 
+            int priority = 0,
             DateTimeOffset? scheduledEnqueueTime = null, 
             CancellationToken cancellationToken = default) where TEvent : class;
 

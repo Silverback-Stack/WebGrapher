@@ -1,7 +1,11 @@
 ﻿using Events.Core.Bus;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Events;
 using Serilog.Extensions.Logging;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
@@ -36,7 +40,7 @@ namespace WebMapper.Cli.Service.Streaming
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                //.WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
 
@@ -91,6 +95,7 @@ namespace WebMapper.Cli.Service.Streaming
             if (_host != null)
             {
                 await _host.StopAsync();
+                await _host.WaitForShutdownAsync();
                 _host.Dispose();
             }
             Log.CloseAndFlush();

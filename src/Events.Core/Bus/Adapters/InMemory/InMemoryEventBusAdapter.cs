@@ -10,7 +10,11 @@ namespace Events.Core.Bus.Adapters.InMemory
     /// </summary>
     public class InMemoryEventBusAdapter : BaseEventBus
     {
+        //Continer for subscribers/handlers
         private readonly ConcurrentDictionary<Type, List<Delegate>> _handlers = new();
+
+        //Priority queues per event type
+        private readonly ConcurrentDictionary<Type, SortedDictionary<int, ConcurrentQueue<(object Event, DateTimeOffset? Scheduled)>>> _eventQueues = new();
 
         public InMemoryEventBusAdapter(ILogger logger) : base(logger) { }
 
@@ -56,6 +60,7 @@ namespace Events.Core.Bus.Adapters.InMemory
 
         public override async Task PublishAsync<TEvent>(
             TEvent @event,
+            int priority = 0,
             DateTimeOffset? scheduledEnqueueTime = null,
             CancellationToken cancellationToken = default) where TEvent : class
         {
