@@ -3,6 +3,7 @@
     public enum CacheOptions
     {
         InMemory,
+        InStorage,
         Redis
     }
 }

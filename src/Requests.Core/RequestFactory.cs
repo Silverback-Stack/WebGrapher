@@ -9,12 +9,13 @@ namespace Requests.Core
     {
         public static IRequestSender CreateRequestSender(ILogger logger, ICache cache)
         {
-            var handler = new HttpClientHandler
+            var httpClientHandler = new HttpClientHandler
             {
                 AllowAutoRedirect = true,
                 MaxAutomaticRedirections = 5
             };
-            IHttpRequester httpRequester = new HttpClientAdapter(new HttpClient(handler));
+
+            IHttpRequester httpRequester = new HttpClientAdapter(new HttpClient(httpClientHandler));
 
             IRequestTransformer requestTransformer = new RequestTransformer();
 

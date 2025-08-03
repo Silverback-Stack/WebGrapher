@@ -1,16 +1,15 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using WebMapper.Cli;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
-using WebMapper.Cli.Service.Crawler;
-using WebMapper.Cli.Service.Streaming;
+using System.Text;
 
 internal class Program
 {
     private static async Task Main(string[] args)
     {
+        //Enable full code page support(especially outside UTF-8 / UTF-16):
+        //Required for scraping reponses from servers.
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); 
+
         try
         {
             var webMapper = new WebMapperApp();

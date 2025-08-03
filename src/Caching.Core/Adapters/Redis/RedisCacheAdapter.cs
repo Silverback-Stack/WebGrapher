@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net.Mime;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
@@ -31,6 +33,7 @@ namespace Caching.Core.Adapters.Redis
             var json = JsonSerializer.Serialize(value);
             await _db.StringSetAsync(key, json, expiration);
         }
+
 
         public async Task RemoveAsync(string key)
         {

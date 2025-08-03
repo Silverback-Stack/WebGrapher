@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Text;
 
 namespace Crawler.Core
 {
     public record SitePolicyItem
     {
         public required string UrlAuthority { get; init; }
-        public string? RobotsTxtContent { get; init; }
+        public string? RobotsTxt { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
         public DateTimeOffset ExpiresAt { get; init; }
         public DateTimeOffset ModifiedAt { get; init; }
@@ -19,7 +20,7 @@ namespace Crawler.Core
             return this with
             {
                 RetryAfter = MergeRetryAfter(this.RetryAfter, other.RetryAfter),
-                RobotsTxtContent = MergeRobotsTxtContent(this.RobotsTxtContent, other.RobotsTxtContent),
+                RobotsTxt = MergeRobotsTxtContent(this.RobotsTxt, other.RobotsTxt),
                 ModifiedAt = MergeExpiresAt(this.ModifiedAt, other.ModifiedAt)
             };
         }
@@ -39,5 +40,6 @@ namespace Crawler.Core
         {
             return b ?? a;
         }
+
     }
 }

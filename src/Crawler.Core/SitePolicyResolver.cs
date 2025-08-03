@@ -28,7 +28,7 @@ namespace Crawler.Core
 
         public bool IsPermittedByRobotsTxt(Uri url, string? userAgent, SitePolicyItem policy)
         {
-            if (string.IsNullOrWhiteSpace(policy.RobotsTxtContent)) 
+            if (string.IsNullOrWhiteSpace(policy.RobotsTxt)) 
                 return true;
 
             if (string.IsNullOrWhiteSpace(userAgent))
@@ -37,23 +37,24 @@ namespace Crawler.Core
             }
 
             var robots = new RobotsTxt();
-            robots.Load(policy.RobotsTxtContent);
+            robots.Load(policy.RobotsTxt);
 
             var isAllowed = robots.IsAllowed(userAgent, url.AbsolutePath);
 
             return isAllowed;
         }
 
-        public async Task<string?> GetRobotsTxtContentAsync(Uri url, string? userAgent, string? userAccepts)
+        public async Task<string?> FetchRobotsTxtAsync(Uri url, string? userAgent, string? userAccepts)
         {
             var robotsTxtUrl = new Uri($"{url.Scheme}://{url.Host}/robots.txt");
 
-            var response = await _requestSender.GetStringAsync(
+            var httpResponseEnvelope = await _requestSender.GetStringAsync(
                 robotsTxtUrl,
                 userAgent,
                 ROBOTS_TXT_USER_ACCEPTS_OVERRIDE);
 
-            return response?.Data?.Content;
+            var encoding = httpResponseEnvelope?.Metadata?.ContentEncoding;
+            return httpResponseEnvelope?.Data?.DecodeAsString(encoding);
         }
 
     }

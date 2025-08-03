@@ -14,7 +14,7 @@ namespace Scraper.Core
 
         public async override Task<ScrapeResponseItem?> GetAsync(Uri url, string? userAgent, string? clientAccept)
         {
-            var response = await _requestSender.GetStringAsync(
+            var httpResponseEnvelope = await _requestSender.GetStringAsync(
                 url,
                 userAgent,
                 clientAccept,
@@ -25,7 +25,7 @@ namespace Scraper.Core
                 {
                     RequestUrl = response.Data.OriginalUrl,
                     ResolvedUrl = response.Data.Url,
-                    Content = response.Data.Content ?? string.Empty,
+                    Content = response.Data.TextContent,
                     StatusCode = response.Data.StatusCode,
                     LastModified = response.Data.LastModified,
                     RetryAfter = response.Data.RetryAfter,

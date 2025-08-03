@@ -28,7 +28,7 @@ namespace WebMapper.Cli.Service.Scraper
 
             var cache = CacheFactory.CreateCache(
                 serviceName,
-                CacheOptions.InMemory,
+                CacheOptions.InStorage,
                 logger);
 
             var requestSender = RequestFactory.CreateRequestSender(logger, cache);

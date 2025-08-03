@@ -152,7 +152,7 @@ namespace Crawler.Core
 
             if (sitePolicy == null)
             {
-                var robotsTxtContent = await _sitePolicy.GetRobotsTxtContentAsync(url, userAgent, userAccepts);
+                var robotsTxt = await _sitePolicy.FetchRobotsTxtAsync(url, userAgent, userAccepts);
 
                 sitePolicy = new SitePolicyItem
                 {
@@ -161,7 +161,7 @@ namespace Crawler.Core
                     ModifiedAt = DateTimeOffset.UtcNow,
                     ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES),
                     RetryAfter = null,
-                    RobotsTxtContent = robotsTxtContent
+                    RobotsTxt = robotsTxt
                 };
 
                 _logger.LogDebug($"New site policy created for: {url.Authority}");

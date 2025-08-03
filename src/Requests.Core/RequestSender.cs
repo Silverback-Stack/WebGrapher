@@ -23,10 +23,10 @@ namespace Requests.Core
             _requestTransformer = requestTransformer;
         }
 
-        public async Task<ResponseEnvelope<ResponseItem>?> GetStringAsync(Uri url, CancellationToken cancellationToken = default) =>
+        public async Task<HttpResponseEnvelope?> GetStringAsync(Uri url, CancellationToken cancellationToken = default) =>
             await GetStringAsync(url, userAgent: string.Empty, userAccepts: string.Empty, contentMaxBytes: 0, cancellationToken);
 
-        public async Task<ResponseEnvelope<ResponseItem>?> GetStringAsync(
+        public async Task<HttpResponseEnvelope?> GetStringAsync(
             Uri url, 
             string? userAgent, 
             string? userAccepts, 
@@ -41,34 +41,46 @@ namespace Requests.Core
 
             try
             {
-                var cacheKey = CacheKeyHelper.Generate(url.AbsoluteUri, userAgent, userAccepts);
-                var cachedItem = await _cache.GetAsync<ResponseItem>(cacheKey);
-                if (cachedItem != null)
+                //request cached data:
+                var key = CacheKeyHelper.Generate(url.AbsoluteUri, userAgent, userAccepts);
+                var keyMeta = CacheKeyHelper.AppendSuffix(key, CacheKeyType.BlobMeta);
+                var keyData = CacheKeyHelper.AppendSuffix(key, CacheKeyType.BlobData);
+
+                var getMetaTask = _cache.GetAsync<HttpResponseMetadata>(keyMeta);
+                var getDataTask = _cache.GetAsync<HttpResponseData>(keyData);
+                await Task.WhenAll(getMetaTask, getDataTask);
+
+                var cachedMeta = getMetaTask.Result;
+                var cachedData = getDataTask.Result;
+
+
+                if (cachedMeta != null && cachedData != null)
                 {
                     _logger.LogDebug($"Get request for {url.AbsoluteUri} returned cached item.");
-                    return new ResponseEnvelope<ResponseItem>(cachedItem, IsFromCache: true);
+                    return new HttpResponseEnvelope
+                    {
+                        Metadata = cachedMeta,
+                        Data = cachedData,
+                        IsFromCache = true
+                    };
                 }
-                    
-                var response = await _httpRequester.GetAsync(url, userAgent, userAccepts, cancellationToken);
-                var responseItem = await _requestTransformer.TransformAsync(url, response, userAccepts, contentMaxBytes, cancellationToken);
 
-                _logger.LogDebug($"Get request for {url.AbsoluteUri} returned status code {responseItem.StatusCode}");
+                //request live data:
+                var httpResponseMessage = await _httpRequester.GetAsync(url, userAgent, userAccepts, cancellationToken);
+                var httpResponseEnvelope = await _requestTransformer.TransformAsync(url, httpResponseMessage, userAccepts, key, contentMaxBytes, cancellationToken);
 
-                await _cache.SetAsync(
-                    cacheKey, 
-                    responseItem, 
-                    CacheDurationHelper.Clamp(responseItem?.Expires));
+                _logger.LogDebug($"Get request for {url.AbsoluteUri} returned status code {httpResponseEnvelope.Metadata.StatusCode}");
 
-                return new ResponseEnvelope<ResponseItem>(responseItem, IsFromCache: false);
+                var expiry = CacheDurationHelper.Clamp(httpResponseEnvelope.Metadata?.Expires);
+                var setMetaTask = _cache.SetAsync(keyMeta, httpResponseEnvelope.Metadata, expiry);
+                var setDataTask = _cache.SetAsync(keyData, httpResponseEnvelope.Data, expiry);
+                await Task.WhenAll(setMetaTask, setDataTask);
+
+                httpResponseEnvelope.IsFromCache = false;
+                return httpResponseEnvelope;
             }
             catch (Exception ex)
             {
-                //CATCH ALL:
-                //OperationCanceledException: cancellation token is triggered
-                //HttpRequestException: Connection issues, DNS failures, SSL errors
-                //TaskCanceledException: Timeouts
-                //OperationCanceledException: Explicit cancellation via CancellationToken
-                //InvalidOperationException: Misconfigured HttpClient
                 _logger.LogError(ex, $"Get request for {url.AbsoluteUri} threw an exception.");
             }
 

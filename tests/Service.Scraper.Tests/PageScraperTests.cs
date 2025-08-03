@@ -35,8 +35,7 @@ namespace Service.Scraper.Tests
                 {
                     OriginalUrl = _url,
                     RedirectedUrl = null,
-                    Content = "<html></html>",
-                    ContentType = "text/html",
+                    TextContent = "<html></html>",
                     StatusCode = HttpStatusCode.OK,
                     Expires = DateTimeOffset.UtcNow.AddDays(1),
                     LastModified = DateTimeOffset.UtcNow,
@@ -52,8 +51,7 @@ namespace Service.Scraper.Tests
                         {
                             OriginalUrl = _url,
                             RedirectedUrl = null,
-                            Content = "<html></html>",
-                            ContentType = "text/html",
+                            TextContent = "<html></html>",
                             StatusCode = HttpStatusCode.OK,
                             Expires = DateTimeOffset.UtcNow.AddDays(1),
                             LastModified = DateTimeOffset.UtcNow,

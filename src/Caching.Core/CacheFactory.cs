@@ -1,5 +1,6 @@
 ﻿using System;
 using Caching.Core.Adapters.InMemory;
+using Caching.Core.Adapters.InStorage;
 using Microsoft.Extensions.Logging;
 
 namespace Caching.Core
@@ -12,6 +13,9 @@ namespace Caching.Core
             {
                 case CacheOptions.InMemory:
                     return new InMemoryCacheAdapter(serviceName, logger);
+
+                case CacheOptions.InStorage:
+                    return new InStorageCacheAdapter(serviceName, logger);
 
                 case CacheOptions.Redis:
                     throw new NotImplementedException();

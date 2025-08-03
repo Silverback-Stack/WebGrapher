@@ -1,4 +1,7 @@
-﻿using System.Text;
+﻿using System;
+using System.Reflection.Metadata.Ecma335;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Caching.Core.Helpers
 {
@@ -15,10 +18,20 @@ namespace Caching.Core.Helpers
             //limit length of key:
             //SHA-256 hash output → 256 bits = 32 bytes
             //Base64 encoding of 32 bytes → 44-character string
-            return Convert.ToBase64String(
-                System.Security.Cryptography.SHA256.Create()
-                .ComputeHash(Encoding.UTF8.GetBytes(composite))
-            );
+            var hash = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(composite));
+
+            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
+
+        public static string AppendSuffix(string key, CacheKeyType type)
+        {
+            return type switch
+            {
+                CacheKeyType.BlobMeta => $"{key}.blob.meta",
+                CacheKeyType.BlobData => $"{key}.blob.data",
+                _ => $"{key}.cache"
+            };
+        }
+
     }
 }
