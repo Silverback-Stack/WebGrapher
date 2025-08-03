@@ -22,48 +22,50 @@ namespace Graphing.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<GraphPageEvent>(EventHandler);
+            _eventBus.Subscribe<GraphPageEvent>(UpdateGraph);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Subscribe<GraphPageEvent>(EventHandler);
-        }
-
-        private async Task EventHandler(GraphPageEvent evt)
-        {
-            await UpdateGraph(evt);
+            _eventBus.Subscribe<GraphPageEvent>(UpdateGraph);
         }
 
         private async Task UpdateGraph(GraphPageEvent evt)
         {
+            var originalUrl = evt.CrawlPageEvent.Url.AbsoluteUri;
+            var redirectedUrl = evt.Url.AbsoluteUri;
+
             if (evt.IsRedirect)
             {
-                var redirectedNode = await GetNodeAsync(evt.RequestUrl.AbsoluteUri);
+                var node = await GetNodeAsync(originalUrl);
 
-                if (redirectedNode is null)
-                    redirectedNode = new Node(evt.RequestUrl.AbsoluteUri);
+                if (node is null)
+                    node = new Node(originalUrl);
 
-                redirectedNode.SetRedirected(redirectedTo: evt.ResolvedUrl.AbsoluteUri);
+                node.SetRedirected(redirectedTo: redirectedUrl);
 
-                redirectedNode.AddRedirectEdge(
-                    target: evt.ResolvedUrl.AbsoluteUri,
-                    redirectedFrom: evt.RequestUrl.AbsoluteUri);
+                node.AddRedirectEdge(
+                    target: redirectedUrl,
+                    redirectedFrom: originalUrl);
 
-                await SetNodeAsync(redirectedNode);
+                await SetNodeAsync(node);
+
+                _logger.LogDebug($"Processed redirect node from {originalUrl} -> {redirectedUrl}");
             }
 
-            var resolvedNode = await GetNodeAsync(evt.ResolvedUrl.AbsoluteUri);
+            var resolvedNode = await GetNodeAsync(redirectedUrl);
             var links = evt.Links.Select(l => l.AbsoluteUri);
 
             if (resolvedNode is null)
             {
                 resolvedNode = new Node(
-                    evt.ResolvedUrl.AbsoluteUri,
+                    redirectedUrl,
                     evt.Title,
                     evt.Keywords,
                     evt.SourceLastModified,
                     links);
+
+                _logger.LogDebug($"Created new node for {redirectedUrl}");
             }
             else if (resolvedNode.State == NodeState.Dummy ||
                 (resolvedNode.State == NodeState.Populated 
@@ -74,10 +76,12 @@ namespace Graphing.Core
                     evt.Keywords,
                     evt.SourceLastModified,
                     links);
+
+                _logger.LogDebug($"Updated stale or dummy node for {redirectedUrl}");
             } 
             else
             {
-                //already fresh and populated
+                _logger.LogDebug($"Node for {redirectedUrl} is already fresh and populated.");
                 return;
             }
 
@@ -93,12 +97,18 @@ namespace Graphing.Core
 
                 if (edgeNode is not null 
                     && edgeNode.State == NodeState.Redirected)
+                {
+                    _logger.LogDebug($"Skipping redirected edge {edge.Id}");
                     continue;
+                }
 
                 if (edgeNode is not null
                     && edgeNode.State == NodeState.Populated
                     && !edgeNode.IsStale(NODE_STALE_DAYS))
+                {
+                    _logger.LogDebug($"Skipping fresh or populated edge {edge.Id}");
                     continue;
+                }
 
                 if (edgeNode is null || edgeNode.State == NodeState.Dummy)
                 {
@@ -115,7 +125,7 @@ namespace Graphing.Core
                     await _eventBus.PublishAsync(
                         crawlPageEvent, priority: depth, scheduledOffset);
                     
-                    _logger.LogWarning($"Published crawl page event for edge: {edge.Id} depth: {depth}");
+                    _logger.LogDebug($"Scheduled crawl for edge {edge.Id} at depth {depth}");
                 }
             }
         }
@@ -124,7 +134,7 @@ namespace Graphing.Core
 
         public abstract Task<Node?> GetNodeAsync(string id);
 
-          public abstract Task<Node?> SetNodeAsync(Node node);
+        public abstract Task<Node?> SetNodeAsync(Node node);
 
         public abstract Task DeleteNodeAsync(string id);
 

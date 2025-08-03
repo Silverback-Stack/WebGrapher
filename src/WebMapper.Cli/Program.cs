@@ -14,7 +14,7 @@ internal class Program
         try
         {
             var webMapper = new WebMapperApp();
-            await webMapper.Run();
+            await webMapper.InitializeAsync();
         }
         catch (Exception ex) //global exception handler
         {

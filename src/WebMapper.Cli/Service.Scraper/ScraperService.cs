@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Scraper.Core;
 using Serilog;
+using Serilog.Events;
 using Serilog.Extensions.Logging;
 
 namespace WebMapper.Cli.Service.Scraper
@@ -19,7 +20,7 @@ namespace WebMapper.Cli.Service.Scraper
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                //.WriteTo.Console(LogEventLevel.Information)
+                .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
 
@@ -33,6 +34,8 @@ namespace WebMapper.Cli.Service.Scraper
             var requestSender = RequestFactory.CreateRequestSender(logger, cache);
 
             ScraperFactory.Create(logger, eventBus, requestSender);
+
+            logger.LogInformation("Scraper service started.");
         }
     }
 }

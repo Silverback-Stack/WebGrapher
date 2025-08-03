@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Net;
-using System.Text;
 using Caching.Core;
 using Caching.Core.Helpers;
 using Microsoft.Extensions.Logging;
@@ -47,14 +45,14 @@ namespace Requests.Core
                 var cachedItem = await _cache.GetAsync<ResponseItem>(cacheKey);
                 if (cachedItem != null)
                 {
-                    _logger.LogDebug($"Get: {url.AbsoluteUri} Status: Cached");
+                    _logger.LogDebug($"Get request for {url.AbsoluteUri} returned cached item.");
                     return new ResponseEnvelope<ResponseItem>(cachedItem, IsFromCache: true);
                 }
                     
                 var response = await _httpRequester.GetAsync(url, userAgent, userAccepts, cancellationToken);
                 var responseItem = await _requestTransformer.TransformAsync(url, response, userAccepts, contentMaxBytes, cancellationToken);
 
-                _logger.LogDebug($"Get: {url.AbsoluteUri} Status: {responseItem.StatusCode}");
+                _logger.LogDebug($"Get request for {url.AbsoluteUri} returned status code {responseItem.StatusCode}");
 
                 await _cache.SetAsync(
                     cacheKey, 
@@ -71,7 +69,7 @@ namespace Requests.Core
                 //TaskCanceledException: Timeouts
                 //OperationCanceledException: Explicit cancellation via CancellationToken
                 //InvalidOperationException: Misconfigured HttpClient
-                _logger.LogError($"Get: {url.AbsoluteUri} Exception: {ex.Message} InnerException: {ex.InnerException?.Message}");
+                _logger.LogError(ex, $"Get request for {url.AbsoluteUri} threw an exception.");
             }
 
             return null;

@@ -23,20 +23,20 @@ namespace Normalisation.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<NormalisePageEvent>(EventHandler);
+            _eventBus.Subscribe<NormalisePageEvent>(NormalisePageContentAsync);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<NormalisePageEvent>(EventHandler);
+            _eventBus.Unsubscribe<NormalisePageEvent>(NormalisePageContentAsync);
         }
 
-        private async Task EventHandler(NormalisePageEvent evt)
+        public async Task NormalisePageContentAsync(NormalisePageEvent evt)
         {
             var normalisedTitle = NormaliseTitle(evt.Title);
             var normalisedKeywords = NormaliseKeywords(evt.Keywords);
             var normalisedLinks = NormaliseLinks(
-                evt.Links, 
+                evt.Links,
                 evt.CrawlPageEvent.Url,
                 evt.CrawlPageEvent.FollowExternalLinks,
                 evt.CrawlPageEvent.RemoveQueryStrings,
@@ -45,19 +45,19 @@ namespace Normalisation.Core
             await _eventBus.PublishAsync(new GraphPageEvent
             {
                 CrawlPageEvent = evt.CrawlPageEvent,
-                RequestUrl = evt.RequestUrl,
-                ResolvedUrl = evt.ResolvedUrl,
+                Url = evt.Url,
                 Title = normalisedTitle,
                 Keywords = normalisedKeywords,
                 Links = normalisedLinks,
                 CreatedAt = DateTimeOffset.UtcNow,
                 StatusCode = evt.StatusCode,
                 SourceLastModified = evt.LastModified
-            });
+            }, priority: evt.CrawlPageEvent.Depth);
 
             var linkType = evt.CrawlPageEvent.FollowExternalLinks ? "external" : "internal";
-            _logger.LogDebug($"Normalised Page: {evt.ResolvedUrl} found {normalisedLinks.Count()} {linkType} links and extracted {normalisedKeywords.Count()} keywords.");
+            _logger.LogDebug($"Publishing GraphPageEvent for {evt.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
         }
+
 
         public string NormaliseTitle(string? text)
         {
@@ -88,8 +88,7 @@ namespace Normalisation.Core
             text = TextNormaliser.RemovePunctuation(text);
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
-            text = StopWordFilter.RemoveStopWords(text, 
-                LanguageIdentifier.DetectLanguage(text));
+            text = StopWordFilter.RemoveStopWords(text, LanguageIdentifier.DetectLanguage(text));
             text = TextNormaliser.RemoveDuplicateWords(text);
             text = TextNormaliser.Truncate(text, MAX_KEYWORD_LENGTH);
 

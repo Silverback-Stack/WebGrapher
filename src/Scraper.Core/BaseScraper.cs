@@ -23,17 +23,12 @@ namespace Scraper.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<ScrapePageEvent>(HandleScrapePageEvent);
+            _eventBus.Subscribe<ScrapePageEvent>(ScrapePage);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<ScrapePageEvent>(HandleScrapePageEvent);
-        }
-
-        private async Task HandleScrapePageEvent(ScrapePageEvent evt)
-        {
-            await ScrapePage(evt);
+            _eventBus.Unsubscribe<ScrapePageEvent>(ScrapePage);
         }
 
         private async Task ScrapePage(ScrapePageEvent evt)
@@ -44,12 +39,14 @@ namespace Scraper.Core
                 evt.CrawlPageEvent.UserAccepts);
 
             if (scrapeResponseItem is null)
+            {
+                _logger.LogDebug($"Scrape failed: No response for {evt.CrawlPageEvent.Url} (Attempt {evt.CrawlPageEvent.Attempt})");
                 return;
-
-            _logger.LogInformation($"Fetched: {evt.CrawlPageEvent.Url} Attempt {evt.CrawlPageEvent.Attempt} Status: {scrapeResponseItem.StatusCode} Cached: {scrapeResponseItem.IsFromCache}");
+            }
 
             if (scrapeResponseItem.StatusCode != HttpStatusCode.OK)
             {
+                _logger.LogDebug($"Scrape failed: {evt.CrawlPageEvent.Url} returned status {scrapeResponseItem.StatusCode} Attempt {evt.CrawlPageEvent.Attempt})");
                 await PublishScrapePageFailedEvent(evt, scrapeResponseItem);
                 return;
             }
@@ -58,6 +55,8 @@ namespace Scraper.Core
             {
                 await PublishParsePageEvent(evt, scrapeResponseItem);
             }
+
+            _logger.LogDebug($"Scraped page {evt.CrawlPageEvent.Url} Attempt {evt.CrawlPageEvent.Attempt} Status: {scrapeResponseItem.StatusCode} Cached: {scrapeResponseItem.IsFromCache}");
         }
 
         private async Task PublishScrapePageFailedEvent(
@@ -71,7 +70,7 @@ namespace Scraper.Core
                 CreatedAt = DateTimeOffset.UtcNow,
                 LastModified = response.LastModified,
                 RetryAfter = response.RetryAfter
-            });
+            }, priority: evt.CrawlPageEvent.Depth);
         }
         private async Task PublishParsePageEvent(
             ScrapePageEvent scrapeEvent,
@@ -80,13 +79,12 @@ namespace Scraper.Core
             await _eventBus.PublishAsync(new ParsePageEvent
             {
                 CrawlPageEvent = scrapeEvent.CrawlPageEvent,
-                RequestUrl = scrapeResponse.RequestUrl,
-                ResolvedUrl = scrapeResponse.ResolvedUrl,
+                Url = scrapeResponse.ResolvedUrl,
                 Content = scrapeResponse.Content,
                 LastModified = scrapeResponse.LastModified,
                 StatusCode = scrapeResponse.StatusCode,
                 CreatedAt = DateTimeOffset.UtcNow
-            });
+            }, priority: scrapeEvent.CrawlPageEvent.Depth);
         }
 
         public abstract Task<ScrapeResponseItem?> GetAsync(Uri url, string? userAgent, string? userAccepts);

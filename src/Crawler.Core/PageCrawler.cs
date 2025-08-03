@@ -53,7 +53,7 @@ namespace Crawler.Core
         /// </summary>
         public async Task EvaluatePageForCrawling(CrawlPageEvent evt)
         {
-            _logger.LogInformation($"Crawl request: {evt.Url} Depth: {evt.Depth} Attempt: {evt.Attempt}");
+            _logger.LogInformation($"Crawl requested: {evt.Url} Depth: {evt.Depth} Attempt: {evt.Attempt}");
 
             if (HasExhaustedRetries(evt.Attempt))
             {
@@ -69,21 +69,20 @@ namespace Crawler.Core
 
             var sitePolicy = await GetOrCreateSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts);
 
-            //Is Site Rate Limited
             if (_sitePolicy.IsRateLimited(sitePolicy))
             {
+                _logger.LogDebug($"Rate limited: {evt.Url} retry scheduled after: {sitePolicy.RetryAfter?.ToString("o")} Attempt: {evt.Attempt}");
+
                 await PublishScheduledCrawlPageEvent(evt, sitePolicy.RetryAfter);
                 await SetSitePolicyAsync(evt.Url, evt.UserAgent, evt.UserAccepts, sitePolicy);
-
-                _logger.LogDebug($"Rate limited: {evt.Url} retry scheduled after: {sitePolicy.RetryAfter?.ToString("HH:mm:ss")} Attempt: {evt.Attempt}");
                 return;
             }
 
             if (_sitePolicy.IsPermittedByRobotsTxt(evt.Url, evt.UserAgent, sitePolicy))
-            {                
-                await PublishScrapePageEvent(evt);
-
+            {
                 _logger.LogDebug($"Permitted by robots.txt: {evt.Url}, publishing scrape event. Depth: {evt.Depth}");
+
+                await PublishScrapePageEvent(evt);
             } 
             else
             {
@@ -111,9 +110,9 @@ namespace Crawler.Core
                 evt.CrawlPageEvent.UserAccepts,
                 newPolicy);
 
-            await PublishScheduledCrawlPageEvent(evt.CrawlPageEvent, newPolicy.RetryAfter);
+            _logger.LogDebug($"Scheduling retry: {evt.CrawlPageEvent.Url} after {newPolicy.RetryAfter?.ToString("o")}. Next attempt: {evt.CrawlPageEvent.Attempt + 1}");
 
-            _logger.LogDebug($"Retry scheduled: {evt.CrawlPageEvent.Url} after {newPolicy.RetryAfter?.ToString("HH:mm:ss")}. Next attempt: {evt.CrawlPageEvent.Attempt + 1}");
+            await PublishScheduledCrawlPageEvent(evt.CrawlPageEvent, newPolicy.RetryAfter);
         }
 
         private static bool HasExhaustedRetries(int currentAttempt) =>
@@ -124,13 +123,13 @@ namespace Crawler.Core
 
         private async Task PublishScrapePageEvent(CrawlPageEvent evt)
         {
+            _logger.LogDebug($"Publishing ScrapePageEvent: {evt.Url} Depth: {evt.Depth} Attempt: {evt.Attempt}");
+
             await _eventBus.PublishAsync(new ScrapePageEvent
             {
                 CrawlPageEvent = evt,
                 CreatedAt = DateTimeOffset.UtcNow
-            });
-
-            _logger.LogDebug($"ScrapePageEvent published: {evt.Url} Depth: {evt.Depth} Attempt: {evt.Attempt}");
+            }, priority: evt.Depth);
         }
 
         private async Task PublishScheduledCrawlPageEvent(CrawlPageEvent evt, DateTimeOffset? retryAfter)
@@ -138,11 +137,11 @@ namespace Crawler.Core
             var attempt = evt.Attempt + 1;
             var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(retryAfter);
 
+            _logger.LogInformation($"Scheduled CrawlPageEvent: {evt.Url} at depth {evt.Depth}, attempt {attempt}, scheduled for {scheduledOffset?.ToString("o")}");
+
             await _eventBus.PublishAsync(new CrawlPageEvent(
                 evt, evt.Url, attempt, evt.Depth), 
                     priority: evt.Depth, scheduledOffset);
-
-            _logger.LogInformation($"Scheduled CrawlPageEvent: {evt.Url} at depth {evt.Depth}, attempt {attempt}, scheduled for {scheduledOffset?.ToString("HH:mm:ss")}");
         }
 
         private async Task<SitePolicyItem> GetOrCreateSitePolicyAsync(Uri url, string? userAgent, string? userAccepts)
@@ -190,10 +189,9 @@ namespace Crawler.Core
             if (existingSitePolicy != null)
                 sitePolicy = existingSitePolicy.MergePolicy(sitePolicy);
 
+            _logger.LogDebug($"Saving policy for: {url.Authority}, expires at: {sitePolicy?.ExpiresAt.ToString("o")}");
+
             await _cache.SetAsync<SitePolicyItem>(cacheKey, sitePolicy, expiryDuration);
-
-            _logger.LogDebug($"Site policy saved for: {url.Authority}, expires at: {sitePolicy?.ExpiresAt.ToString("HH:mm:ss")}");
-
         }
 
     }

@@ -17,7 +17,7 @@ namespace WebMapper.Cli.Service.Crawler.Controllers
         }
 
         [HttpPost("crawl")]
-        public async Task<IActionResult> CrawlUrl(CrawlPageDto crawlPageDto)
+        public async Task<IActionResult> CrawlUrlAsync(CrawlPageDto crawlPageDto)
         {
             var crawlPageEvent = new CrawlPageEvent(
             url: crawlPageDto.Url,

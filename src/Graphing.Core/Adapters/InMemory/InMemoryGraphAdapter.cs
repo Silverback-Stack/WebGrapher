@@ -55,7 +55,7 @@ namespace Graphing.Core.Adapters.InMemory
         }
         public override void Dispose()
         {
-            _logger.LogInformation($"Disposing: {typeof(InMemoryGraphAdapter).Name}, memory cleared.");
+            _logger.LogDebug($"Disposing: {typeof(InMemoryGraphAdapter).Name}, memory cleared.");
             _nodes.Clear();
         }
     }
