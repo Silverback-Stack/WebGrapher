@@ -11,8 +11,7 @@ namespace Caching.Core.Adapters.InMemory
         private readonly IMemoryCache _cache;
 
         /// <summary>
-        /// In-memory cache adapter for local development, 
-        /// can be swapped out with a distributed cache adapter such as Redis.
+        /// In-memory cache adapter for local development.
         /// </summary>
         public InMemoryCacheAdapter(string serviceName, ILogger logger)
         {
@@ -26,7 +25,15 @@ namespace Caching.Core.Adapters.InMemory
         public async Task<T?> GetAsync<T>(string key)
         {
             key = GetScopedKey(key);
-            return _cache.TryGetValue(key, out var value) ? (T?)value : default;
+
+            if (_cache.TryGetValue(key, out var value))
+            {
+                _logger.LogDebug($"Cache hit for {key}");
+                return (T?)value;
+            }
+
+            _logger.LogDebug($"Cache miss for {key}");
+            return default;
         }
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
@@ -35,7 +42,14 @@ namespace Caching.Core.Adapters.InMemory
             var options = new MemoryCacheEntryOptions();
 
             if (expiration.HasValue)
+            {
                 options.SetAbsoluteExpiration(expiration.Value);
+                _logger.LogDebug($"Setting cache for {key} with TTL: {expiration.Value}");
+            }
+            else
+            {
+                _logger.LogDebug($"Setting cache for {key} with no expiration");
+            }
 
             _cache.Set(key, value, options);
         }
@@ -43,13 +57,17 @@ namespace Caching.Core.Adapters.InMemory
         public async Task RemoveAsync(string key)
         {
             key = GetScopedKey(key);
+            _logger.LogDebug($"Removing cache entry for {key}");
+
             _cache.Remove(key);
         }
 
         public async Task<bool> ExistsAsync(string key)
         {
             key = GetScopedKey(key);
-            return _cache.TryGetValue(key, out _);
+            var exists = _cache.TryGetValue(key, out _);
+            _logger.LogDebug($"Checking existence for {key}: {exists}");
+            return exists;
         }
 
         public void Dispose()

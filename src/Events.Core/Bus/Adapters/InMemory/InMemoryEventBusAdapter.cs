@@ -21,17 +21,17 @@ namespace Events.Core.Bus.Adapters.InMemory
         public async override Task StartAsync()
         {
             //nothing to do for in-memory implementation
-            _logger.LogInformation($"Started: {typeof(InMemoryEventBusAdapter).Name}");
+            _logger.LogDebug($"Started event bus {typeof(InMemoryEventBusAdapter).Name}");
         }
 
         public async override Task StopAsync()
         {
             //nothing to do for in-memory implementation
-            _logger.LogInformation($"Stopped: {typeof(InMemoryEventBusAdapter).Name}");
+            _logger.LogDebug($"Stopped event bus {typeof(InMemoryEventBusAdapter).Name}");
         }
         public override void Dispose()
         {
-            _logger.LogDebug($"Disposing: {typeof(InMemoryEventBusAdapter).Name}, handlers cleared.");
+            _logger.LogDebug($"Disposing event bus {typeof(InMemoryEventBusAdapter).Name}, handlers cleared.");
             _handlers.Clear();
         }
 
@@ -41,7 +41,8 @@ namespace Events.Core.Bus.Adapters.InMemory
                 _ => new List<Delegate> { handler },
                 (_, list) => { list.Add(handler); return list; }
             );
-            _logger.LogInformation($"Event subscribed: {typeof(TEvent).Name}");
+
+            _logger.LogDebug($"Subscribed to event {typeof(TEvent).Name}");
         }
 
         public override void Unsubscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
@@ -49,12 +50,13 @@ namespace Events.Core.Bus.Adapters.InMemory
             if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
             {
                 subscribers.RemoveAll(h => h.Equals(handler));
-                _logger.LogInformation($"Event unsubscribed: {typeof(TEvent).Name}");
-
+                
                 if (subscribers.Count == 0)
                 {
                     _handlers.TryRemove(typeof(TEvent), out _);
                 }
+
+                _logger.LogDebug($"Unsubscribed from event {typeof(TEvent).Name}. Remaining handlers: {subscribers.Count}");
             }
         }
 
@@ -72,12 +74,11 @@ namespace Events.Core.Bus.Adapters.InMemory
             {
                 try
                 {
-                    _logger.LogDebug($"Event scheduled: {typeof(TEvent).Name}, will be published after {delay.TotalSeconds} seconds.");
                     await Task.Delay(delay, cancellationToken);
                 }
                 catch (Exception)
                 {
-                    _logger.LogWarning($"Timout: {typeof(TEvent).Name}, delay cancelled after {delay.TotalSeconds} seconds.");
+                    _logger.LogWarning($"Timout for event {typeof(TEvent).Name}, delay cancelled after {delay.TotalSeconds} seconds.");
                     return;
                 }
             }
@@ -86,8 +87,18 @@ namespace Events.Core.Bus.Adapters.InMemory
             {
                 foreach (var handler in subscribers.Cast<Func<TEvent, Task>>())
                 {
-                    _ = handler(@event); // fire-and-forget; can choose to await if you want sequential
-                    _logger.LogDebug($"Event published: {typeof(TEvent).Name}");
+                    try
+                    {
+                        _ = handler(@event); // fire-and-forget, or add await for sequential
+
+                        var scheduled = delay.TotalSeconds > 0 ? $"scheduled in {delay.TotalSeconds} seconds." : string.Empty;
+
+                        _logger.LogDebug($"Handler executed for event {typeof(TEvent).Name} Priority: {priority} {scheduled}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Handler execution failed for event {EventType}", typeof(TEvent).Name);
+                    }
                 }
             }
         }

@@ -3,6 +3,7 @@ using Events.Core.Bus;
 using Graphing.Core;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Serilog.Events;
 using Serilog.Extensions.Logging;
 
 namespace WebMapper.Cli.Service.Graphing
@@ -17,13 +18,15 @@ namespace WebMapper.Cli.Service.Graphing
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                //.WriteTo.Console(LogEventLevel.Information)
+                .WriteTo.Console(LogEventLevel.Debug)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
 
             var logger = loggerFactory.CreateLogger<IGraph>();
 
             GraphingFactory.Create(logger, eventBus);
+
+            logger.LogInformation("Graphing service started.");
         }
     }
 }

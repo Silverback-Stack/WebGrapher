@@ -14,28 +14,39 @@ namespace WebMapper.Cli
 {
     internal class WebMapperApp
     {
-        private readonly IEventBus _eventBus;
+        private IEventBus _eventBus;
         private IPageCrawler? _pageCrawler;
 
-        public WebMapperApp() {
+        public WebMapperApp() { }
 
-            _eventBus = EventBusService.Start();
+        public async Task InitializeAsync()
+        {
+            _eventBus = await EventBusService.StartAsync();
 
-            Task.Run(async () => _pageCrawler = await CrawlerService.InitializeAsync(_eventBus));
+            var crawlerTask = Task.Run(async () 
+                => _pageCrawler = await CrawlerService.InitializeAsync(_eventBus));
 
-            Task.Run(async () => await ScraperService.InitializeAsync(_eventBus));
+            var scraperTask = Task.Run(async () 
+                => ScraperService.InitializeAsync(_eventBus));
 
-            Task.Run(async () => await ParserService.InitializeAsync(_eventBus));
+            var parserTask = Task.Run(async () 
+                => ParserService.InitializeAsync(_eventBus));
 
-            Task.Run(async () => await NormalisationService.InitializeAsync(_eventBus));
+            var normalisationTask = Task.Run(async () 
+                => NormalisationService.InitializeAsync(_eventBus));
 
-            Task.Run(async () => await GraphingService.InitializeAsync(_eventBus));
+            var graphingTask = Task.Run(async () 
+                => GraphingService.InitializeAsync(_eventBus));
 
-            Task.Run(async () => await StreamingService.InitializeAsync(_eventBus));
+            var streamingTask = Task.Run(async () 
+                => StreamingService.InitializeAsync(_eventBus));
+
+            await Task.WhenAll(crawlerTask, scraperTask, parserTask, normalisationTask, graphingTask, streamingTask);
+
+            await RunAsync();
         }
 
-
-        public async Task Run()
+        private async Task RunAsync()
         {
             var exit = false;
             while (!exit)
@@ -52,7 +63,7 @@ namespace WebMapper.Cli
                 var url = GetUri(input);
                 if (url != null)
                 {
-                    await SubmitUrl(url);
+                    await SubmitUrlAsync(url);
                 } 
                 else
                 {
@@ -84,7 +95,7 @@ namespace WebMapper.Cli
         /// </summary>
         /// <param name="url"></param>
         /// <returns></returns>
-        private async Task SubmitUrl(Uri url)
+        private async Task SubmitUrlAsync(Uri url)
         {
             if (_pageCrawler is null) return;
 

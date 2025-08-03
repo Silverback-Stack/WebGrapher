@@ -8,7 +8,7 @@ namespace Caching.Core.Helpers
 
         /// <summary>
         /// Returns a clamped duration between now and the provided expiry,
-        /// within configured bounds. Returns null if expiry is missing or already expired.
+        /// within configured bounds. Returns minimal TTL if expiry is missing or already expired.
         /// </summary>
         public static TimeSpan? Clamp(
             DateTimeOffset? expires, 
@@ -19,7 +19,11 @@ namespace Caching.Core.Helpers
                 throw new ArgumentException("minDuration cannot be greater than maxDuration");
 
             if (!expires.HasValue || 
-                expires <= DateTimeOffset.UtcNow) return null;
+                expires <= DateTimeOffset.UtcNow)
+            {
+                //no expiry provided, default to minimum TTL
+                return TimeSpan.FromMinutes(minDurationInMinutes);
+            }
 
             var cacheDuration = expires.Value - DateTimeOffset.UtcNow;
             var minDuration = TimeSpan.FromMinutes(minDurationInMinutes);

@@ -48,11 +48,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C0E6-4178-9ABD-D2C5CEFE9045}"
 	ProjectSection(SolutionItems) = preProject
 		docs\Architecture.txt = docs\Architecture.txt
-		Console_Setup.txt = Console_Setup.txt
+		docs\Console_Setup.txt = docs\Console_Setup.txt
+		docs\Graph_Nodes_Redirects.txt = docs\Graph_Nodes_Redirects.txt
 		docs\Ideas.txt = docs\Ideas.txt
-		LectureOrder.txt = LectureOrder.txt
-		Node_Redirects.txt = Node_Redirects.txt
-		Priority_Queue_Concepts.txt = Priority_Queue_Concepts.txt
+		docs\LectureOrder.txt = docs\LectureOrder.txt
+		docs\Node_Redirects.txt = docs\Node_Redirects.txt
+		docs\Priority_Queue_Concepts.txt = docs\Priority_Queue_Concepts.txt
 		docs\README.md = docs\README.md
 	EndProjectSection
 EndProject

@@ -33,7 +33,7 @@ namespace WebMapper.Cli.Service.Crawler
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Debug)
+                .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
             var logger = loggerFactory.CreateLogger<IPageCrawler>();
@@ -51,10 +51,12 @@ namespace WebMapper.Cli.Service.Crawler
 
             var sitePolicyResolver = new SitePolicyResolver(requestSender);
 
-            logger.LogInformation($"The Crawler API started: {HOST}/{SWAGGER_ROUTE_PREFIX}");
-
-            return CrawlerFactory.CreateCrawler(
+            var crawler = CrawlerFactory.CreateCrawler(
                 logger, eventBus, cache, requestSender, sitePolicyResolver);
+
+            logger.LogInformation($"Crawler service started on {HOST}/{SWAGGER_ROUTE_PREFIX}");
+
+            return crawler;
         }
 
         private async static Task<IHost> StartWebApiServerAsync(IEventBus eventBus)
@@ -96,7 +98,6 @@ namespace WebMapper.Cli.Service.Crawler
                         app.UseEndpoints(endpoints =>
                         {
                             endpoints.MapControllers();
-                            endpoints.MapGet("/", () => "Web API server is running.");
                         });
                     })
                     .UseUrls(HOST);
