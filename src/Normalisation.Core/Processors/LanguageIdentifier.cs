@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using LanguageDetection;
 
-namespace Normalisation.Core
+namespace Normalisation.Core.Processors
 {
     public static class LanguageIdentifier
     {
@@ -17,7 +17,7 @@ namespace Normalisation.Core
         /// <returns></returns>
         public static string DetectLanguage(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) 
+            if (string.IsNullOrWhiteSpace(input))
                 return DEFAULT_LANGUAGE_ISO3_CODE;
 
             var detector = new LanguageDetector();

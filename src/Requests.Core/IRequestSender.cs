@@ -4,15 +4,11 @@ namespace Requests.Core
 {
     public interface IRequestSender
     {
-        Task<HttpResponseEnvelope?> GetStringAsync(
+        Task<HttpResponseEnvelope?> FetchAsync(
             Uri url, 
-            string? userAgent, 
-            string? userAccepts, 
+            string userAgent, 
+            string userAccepts, 
             int contentMaxBytes = 0,
-            CancellationToken cancellationToken = default);
-
-        Task<HttpResponseEnvelope?> GetStringAsync(
-            Uri url, 
             CancellationToken cancellationToken = default);
     }
 }

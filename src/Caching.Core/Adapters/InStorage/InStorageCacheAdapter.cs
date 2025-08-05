@@ -1,24 +1,18 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic;
 
 namespace Caching.Core.Adapters.InStorage
 {
     public partial class InStorageCacheAdapter : ICache
     {
         private readonly ILogger _logger;
-        private readonly string _containerPath;
-
-        private const int DEFAULT_MAX_ABSOLUTE_EXPIRATION_DAYS = 30;
-
-        private const int CACHE_CLEANUP_INTERVAL_MINUTES = 5;
-        private static DateTimeOffset _lastCleanup = DateTimeOffset.MinValue;
-        private static readonly object _cleanupLock = new();
-        private static readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(CACHE_CLEANUP_INTERVAL_MINUTES);
 
         private const string CACHE_CONTAINER = "storage.cache";
-        private const string CACHE_SUFFIX_DATA = ".data.cache";
-        private const string CACHE_SUFFIX_META = ".meta.cache";
+        private const int DEFAULT_ABSOLUTE_EXPIRATION_HOURS = 0; //clears all on startup
 
         /// <summary>
         /// In-storage cache adapter for local development.
@@ -26,10 +20,12 @@ namespace Caching.Core.Adapters.InStorage
         public InStorageCacheAdapter(string serviceName, ILogger logger)
         {
             _logger = logger;
-            _containerPath = CreateContainer(serviceName);
+            Container = CreateContainer(serviceName);
 
-            RunCacheMaintenance();
+            ClearCacheAsync();
         }
+
+        public string Container { get; private set; }
 
         private string CreateContainer(string serviceName)
         {
@@ -49,34 +45,20 @@ namespace Caching.Core.Adapters.InStorage
             return containerPath;
         }
 
-        private string GetFilePath(string key) => Path.Combine(_containerPath, $"{key}{CACHE_SUFFIX_DATA}");
-
-        private string GetMetadataPath(string key) => Path.Combine(_containerPath, $"{key}{CACHE_SUFFIX_META}");
+        private string GetFilePath(string key) => Path.Combine(Container, key);
 
         public async Task<bool> ExistsAsync(string key)
         {
             var path = GetFilePath(key);
-            return File.Exists(path);
+            if (File.Exists(path)) return true;
+
+            return false;
         }
 
         public async Task<T?> GetAsync<T>(string key)
         {
             var path = GetFilePath(key);
             if (!File.Exists(path)) return default;
-
-            CacheMetadata? metadata = null;
-            var metaPath = GetMetadataPath(key);
-            if (File.Exists(metaPath))
-            {
-                var metaJson = await File.ReadAllTextAsync(metaPath);
-                metadata = JsonSerializer.Deserialize<CacheMetadata>(metaJson);
-
-                if (metadata?.ExpiresAt < DateTimeOffset.UtcNow)
-                {
-                    _logger.LogDebug($"Cache entry expired for key: {key}");
-                    return default;
-                }
-            }
 
             if (typeof(T) == typeof(byte[]))
             {
@@ -95,34 +77,39 @@ namespace Caching.Core.Adapters.InStorage
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
-            RunCacheMaintenance();
-
+            //no need to implement expiration on local delevopement environment
+            //instead using absolute expiry to clear files
             var path = GetFilePath(key);
 
-            var meta = new CacheMetadata
+            try
             {
-                CreatedAt = DateTimeOffset.UtcNow,
-                ExpiresAt = expiration.HasValue
-                    ? DateTimeOffset.UtcNow.Add(expiration.Value)
-                    : DateTimeOffset.UtcNow.AddDays(DEFAULT_MAX_ABSOLUTE_EXPIRATION_DAYS)
-            };
+                await using var fileStream = new FileStream(
+                    path,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.Read,
+                    bufferSize: 4096,
+                    useAsync: true);
 
-            var metaJson = JsonSerializer.Serialize(meta);
-            await WriteTextFileAsync(GetMetadataPath(key), metaJson);
-
-            if (value is byte[] bytes)
-            {
-                await File.WriteAllBytesAsync(path, bytes);
+                if (value is byte[] bytes)
+                {
+                    await fileStream.WriteAsync(bytes, 0, bytes.Length);
+                }
+                else if (value is Stream stream)
+                {
+                    await stream.CopyToAsync(fileStream);
+                }
+                else
+                {
+                    var json = JsonSerializer.Serialize(value);
+                    using var writer = new StreamWriter(fileStream);
+                    await writer.WriteAsync(json ?? string.Empty);
+                    await writer.FlushAsync();
+                }
             }
-            else if(value is Stream stream)
+            catch (Exception ex)
             {
-                using var destination = File.OpenWrite(path);
-                await stream.CopyToAsync(destination);
-            }
-            else
-            {
-                var json = JsonSerializer.Serialize(value);
-                await WriteTextFileAsync(path, json);
+                _logger.LogWarning(ex, $"Unable to save cache file {path}");
             }
         }
 
@@ -130,22 +117,6 @@ namespace Caching.Core.Adapters.InStorage
         {
             var path = GetFilePath(key);
             DeleteFile(path);
-
-            var metaPath = GetMetadataPath(key);
-            DeleteFile(metaPath);
-
-        }
-
-        private async Task WriteTextFileAsync(string path, string? contents)
-        {
-            try
-            {
-                await File.WriteAllTextAsync(path, contents);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, $"Unable to save cache file {path}");
-            }
         }
 
         private void DeleteFile(string path)
@@ -161,52 +132,14 @@ namespace Caching.Core.Adapters.InStorage
             }
         }
 
-        private void RunCacheMaintenance()
+        private void ClearCacheAsync()
         {
-            if (DateTimeOffset.UtcNow - _lastCleanup > _cleanupInterval)
-            {
-                lock (_cleanupLock)
-                {
-                    if (DateTimeOffset.UtcNow - _lastCleanup > _cleanupInterval) // Double-check inside lock
-                    {
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                await ClearCacheAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "Error during opportunistic cache cleanup");
-                            }
-                        });
+            var cutoff = DateTime.UtcNow.AddHours(-DEFAULT_ABSOLUTE_EXPIRATION_HOURS);
+            var filePath = GetFilePath(string.Empty);
 
-                        _lastCleanup = DateTimeOffset.UtcNow;
-                    }
-                }
-            }
-        }
-
-        private async Task ClearCacheAsync()
-        {
-            foreach (var metaFile in Directory.GetFiles(_containerPath, $"*{CACHE_SUFFIX_META}"))
-            {
-                try
-                {
-                    var key = Path.GetFileNameWithoutExtension(metaFile).Replace(CACHE_SUFFIX_META, "");
-                    var json = await File.ReadAllTextAsync(metaFile);
-                    var metadata = JsonSerializer.Deserialize<CacheMetadata>(json);
-                    if (metadata?.ExpiresAt < DateTimeOffset.UtcNow)
-                    {
-                        await RemoveAsync(key);
-                        _logger.LogInformation("Expired cache cleared: {Key}", key);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, $"Failed to process cache metadata file: {metaFile}");
-                }
-            }
+            foreach (var file in Directory.GetFiles(filePath))
+                if (File.GetLastWriteTimeUtc(file) < cutoff)
+                    File.Delete(file);
         }
 
         public void Dispose()

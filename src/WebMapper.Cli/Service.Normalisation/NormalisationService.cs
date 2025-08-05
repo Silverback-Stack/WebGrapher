@@ -1,4 +1,5 @@
 ﻿using System;
+using Caching.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core;
@@ -24,7 +25,12 @@ namespace WebMapper.Cli.Service.Normalisation
 
             var logger = loggerFactory.CreateLogger<IHtmlNormalisation>();
 
-            NormalisationFactory.CreateNormaliser(logger, eventBus);
+            var cache = CacheFactory.CreateCache(
+                serviceName,
+                CacheOptions.InStorage,
+                logger);
+
+            NormalisationFactory.CreateNormaliser(logger, cache, eventBus);
 
             logger.LogInformation("Normalisation service started.");
         }

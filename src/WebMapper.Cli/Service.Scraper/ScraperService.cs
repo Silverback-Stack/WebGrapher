@@ -20,18 +20,23 @@ namespace WebMapper.Cli.Service.Scraper
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .WriteTo.Console(LogEventLevel.Debug)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
 
             var logger = loggerFactory.CreateLogger<IRequestSender>();
 
-            var cache = CacheFactory.CreateCache(
+            var metaCache = CacheFactory.CreateCache(
+                serviceName,
+                CacheOptions.InMemory,
+                logger);
+
+            var blobCache = CacheFactory.CreateCache(
                 serviceName,
                 CacheOptions.InStorage,
                 logger);
 
-            var requestSender = RequestFactory.CreateRequestSender(logger, cache);
+            var requestSender = RequestFactory.CreateRequestSender(logger, metaCache, blobCache);
 
             ScraperFactory.Create(logger, eventBus, requestSender);
 

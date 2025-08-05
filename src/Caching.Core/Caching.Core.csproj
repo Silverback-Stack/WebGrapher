@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <Folder Include="Adapters\AzureBlobStorage\" />
+    <Folder Include="Adapters\Redis\" />
   </ItemGroup>
 
 </Project>

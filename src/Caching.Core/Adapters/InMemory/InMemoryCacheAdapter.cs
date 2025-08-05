@@ -4,9 +4,9 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Caching.Core.Adapters.InMemory
 {
+#pragma warning disable CS1998
     public class InMemoryCacheAdapter : ICache
     {
-        private readonly string _serviceName;
         private readonly ILogger _logger;
         private readonly IMemoryCache _cache;
 
@@ -15,12 +15,14 @@ namespace Caching.Core.Adapters.InMemory
         /// </summary>
         public InMemoryCacheAdapter(string serviceName, ILogger logger)
         {
-            _serviceName = serviceName;
+            Container = serviceName;
             _logger = logger;
             _cache = new MemoryCache(new MemoryCacheOptions());
         }
 
-        private string GetScopedKey(string key) => $"{_serviceName}_{key}";
+        public string Container {  get; private set; }
+
+        private string GetScopedKey(string key) => $"{Container}_{key}";
 
         public async Task<T?> GetAsync<T>(string key)
         {
@@ -79,4 +81,5 @@ namespace Caching.Core.Adapters.InMemory
             }
         }
     }
+#pragma warning restore CS1998
 }

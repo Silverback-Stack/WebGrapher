@@ -19,6 +19,7 @@ namespace Requests.Core
             HttpResponseMessage? httpResponseMessage, 
             string userAccepts,
             string blobId,
+            string? blobContainer,
             int contentMaxBytes = 0,
             CancellationToken cancellationToken = default)
         {
@@ -33,7 +34,7 @@ namespace Requests.Core
             var lastModified = httpResponseMessage.Content?.Headers?.LastModified?.UtcDateTime ?? DateTimeOffset.UtcNow;
             var expires = httpResponseMessage.Content?.Headers?.Expires;
             var retryAfter = GetRetryAfterOffset(httpResponseMessage.StatusCode, httpResponseMessage?.Headers?.RetryAfter);
-            var redirectedUrl = httpResponseMessage?.RequestMessage?.RequestUri;
+            var requestUrl = httpResponseMessage?.RequestMessage?.RequestUri;
             
             if (!IsContentAcceptable(contentType, userAccepts))
             {
@@ -50,7 +51,7 @@ namespace Requests.Core
                 Metadata = new HttpResponseMetadata
                 {
                     OriginalUrl = url,
-                    RedirectedUrl = redirectedUrl,
+                    Url = requestUrl, //after redirects if any
                     StatusCode = statusCode,
                     LastModified = lastModified,
                     Expires = expires,
@@ -58,13 +59,14 @@ namespace Requests.Core
                     ResponseData = new HttpResponseDataItem
                     {
                         BlobId = blobId,
+                        BlobContainer = blobContainer,
                         ContentType = contentType,
                         Encoding = encoding
                     },
                 },
                 Data = new HttpResponseData
                 {
-                    Data = data
+                    Payload = data
                 },
                 IsFromCache = false
             };

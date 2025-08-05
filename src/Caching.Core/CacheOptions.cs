@@ -4,6 +4,7 @@
     {
         InMemory,
         InStorage,
-        Redis
+        Redis,
+        AzureBlobStorage
     }
 }

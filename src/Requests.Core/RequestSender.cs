@@ -8,76 +8,83 @@ namespace Requests.Core
     public class RequestSender : IRequestSender
     {
         private readonly ILogger _logger;
-        private readonly ICache _cache;
+        private readonly ICache _metaCache;
+        private readonly ICache _blobCache;
         private readonly IHttpRequester _httpRequester;
         private readonly IRequestTransformer _requestTransformer;
 
-        private const string DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
-        private const string DEFAULT_CLIENT_ACCEPTS = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8";
-
-        public RequestSender(ILogger logger, ICache cache, IHttpRequester httpRequester, IRequestTransformer requestTransformer)
+        public RequestSender(
+            ILogger logger, 
+            ICache metaCache, 
+            ICache blobCache, 
+            IHttpRequester httpRequester, 
+            IRequestTransformer requestTransformer)
         {
             _logger = logger;
-            _cache = cache;
+            _metaCache = metaCache;
+            _blobCache = blobCache;
             _httpRequester = httpRequester;
             _requestTransformer = requestTransformer;
         }
 
-        public async Task<HttpResponseEnvelope?> GetStringAsync(Uri url, CancellationToken cancellationToken = default) =>
-            await GetStringAsync(url, userAgent: string.Empty, userAccepts: string.Empty, contentMaxBytes: 0, cancellationToken);
 
-        public async Task<HttpResponseEnvelope?> GetStringAsync(
+        public async Task<HttpResponseEnvelope?> FetchAsync(
             Uri url, 
-            string? userAgent, 
-            string? userAccepts, 
+            string userAgent, 
+            string userAccepts, 
             int contentMaxBytes = 0, 
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(userAgent))
-                userAgent = DEFAULT_USER_AGENT;
+            if (string.IsNullOrWhiteSpace(url.AbsoluteUri)) 
+                throw new ArgumentNullException(nameof(url));
+
+            if (string.IsNullOrWhiteSpace(userAgent)) 
+                throw new ArgumentNullException(nameof(userAgent));
 
             if (string.IsNullOrWhiteSpace(userAccepts))
-                userAccepts = DEFAULT_CLIENT_ACCEPTS;
+                throw new ArgumentNullException(nameof(userAccepts));
 
             try
             {
-                //request cached data:
+                //fetch cached data:
                 var key = CacheKeyHelper.Generate(url.AbsoluteUri, userAgent, userAccepts);
-                var keyMeta = CacheKeyHelper.AppendSuffix(key, CacheKeyType.BlobMeta);
-                var keyData = CacheKeyHelper.AppendSuffix(key, CacheKeyType.BlobData);
+                var metaData = await _metaCache.GetAsync<HttpResponseMetadata>(key);
 
-                var getMetaTask = _cache.GetAsync<HttpResponseMetadata>(keyMeta);
-                var getDataTask = _cache.GetAsync<HttpResponseData>(keyData);
-                await Task.WhenAll(getMetaTask, getDataTask);
-
-                var cachedMeta = getMetaTask.Result;
-                var cachedData = getDataTask.Result;
-
-
-                if (cachedMeta != null && cachedData != null)
+                if (metaData is not null)
                 {
-                    _logger.LogDebug($"Get request for {url.AbsoluteUri} returned cached item.");
-                    return new HttpResponseEnvelope
+                    var blobData = await _blobCache.GetAsync<byte[]>(key);
+                    if (blobData is not null)
                     {
-                        Metadata = cachedMeta,
-                        Data = cachedData,
-                        IsFromCache = true
-                    };
+                        _logger.LogDebug($"Fetch request for {url.AbsoluteUri} returned cached item.");
+
+                        return new HttpResponseEnvelope
+                        {
+                            Metadata = metaData,
+                            Data = new HttpResponseData
+                            {
+                                Payload = blobData
+                            },
+                            IsFromCache = true
+                        };
+                    }
                 }
 
-                //request live data:
-                var httpResponseMessage = await _httpRequester.GetAsync(url, userAgent, userAccepts, cancellationToken);
-                var httpResponseEnvelope = await _requestTransformer.TransformAsync(url, httpResponseMessage, userAccepts, key, contentMaxBytes, cancellationToken);
+                //fetch fresh data:
+                var responseMessage = await _httpRequester
+                    .GetAsync(url, userAgent, userAccepts, cancellationToken);
 
-                _logger.LogDebug($"Get request for {url.AbsoluteUri} returned status code {httpResponseEnvelope.Metadata.StatusCode}");
+                var responseEnvelope = await _requestTransformer
+                    .TransformAsync(url, responseMessage, userAccepts, blobId: key, blobContainer: _blobCache.Container, contentMaxBytes, cancellationToken);
 
-                var expiry = CacheDurationHelper.Clamp(httpResponseEnvelope.Metadata?.Expires);
-                var setMetaTask = _cache.SetAsync(keyMeta, httpResponseEnvelope.Metadata, expiry);
-                var setDataTask = _cache.SetAsync(keyData, httpResponseEnvelope.Data, expiry);
-                await Task.WhenAll(setMetaTask, setDataTask);
+                _logger.LogDebug($"Fetch request for {url.AbsoluteUri} returned status code {responseEnvelope.Metadata.StatusCode}");
 
-                httpResponseEnvelope.IsFromCache = false;
-                return httpResponseEnvelope;
+                var expiry = CacheDurationHelper.Clamp(responseEnvelope.Metadata?.Expires);
+                var metaTask = _metaCache.SetAsync(key, responseEnvelope.Metadata, expiry);
+                var blobTask = _blobCache.SetAsync(key, responseEnvelope.Data?.Payload, expiry);
+                await Task.WhenAll(metaTask, blobTask);
+
+                responseEnvelope.IsFromCache = false;
+                return responseEnvelope;
             }
             catch (Exception ex)
             {

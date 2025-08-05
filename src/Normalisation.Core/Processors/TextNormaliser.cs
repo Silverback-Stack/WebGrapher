@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.RegularExpressions;
 
-namespace Normalisation.Core
+namespace Normalisation.Core.Processors
 {
     public static class TextNormaliser
     {
@@ -10,7 +10,7 @@ namespace Normalisation.Core
             return text.ToLower();
         }
 
-        public static string RemovePunctuation(string text) 
+        public static string RemovePunctuation(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return text;

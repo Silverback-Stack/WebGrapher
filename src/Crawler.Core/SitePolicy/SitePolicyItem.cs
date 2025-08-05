@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace Crawler.Core
+namespace Crawler.Core.SitePolicy
 {
     public record SitePolicyItem
     {
@@ -12,16 +12,16 @@ namespace Crawler.Core
         public DateTimeOffset ModifiedAt { get; init; }
         public DateTimeOffset? RetryAfter { get; init; }
 
-        internal bool IsRateLimited => 
-            RetryAfter is not null && DateTimeOffset.UtcNow < this.RetryAfter;
+        internal bool IsRateLimited =>
+            RetryAfter is not null && DateTimeOffset.UtcNow < RetryAfter;
 
         internal SitePolicyItem MergePolicy(SitePolicyItem other)
         {
             return this with
             {
-                RetryAfter = MergeRetryAfter(this.RetryAfter, other.RetryAfter),
-                RobotsTxt = MergeRobotsTxtContent(this.RobotsTxt, other.RobotsTxt),
-                ModifiedAt = MergeExpiresAt(this.ModifiedAt, other.ModifiedAt)
+                RetryAfter = MergeRetryAfter(RetryAfter, other.RetryAfter),
+                RobotsTxt = MergeRobotsTxtContent(RobotsTxt, other.RobotsTxt),
+                ModifiedAt = MergeExpiresAt(ModifiedAt, other.ModifiedAt)
             };
         }
 

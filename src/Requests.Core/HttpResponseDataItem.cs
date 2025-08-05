@@ -9,6 +9,7 @@ namespace Requests.Core
     public record HttpResponseDataItem
     {
         public required string BlobId {  get; init; }
+        public string? BlobContainer { get; init; }
         public string? ContentType { get; init; }
         public string? Encoding { get; init; }
     }

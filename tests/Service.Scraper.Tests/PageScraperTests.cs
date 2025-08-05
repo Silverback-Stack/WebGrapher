@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Text;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -14,7 +15,7 @@ namespace Service.Scraper.Tests
         private Mock<ILogger> _logger;
         private Mock<IEventBus> _eventBus;
         private Mock<IRequestSender> _requestSender;
-        private IScraper _scraper;
+        private IPageScraper _scraper;
 
         private Uri _url;
         private string? _userAgent = null;
@@ -30,34 +31,33 @@ namespace Service.Scraper.Tests
             _url = new Uri("http://example.com/page.html");
             var contentMaxBytes = 0;
 
-            var reponse = new ResponseEnvelope<ResponseItem>(
-                new ResponseItem()
+            //Mock http response:
+            var responseEnvelope = new HttpResponseEnvelope
+            {
+                Metadata = new HttpResponseMetadata
                 {
                     OriginalUrl = _url,
-                    RedirectedUrl = null,
-                    TextContent = "<html></html>",
+                    Url = null,
                     StatusCode = HttpStatusCode.OK,
                     Expires = DateTimeOffset.UtcNow.AddDays(1),
                     LastModified = DateTimeOffset.UtcNow,
-                    RetryAfter = null
+                    RetryAfter = null,
+                    ResponseData = new HttpResponseDataItem { 
+                        BlobId = "Blob1",
+                        BlobContainer = "Blobs",
+                        ContentType = "text/html", 
+                        Encoding = "utf-8"
+                    }
                 },
-                false);
+                Data = new HttpResponseData {
+                    Payload = Encoding.UTF8.GetBytes("<html><body>Example Page</body></html>")
+                },
+                IsFromCache = false
+            };
 
-            _requestSender.Setup(rs => rs.GetStringAsync(
+            _requestSender.Setup(rs => rs.FetchAsync(
                 _url, _userAgent, _userAccepts, contentMaxBytes, CancellationToken.None))
-                .ReturnsAsync(
-                    new ResponseEnvelope<ResponseItem>(
-                        new ResponseItem()
-                        {
-                            OriginalUrl = _url,
-                            RedirectedUrl = null,
-                            TextContent = "<html></html>",
-                            StatusCode = HttpStatusCode.OK,
-                            Expires = DateTimeOffset.UtcNow.AddDays(1),
-                            LastModified = DateTimeOffset.UtcNow,
-                            RetryAfter = null
-                        },
-                        IsFromCache: false));
+                .ReturnsAsync(responseEnvelope);
 
             _scraper = new PageScraper(_logger.Object, _eventBus.Object, _requestSender.Object);
         }
@@ -65,10 +65,10 @@ namespace Service.Scraper.Tests
         [Test]
         public async Task GetAsync_WithResponseCode_ReturnsScrapeResponseItem()
         {
-            var response = await _scraper.GetAsync(_url, _userAgent, _userAccepts);
+            var responseEnvelope = await _scraper.FetchAsync(_url, _userAgent, _userAccepts);
 
-            Assert.IsNotNull(response);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.IsNotNull(responseEnvelope);
+            Assert.That(responseEnvelope.Metadata.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         }
 
     }
