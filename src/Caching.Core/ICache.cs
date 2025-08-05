@@ -1,7 +1,12 @@
-﻿namespace Caching.Core
+﻿using System.Net.Mime;
+using System.Text;
+
+namespace Caching.Core
 {
     public interface ICache : IDisposable
     {
+        string Container { get; }
+
         /// <summary>
         /// Retrieve a cached item by key.
         /// </summary>

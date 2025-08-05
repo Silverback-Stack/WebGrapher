@@ -56,7 +56,7 @@ namespace Shared.Requests
             content = new StringContent(
                 new string('X', contentSizeBytes), Encoding.UTF8, "text/html");
 
-            var result = await RequestTransformer.ReadAsStringAsync(content, contentMaxBytes);
+            var result = await RequestTransformer.ReadAsByteArrayAsync(content, contentMaxBytes);
 
             Assert.That(result, Has.Length.EqualTo(contentMaxBytes));
         }

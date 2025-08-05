@@ -1,6 +1,6 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Text;
 
 namespace Requests.Core
@@ -8,48 +8,107 @@ namespace Requests.Core
     public class RequestTransformer : IRequestTransformer
     {
         private const int DEFAULT_RETRY_AFTER_MINUTES = 1;
+        private static readonly ContentType DEFAULT_CONTENT_TYPE = new ContentType("text/html");
+        private static readonly Encoding DEFAULT_ENCODING = Encoding.UTF8;
 
         /// <summary>
         /// Transforms HttpResponseMessage into RequestResponseItem dto.
         /// </summary>
-        public async Task<ResponseItem> TransformAsync(
+        public async Task<HttpResponseEnvelope> TransformAsync(
             Uri url,
-            HttpResponseMessage? response, 
-            string userAccepts, 
-            int contentMaxBytes = 0, 
+            HttpResponseMessage? httpResponseMessage, 
+            string userAccepts,
+            string blobId,
+            string? blobContainer,
+            int contentMaxBytes = 0,
             CancellationToken cancellationToken = default)
         {
-            if (response == null) { 
-                throw new ArgumentNullException(nameof(response), "Http response object was null.");
+            if (httpResponseMessage == null) { 
+                throw new ArgumentNullException(nameof(httpResponseMessage), "Http response object was null.");
             }
 
-            string? content = null;
-            var statusCode = response.StatusCode;
-            var contentType = response.Content?.Headers?.ContentType?.MediaType;
-            var lastModified = response.Content?.Headers?.LastModified?.UtcDateTime ?? DateTimeOffset.UtcNow;
-            var expires = response.Content?.Headers?.Expires;
-            var retryAfter = GetRetryAfterOffset(response.StatusCode, response?.Headers?.RetryAfter);
-            var redirectedUrl = response?.RequestMessage?.RequestUri;
-
+            byte[]? data = null;
+            var contentType = ResolveContentType(httpResponseMessage.Content);
+            var encoding = ResolveEncoding(httpResponseMessage.Content);
+            var statusCode = httpResponseMessage.StatusCode;
+            var lastModified = httpResponseMessage.Content?.Headers?.LastModified?.UtcDateTime ?? DateTimeOffset.UtcNow;
+            var expires = httpResponseMessage.Content?.Headers?.Expires;
+            var retryAfter = GetRetryAfterOffset(httpResponseMessage.StatusCode, httpResponseMessage?.Headers?.RetryAfter);
+            var requestUrl = httpResponseMessage?.RequestMessage?.RequestUri;
+            
             if (!IsContentAcceptable(contentType, userAccepts))
+            {
                 statusCode = HttpStatusCode.NotAcceptable;
+            }
 
             if (statusCode == HttpStatusCode.OK)
             {
-                content = await ReadAsStringAsync(response?.Content, contentMaxBytes, cancellationToken);
+                data = await ReadAsByteArrayAsync(httpResponseMessage?.Content, contentMaxBytes, cancellationToken);
             }
 
-            return new ResponseItem
+            return new HttpResponseEnvelope
             {
-                OriginalUrl = url,
-                RedirectedUrl = redirectedUrl,
-                Content = content,
-                ContentType = contentType,
-                StatusCode = statusCode,
-                LastModified = lastModified,
-                Expires = expires,
-                RetryAfter = retryAfter
+                Metadata = new HttpResponseMetadata
+                {
+                    OriginalUrl = url,
+                    Url = requestUrl, //after redirects if any
+                    StatusCode = statusCode,
+                    LastModified = lastModified,
+                    Expires = expires,
+                    RetryAfter = retryAfter,
+                    ResponseData = new HttpResponseDataItem
+                    {
+                        BlobId = blobId,
+                        BlobContainer = blobContainer,
+                        ContentType = contentType,
+                        Encoding = encoding
+                    },
+                },
+                Data = new HttpResponseData
+                {
+                    Payload = data
+                },
+                IsFromCache = false
             };
+        }
+
+        private static string ResolveContentType(HttpContent? content)
+        {
+            try
+            {
+                var rawContentType = content?.Headers?.ContentType?.ToString();
+                var contentType = !string.IsNullOrWhiteSpace(rawContentType)
+                    ? new ContentType(rawContentType)
+                    : DEFAULT_CONTENT_TYPE;
+
+                return contentType.MediaType;
+            }
+            catch (FormatException)
+            {
+                return DEFAULT_CONTENT_TYPE.MediaType;
+            }
+            catch (ArgumentNullException)
+            {
+                return DEFAULT_CONTENT_TYPE.MediaType;
+            }
+        }
+
+        private static string ResolveEncoding(HttpContent? content)
+        {
+            var charset = content?.Headers?.ContentType?.CharSet?.Trim('"');
+
+            try
+            {
+                var encoding = !string.IsNullOrWhiteSpace(charset)
+                    ? Encoding.GetEncoding(charset)
+                    : DEFAULT_ENCODING;
+
+                return encoding.WebName;
+            }
+            catch (ArgumentException)
+            {
+                return DEFAULT_ENCODING.WebName;
+            }
         }
 
         public static DateTimeOffset? GetRetryAfterOffset(
@@ -94,7 +153,7 @@ namespace Requests.Core
                                 .Split('/')[0])));
         }
 
-        public static async Task<string?> ReadAsStringAsync(
+        public static async Task<byte[]?> ReadAsByteArrayAsync(
             HttpContent? content,
             int contentMaxBytes,
             CancellationToken cancellationToken = default)
@@ -103,43 +162,28 @@ namespace Requests.Core
                 return null;
 
             if (contentMaxBytes <= 0)
-                return await content.ReadAsStringAsync(cancellationToken);
+                return await content.ReadAsByteArrayAsync(cancellationToken);
 
             using var stream = await content.ReadAsStreamAsync(cancellationToken);
-            using var reader = new StreamReader(stream, Encoding.UTF8);
+            using var memoryStream = new MemoryStream();
 
-            var buffer = new char[1024];
+            var buffer = new byte[1024];
             int totalBytes = 0;
-            var builder = new StringBuilder();
 
-            while (!reader.EndOfStream)
+            while (totalBytes < contentMaxBytes)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                int charsRead = await reader.ReadAsync(buffer, 0, buffer.Length);
-                var chunk = new string(buffer, 0, charsRead);
-                int chunkByteCount = Encoding.UTF8.GetByteCount(chunk);
+                int readSize = Math.Min(buffer.Length, contentMaxBytes - totalBytes);
+                int bytesRead = await stream.ReadAsync(buffer.AsMemory(0, readSize), cancellationToken);
 
-                if (totalBytes + chunkByteCount > contentMaxBytes)
-                {
-                    int allowedBytes = contentMaxBytes - totalBytes;
+                if (bytesRead == 0) break;
 
-                    // Trim the chunk to fit the remaining byte allowance
-                    int allowedChars = chunk.Length;
-                    while (allowedChars > 0 && Encoding.UTF8.GetByteCount(chunk[..allowedChars]) > allowedBytes)
-                    {
-                        allowedChars--;
-                    }
-
-                    builder.Append(chunk[..allowedChars]);
-                    break;
-                }
-
-                builder.Append(chunk);
-                totalBytes += chunkByteCount;
+                memoryStream.Write(buffer, 0, bytesRead);
+                totalBytes += bytesRead;
             }
 
-            return builder.ToString();
+            return memoryStream.ToArray();
         }
 
     }

@@ -1,5 +1,5 @@
 ﻿using System;
-using Caching.Core;
+using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
@@ -11,12 +11,11 @@ namespace Crawler.Core
         public static IPageCrawler CreateCrawler(
             ILogger logger,
             IEventBus eventBus,
-            ICache cache,
             IRequestSender requestSender,
             ISitePolicyResolver sitePolicyResolver)
         {
             var service = new PageCrawler(
-                logger, eventBus, cache, requestSender, sitePolicyResolver);
+                logger, eventBus, requestSender, sitePolicyResolver);
 
             service.SubscribeAll();
             return service;

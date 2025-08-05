@@ -1,26 +1,27 @@
 ﻿using System;
+using System.Text;
 
-namespace Crawler.Core
+namespace Crawler.Core.SitePolicy
 {
     public record SitePolicyItem
     {
         public required string UrlAuthority { get; init; }
-        public string? RobotsTxtContent { get; init; }
+        public string? RobotsTxt { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
         public DateTimeOffset ExpiresAt { get; init; }
         public DateTimeOffset ModifiedAt { get; init; }
         public DateTimeOffset? RetryAfter { get; init; }
 
-        internal bool IsRateLimited => 
-            RetryAfter is not null && DateTimeOffset.UtcNow < this.RetryAfter;
+        internal bool IsRateLimited =>
+            RetryAfter is not null && DateTimeOffset.UtcNow < RetryAfter;
 
         internal SitePolicyItem MergePolicy(SitePolicyItem other)
         {
             return this with
             {
-                RetryAfter = MergeRetryAfter(this.RetryAfter, other.RetryAfter),
-                RobotsTxtContent = MergeRobotsTxtContent(this.RobotsTxtContent, other.RobotsTxtContent),
-                ModifiedAt = MergeExpiresAt(this.ModifiedAt, other.ModifiedAt)
+                RetryAfter = MergeRetryAfter(RetryAfter, other.RetryAfter),
+                RobotsTxt = MergeRobotsTxtContent(RobotsTxt, other.RobotsTxt),
+                ModifiedAt = MergeExpiresAt(ModifiedAt, other.ModifiedAt)
             };
         }
 
@@ -39,5 +40,6 @@ namespace Crawler.Core
         {
             return b ?? a;
         }
+
     }
 }

@@ -5,7 +5,7 @@ namespace WebMapper.Cli.Service.Crawler
     public class CrawlPageDto
     {
         [DefaultValue("https://www.theaudiodb.com/chart_artists")]
-        public Uri Url { get; set; }
+        public required Uri Url { get; set; }
 
         [DefaultValue(1)]
         public int MapId { get; set; }

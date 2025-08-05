@@ -13,8 +13,8 @@ namespace Events.Core.EventTypes
         public int MaxDepth { get; init; }
         public bool RemoveQueryStrings { get; init; }
         public IEnumerable<string>? PathFilters { get; init; }
-        public string? UserAgent { get; init; }
-        public string? UserAccepts { get; init; }
+        public string UserAgent { get; init; }
+        public string UserAccepts { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
 
 

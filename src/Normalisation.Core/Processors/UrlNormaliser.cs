@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Normalisation.Core
+namespace Normalisation.Core.Processors
 {
     public static class UrlNormaliser
     {
@@ -64,8 +64,8 @@ namespace Normalisation.Core
         public static HashSet<Uri> FilterByPath(HashSet<Uri> urls, IEnumerable<string>? paths)
         {
             if (paths is null || !paths.Any()) return urls;
-            
-            return urls.Where(u => 
+
+            return urls.Where(u =>
                 paths.Any(p => u.AbsolutePath.Contains(p, StringComparison.OrdinalIgnoreCase))
             ).ToHashSet();
         }

@@ -6,15 +6,14 @@ using WebMapper.Cli.Service.Crawler;
 using WebMapper.Cli.Service.Events;
 using WebMapper.Cli.Service.Graphing;
 using WebMapper.Cli.Service.Normalisation;
-using WebMapper.Cli.Service.Parser;
 using WebMapper.Cli.Service.Scraper;
 using WebMapper.Cli.Service.Streaming;
 
 namespace WebMapper.Cli
 {
-    internal class WebMapperApp
+    public class WebMapperApp
     {
-        private IEventBus _eventBus;
+        private IEventBus? _eventBus;
         private IPageCrawler? _pageCrawler;
 
         public WebMapperApp() { }
@@ -29,9 +28,6 @@ namespace WebMapper.Cli
             var scraperTask = Task.Run(async () 
                 => ScraperService.InitializeAsync(_eventBus));
 
-            var parserTask = Task.Run(async () 
-                => ParserService.InitializeAsync(_eventBus));
-
             var normalisationTask = Task.Run(async () 
                 => NormalisationService.InitializeAsync(_eventBus));
 
@@ -41,7 +37,7 @@ namespace WebMapper.Cli
             var streamingTask = Task.Run(async () 
                 => StreamingService.InitializeAsync(_eventBus));
 
-            await Task.WhenAll(crawlerTask, scraperTask, parserTask, normalisationTask, graphingTask, streamingTask);
+            await Task.WhenAll(crawlerTask, scraperTask, normalisationTask, graphingTask, streamingTask);
 
             await RunAsync();
         }
@@ -107,8 +103,8 @@ namespace WebMapper.Cli
                 removeQueryStrings: true,
                 maxDepth: 3,
                 pathFilters: null, 
-                userAgent: null,
-                userAccepts: null));
+                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+                userAccepts: "text/html,text/plain"));
         }
 
 

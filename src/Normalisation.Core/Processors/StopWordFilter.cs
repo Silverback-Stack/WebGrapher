@@ -1,7 +1,6 @@
-﻿
-using StopWord;
+﻿using StopWord;
 
-namespace Normalisation.Core
+namespace Normalisation.Core.Processors
 {
     public static class StopWordFilter
     {

@@ -4,11 +4,13 @@ namespace Requests.Core
 {
     public interface IRequestTransformer
     {
-        Task<ResponseItem> TransformAsync(
+        Task<HttpResponseEnvelope> TransformAsync(
             Uri url,
-            HttpResponseMessage? response, 
-            string userAccepts, 
-            int contentMaxBytes = 0, 
+            HttpResponseMessage? httpResponseMessage, 
+            string userAccepts,
+            string blobId,
+            string? blobContainer,
+            int contentMaxBytes = 0,
             CancellationToken cancellationToken = default);
     }
 }

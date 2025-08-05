@@ -3,6 +3,8 @@
     public enum CacheOptions
     {
         InMemory,
-        Redis
+        InStorage,
+        Redis,
+        AzureBlobStorage
     }
 }

@@ -24,7 +24,7 @@ namespace Graphing.Core.Models
             State = NodeState.Dummy;
         }
 
-        public Node(string id, string title, string keywords, DateTimeOffset? sourceLastModified, IEnumerable<string> edges)
+        public Node(string id, string? title, string? keywords, DateTimeOffset? sourceLastModified, IEnumerable<string> edges)
         { 
             Id = id;
             Title = title;
@@ -46,7 +46,7 @@ namespace Graphing.Core.Models
             Edges.RemoveWhere(e => e.State == EdgeState.FromSource);
         }
 
-        public void SetPopulated(string title, string keywords, DateTimeOffset? sourceLastModified, IEnumerable<string> edges)
+        public void SetPopulated(string? title, string? keywords, DateTimeOffset? sourceLastModified, IEnumerable<string> edges)
         {
             Title = title;
             Keywords = keywords;

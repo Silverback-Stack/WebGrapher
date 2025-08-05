@@ -12,4 +12,9 @@
     <PackageReference Include="StackExchange.Redis" Version="2.8.41" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Adapters\AzureBlobStorage\" />
+    <Folder Include="Adapters\Redis\" />
+  </ItemGroup>
+
 </Project>
