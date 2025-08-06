@@ -1,30 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using Graphing.Core.Models;
+﻿//using System;
+//using System.Collections.Generic;
+//using System.Linq;
+//using System.Text;
+//using System.Text.Json;
+//using Graphing.Core.Models;
 
-namespace Graphing.Core.Exporters
-{
-    internal class JsonGraphExporter : IGraphExporter
-    {
-        public string Export(IReadOnlyDictionary<string, Node> graph)
-        {
-            var pages = graph.Values.Select(p => new
-            {
-                url = p.Id,
-                title = p.Title,
-                keywords = p.Keywords,
-                outgoingLinks = p.Edges.ToList()
-            });
+//namespace Graphing.Core.Exporters
+//{
+//    internal class JsonGraphExporter : IGraphExporter
+//    {
+//        public string Export(IReadOnlyDictionary<string, Node> graph)
+//        {
+//            var pages = graph.Values.Select(p => new
+//            {
+//                url = p.Id,
+//                title = p.Title,
+//                keywords = p.Keywords,
+//                outgoingLinks = p.Edges.ToList()
+//            });
 
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = true
-            };
+//            var options = new JsonSerializerOptions
+//            {
+//                WriteIndented = true
+//            };
 
-            return JsonSerializer.Serialize(pages, options);
-        }
-    }
-}
+//            return JsonSerializer.Serialize(pages, options);
+//        }
+//    }
+//}

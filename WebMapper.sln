@@ -46,6 +46,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Architecture.txt = docs\Architecture.txt
 		docs\Console_Setup.txt = docs\Console_Setup.txt
 		docs\Graph_Nodes_Redirects.txt = docs\Graph_Nodes_Redirects.txt
+		docs\Graphing-Concepts.txt = docs\Graphing-Concepts.txt
 		docs\Ideas.txt = docs\Ideas.txt
 		docs\LectureOrder.txt = docs\LectureOrder.txt
 		docs\Node_Redirects.txt = docs\Node_Redirects.txt
@@ -62,6 +63,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Service.Streaming", "Service.Streaming", "{F1557BF3-4839-4B5F-A520-43AB129E270C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Core", "src\Streaming.Core\Streaming.Core.csproj", "{93FB7F25-0BC5-448F-A4CF-68BF880C5C49}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Graphing.Tests", "tests\Service.Graphing.Tests\Service.Graphing.Tests.csproj", "{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -121,6 +124,10 @@ Global
 		{93FB7F25-0BC5-448F-A4CF-68BF880C5C49}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93FB7F25-0BC5-448F-A4CF-68BF880C5C49}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{93FB7F25-0BC5-448F-A4CF-68BF880C5C49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -147,5 +154,6 @@ Global
 		{F5E7D232-4DAC-4405-8945-200C4B3CEDD5} = {785AE35B-D59A-48BB-9CB5-2EBDA56F1248}
 		{F1557BF3-4839-4B5F-A520-43AB129E270C} = {918A18B5-B3A1-4EF9-8B23-3DCBB4E886B3}
 		{93FB7F25-0BC5-448F-A4CF-68BF880C5C49} = {F1557BF3-4839-4B5F-A520-43AB129E270C}
+		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3} = {785AE35B-D59A-48BB-9CB5-2EBDA56F1248}
 	EndGlobalSection
 EndGlobal

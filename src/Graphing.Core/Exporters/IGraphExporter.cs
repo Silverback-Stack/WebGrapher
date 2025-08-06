@@ -1,10 +1,10 @@
-﻿using Graphing.Core.Models;
+﻿//using Graphing.Core.Models;
 
-namespace Graphing.Core.Exporters
-{
-    public interface IGraphExporter
-    {
-        string Export(IReadOnlyDictionary<string, Node> graph);
-    }
+//namespace Graphing.Core.Exporters
+//{
+//    public interface IGraphExporter
+//    {
+//        string Export(IReadOnlyDictionary<string, Node> graph);
+//    }
 
-}
+//}
