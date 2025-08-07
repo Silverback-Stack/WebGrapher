@@ -1,4 +1,4 @@
-﻿namespace Graphing.Core.Version2
+﻿namespace Graphing.Core.WebGraph.Models
 {
     public class WebPageItem
     {

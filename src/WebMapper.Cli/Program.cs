@@ -1,7 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using WebMapper.Cli;
 using System.Text;
-using Graphing.Core.Version2;
 
 internal class Program
 {

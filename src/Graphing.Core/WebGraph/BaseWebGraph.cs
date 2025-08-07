@@ -1,63 +1,18 @@
 ﻿using System;
-using Events.Core.Bus;
-using Events.Core.EventTypes;
-using Events.Core.Helpers;
+using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Graphing.Core.Version2
+namespace Graphing.Core.WebGraph
 {
-    public abstract class BaseWebGraph : IWebGraph, IEventBusLifecycle
+    public abstract class BaseWebGraph : IWebGraph
     {
         protected readonly ILogger _logger;
-        protected readonly IEventBus _eventBus;
 
         private const int SCHEDULE_THROTTLE_MINUTES = 15;
 
-        protected BaseWebGraph(ILogger logger, IEventBus eventBus)
+        protected BaseWebGraph(ILogger logger)
         {
             _logger = logger;
-            _eventBus = eventBus;
-        }
-        public void SubscribeAll()
-        {
-            _eventBus.Subscribe<GraphPageEvent>(ProcessGraphPageEventAsync);
-        }
-
-        public void UnsubscribeAll()
-        {
-            _eventBus.Subscribe<GraphPageEvent>(ProcessGraphPageEventAsync);
-        }
-
-        private async Task ProcessGraphPageEventAsync(GraphPageEvent evt)
-        {
-            var webPage = new WebPageItem
-            {
-                Url = evt.Url.AbsoluteUri,
-                OriginalUrl = evt.OriginalUrl.AbsoluteUri,
-                IsRedirect = evt.IsRedirect,
-                Links = evt.Links != null ? evt.Links.Select(l => l.AbsoluteUri) : new List<string>(),
-                SourceLastModified = evt.SourceLastModified
-            };
-
-            //setup event delegate
-            Action<string> onLinkDiscovered = (url) =>
-            {
-                var depth = evt.CrawlPageEvent.Depth + 1;
-
-                var crawlPageEvent = new CrawlPageEvent(
-                    evt.CrawlPageEvent,
-                    new Uri(url),
-                    attempt: 1,
-                    depth);
-
-                var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
-
-                _logger.LogDebug($"Scheduling crawl for link {url} at depth {depth}");
-
-                _eventBus.PublishAsync(crawlPageEvent, priority: depth, scheduledOffset);
-            };
-
-            await AddWebPageAsync(webPage, onLinkDiscovered);
         }
 
         public async Task AddWebPageAsync(WebPageItem page, Action<string> onLinkDiscovered)
@@ -94,7 +49,7 @@ namespace Graphing.Core.Version2
             }
         }
 
-        protected async Task<WebGraphNode> GetOrCreateNodeAsync(
+        protected async Task<Node> GetOrCreateNodeAsync(
             int graphId,
             string url,
             NodeState state = NodeState.Dummy)
@@ -104,7 +59,7 @@ namespace Graphing.Core.Version2
             var node = await GetNodeAsync(graphId, url);
             if (node == null)
             {
-                node = new WebGraphNode(graphId, url, state);
+                node = new Node(graphId, url, state);
                 await SetNodeAsync(node);
             }
             else if (state == NodeState.Populated &&
@@ -139,7 +94,7 @@ namespace Graphing.Core.Version2
             }
         }
 
-        protected async Task TryScheduleCrawlAsync(WebGraphNode node, Action<string> onLinkDiscovered)
+        protected async Task TryScheduleCrawlAsync(Node node, Action<string> onLinkDiscovered)
         {
             var now = DateTimeOffset.UtcNow;
             var backoff = TimeSpan.FromMinutes(SCHEDULE_THROTTLE_MINUTES);
@@ -161,7 +116,7 @@ namespace Graphing.Core.Version2
             }
         }
 
-        protected async Task MarkNodeAsPopulatedAsync(WebGraphNode node)
+        protected async Task MarkNodeAsPopulatedAsync(Node node)
         {
             _logger.LogDebug($"Promoting dummy node {node.Url} to populated.");
 
@@ -169,7 +124,7 @@ namespace Graphing.Core.Version2
             await SetNodeAsync(node);
         }
 
-        protected async Task MarkNodeAsRedirectedAsync(WebGraphNode node)
+        protected async Task MarkNodeAsRedirectedAsync(Node node)
         {
             if (node.State == NodeState.Populated)
                 throw new InvalidOperationException("Cannot change a populated node into a redirect node.");
@@ -212,28 +167,27 @@ namespace Graphing.Core.Version2
             await AddRedirectLinkAsync(graphId, fromUrl, toUrl);
         }
 
-        protected async Task ClearOutgoingLinksAsync(WebGraphNode node)
+        protected async Task ClearOutgoingLinksAsync(Node node)
         {
             _logger?.LogDebug($"Clearing outgoing links for node {node.Url}");
             node.OutgoingLinks.Clear();
             await SetNodeAsync(node);
         }
 
-        private bool HasPageChanged(WebPageItem page, WebGraphNode node)
+        private bool HasPageChanged(WebPageItem page, Node node)
         {
             if (node == null) return true;
 
-            return (node.State != NodeState.Populated ||
-                node.SourceLastModified != page.SourceLastModified);
+            return node.State != NodeState.Populated ||
+                node.SourceLastModified != page.SourceLastModified;
         }
 
-        public abstract Task<WebGraphNode?> GetNodeAsync(int graphId, string url);
+        public abstract Task<Node?> GetNodeAsync(int graphId, string url);
 
-        protected abstract Task<WebGraphNode> SetNodeAsync(WebGraphNode node);
+        protected abstract Task<Node> SetNodeAsync(Node node);
 
         public abstract Task CleanupOrphanedNodesAsync(int graphId);
 
         public abstract Task<int> TotalPopulatedNodesAsync(int graphID);
-
     }
 }

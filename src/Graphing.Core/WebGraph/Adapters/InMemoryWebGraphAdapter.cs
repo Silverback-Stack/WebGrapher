@@ -1,29 +1,29 @@
 ﻿using System;
 using System.Data;
-using Events.Core.Bus;
+using Graphing.Core.WebGraph;
+using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Graphing.Core.Version2
+namespace Graphing.Core.WebGraph.Adapters
 {
     public class InMemoryWebGraphAdapter : BaseWebGraph
     {
-        private readonly Dictionary<int, Dictionary<string, WebGraphNode>> _graphs = new();
+        private readonly Dictionary<int, Dictionary<string, Node>> _graphs = new();
 
-        public InMemoryWebGraphAdapter(
-            ILogger logger, IEventBus eventBus) : base(logger, eventBus) { }
+        public InMemoryWebGraphAdapter(ILogger logger) : base(logger) { }
 
-        public async override Task<WebGraphNode?> GetNodeAsync(int graphId, string url)
+        public async override Task<Node?> GetNodeAsync(int graphId, string url)
         {
             if (_graphs.TryGetValue(graphId, out var nodes))
             {
                 nodes.TryGetValue(url, out var node);
-                return await Task.FromResult<WebGraphNode?>(node);
+                return await Task.FromResult(node);
             }
 
-            return await Task.FromResult<WebGraphNode?>(null);
+            return await Task.FromResult<Node?>(null);
         }
 
-        protected async override Task<WebGraphNode> SetNodeAsync(WebGraphNode node)
+        protected async override Task<Node> SetNodeAsync(Node node)
         {
             var storedNode = await GetNodeAsync(node.GraphId, node.Url);
             if (storedNode != null &&
@@ -40,7 +40,7 @@ namespace Graphing.Core.Version2
 
             if (!_graphs.TryGetValue(node.GraphId, out var nodes))
             {
-                nodes = new Dictionary<string, WebGraphNode>();
+                nodes = new Dictionary<string, Node>();
                 _graphs[node.GraphId] = nodes;
             }
 
@@ -57,7 +57,7 @@ namespace Graphing.Core.Version2
                 return;
             }
 
-            var referenced = new HashSet<WebGraphNode>();
+            var referenced = new HashSet<Node>();
 
             // Find all nodes that are referenced (have incoming edges)
             foreach (var node in nodes.Values)
@@ -97,6 +97,5 @@ namespace Graphing.Core.Version2
 
             return await Task.FromResult(0);
         }
-
     }
 }

@@ -1,15 +1,16 @@
-﻿using Events.Core.Bus;
-using Graphing.Core.Version2;
-using Moq;
+﻿using Moq;
 using Microsoft.Extensions.Logging;
+using Graphing.Core.Models;
+using Graphing.Core.Adapters;
+using Graphing.Core.WebGraph.Models;
+using Graphing.Core.WebGraph;
 
 namespace Service.Graphing.Tests
 {
     [TestFixture]
-    public class WebGraphingTests
+    public class BaseWebGraphTests
     {
         private Mock<ILogger> _logger;
-        private Mock<IEventBus> _eventBus;
         private IWebGraph _webGraph;
         private static readonly Action<string> NoOpAction = _ => { };
 
@@ -17,8 +18,7 @@ namespace Service.Graphing.Tests
         public void Setup()
         {
             _logger = new Mock<ILogger>();
-            _eventBus = new Mock<IEventBus>();
-            _webGraph = new InMemoryWebGraphAdapter(_logger.Object, _eventBus.Object);
+            _webGraph = new InMemoryWebGraphAdapter(_logger.Object);
         }
 
         [Test]
