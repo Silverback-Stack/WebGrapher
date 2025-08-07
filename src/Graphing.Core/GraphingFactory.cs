@@ -1,15 +1,15 @@
 ﻿using System;
 using Events.Core.Bus;
-using Graphing.Core.Adapters.InMemory;
+using Graphing.Core.WebGraph;
 using Microsoft.Extensions.Logging;
 
 namespace Graphing.Core
 {
     public class GraphingFactory
     {
-        public static IGraph Create(ILogger logger, IEventBus eventBus)
+        public static IPageGrapher Create(ILogger logger, IEventBus eventBus, IWebGraph webGraph)
         {
-            var service = new InMemoryGraphAdapter(logger, eventBus);
+            var service = new PageGrapher(logger, eventBus, webGraph);
             service.SubscribeAll();
             return service;
         }

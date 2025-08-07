@@ -1,0 +1,37 @@
+
+GRAPHING CONCEPTS
+=================
+
+In this section we will learn about..
+
+Graphs:
+
++ How to model real world relationships 
+
++ one way direction 
+
++ node traversal 
+
+
+
+Stateless Microservice:
+
++ Using timestamp-based throttling/backoff as your main concurrency control and loop prevention.
+
++ Using explicit parameters (like depth) passed in the crawl request to manage loops and limits.
+
++ Relying on data in the graph nodes themselves (e.g., LastScheduledAt, State) for decision-making.
+
+
+
+Optimistic concurrency control (OCC):
+
++ strategy for managing concurrent access to data in distributed systems without using locks or state
+
++ concurency stratergies : skip / force / merge
+
+
+
+Unit testing edge cases
+
++ Testing graph nodes
