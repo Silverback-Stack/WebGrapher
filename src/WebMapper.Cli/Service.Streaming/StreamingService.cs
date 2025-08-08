@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Core;
 using Serilog.Events;
 using Serilog.Extensions.Logging;
 using Streaming.Core;
@@ -39,12 +38,12 @@ namespace WebMapper.Cli.Service.Streaming
             var serviceName = typeof(StreamingService).Name;
             var logFilePath = $"logs/{serviceName}.log";
 
-            Log.Logger = new LoggerConfiguration()
+            var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
                 .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
+            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
 
             var logger = loggerFactory.CreateLogger<IGraphStreamer>();
 

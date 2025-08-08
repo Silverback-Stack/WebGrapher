@@ -1,7 +1,7 @@
 ﻿using System;
 using Events.Core.Bus;
 using Graphing.Core;
-using Graphing.Core.Adapters;
+using Graphing.Core.WebGraph.Adapters.InMemory;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
@@ -17,12 +17,12 @@ namespace WebMapper.Cli.Service.Graphing
             var serviceName = typeof(GraphingService).Name;
             var logFilePath = $"logs/{serviceName}.log";
 
-            Log.Logger = new LoggerConfiguration()
+            var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Debug)
+                .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
+            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
             //SETUP WEBGRAPH:

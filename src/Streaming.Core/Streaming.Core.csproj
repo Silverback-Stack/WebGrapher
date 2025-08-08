@@ -14,4 +14,8 @@
     <ProjectReference Include="..\Events.Core\Events.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Adapters\AzureSignalR\" />
+  </ItemGroup>
+
 </Project>

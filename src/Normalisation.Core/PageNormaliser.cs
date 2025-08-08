@@ -2,13 +2,14 @@
 using System.Text;
 using Caching.Core;
 using Events.Core.Bus;
+using Events.Core.Dtos;
 using Events.Core.EventTypes;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core.Processors;
 
 namespace Normalisation.Core
 {
-    public class HtmlNormalisation : IHtmlNormalisation, IEventBusLifecycle
+    public class PageNormaliser : IPageNormaliser, IEventBusLifecycle
     {
         private readonly ILogger _logger;
         private readonly ICache _blobCache;
@@ -16,11 +17,11 @@ namespace Normalisation.Core
 
         private const int MAX_TITLE_LENGTH = 60;
         private const int MAX_KEYWORD_LENGTH = 4069;
-        private const int MAX_LINKS_PER_PAGE = 10;
+        private const int MAX_LINKS_PER_PAGE = 1000;
 
         private static readonly string[] ALLOWABLE_LINK_SCHEMAS = ["http", "https"];
 
-        public HtmlNormalisation(ILogger logger, ICache blobCache, IEventBus eventBus)
+        public PageNormaliser(ILogger logger, ICache blobCache, IEventBus eventBus)
         {
             _logger = logger;
             _blobCache = blobCache;
@@ -38,56 +39,70 @@ namespace Normalisation.Core
         }
 
         private async Task PublishGraphEvent(NormalisePageEvent evt,
-            string? title, string? keywords, IEnumerable<Uri>? links)
+            string? title, string? keywords, IEnumerable<Uri>? links, string? languageIso3)
         {
-            await _eventBus.PublishAsync(new GraphPageEvent
+            var request = evt.CrawlPageRequest;
+            var result = evt.ScrapePageResult;
+
+            var normalisedPageResult = new NormalisePageResultDto
             {
-                CrawlPageEvent = evt.CrawlPageEvent,
-                OriginalUrl = evt.OriginalUrl,
-                IsRedirect = evt.IsRedirect,
-                Url = evt.Url,
+                OriginalUrl = result.OriginalUrl,
+                Url = result.Url,
+                StatusCode = result.StatusCode,
+                IsRedirect = result.IsRedirect,
+                SourceLastModified = result.SourceLastModified,
                 Title = title,
                 Keywords = keywords,
                 Links = links,
-                CreatedAt = DateTimeOffset.UtcNow,
-                StatusCode = evt.StatusCode,
-                SourceLastModified = evt.LastModified
-            }, priority: evt.CrawlPageEvent.Depth);
+                DetectedLanguageIso3 = languageIso3,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            await _eventBus.PublishAsync(new GraphPageEvent
+            {
+                CrawlPageRequest = request,
+                NormalisePageResult = normalisedPageResult,
+                CreatedAt = DateTimeOffset.UtcNow
+            }, priority: request.Depth);
         }
 
         public async Task NormalisePageContentAsync(NormalisePageEvent evt)
         {
-            if (evt.BlobId is null || evt.Encoding is null)
+            var request = evt.CrawlPageRequest;
+            var result = evt.ScrapePageResult;
+
+            if (result.BlobId is null || result.Encoding is null)
             {
-                _logger.LogWarning("yikes! where did the data go?");
+                _logger.LogDebug("There was no data to normalise.");
                 return;
             }
 
-            var htmlDocument = await GetHtmlDocumentAsync(evt.BlobId, evt.BlobContainer, evt.Encoding);
+            var htmlDocument = await GetHtmlDocumentAsync(result.BlobId, result.BlobContainer, result.Encoding);
             if (htmlDocument is null)
             {
-                _logger.LogWarning("yikes! failed to read html document");
+                _logger.LogDebug($"Normalisation failed. Blob {result.BlobId} could not be found at {result.BlobContainer}");
                 return;
             }
 
             var htmlParser = new HtmlParser(htmlDocument);
             var extractedTitle = htmlParser.ExtractTitle();
             var extractedContent = htmlParser.ExtractContentAsPlainText();
+            var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent);
             var extractedLinks = htmlParser.ExtractLinks();
 
             var normalisedTitle = NormaliseTitle(extractedTitle);
-            var normalisedKeywords = NormaliseKeywords(extractedContent);
+            var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
             var normalisedLinks = NormaliseLinks(
                 extractedLinks,
-                evt.CrawlPageEvent.Url,
-                evt.CrawlPageEvent.FollowExternalLinks,
-                evt.CrawlPageEvent.RemoveQueryStrings,
-                evt.CrawlPageEvent.PathFilters);
+                request.Url,
+                request.FollowExternalLinks,
+                request.RemoveQueryStrings,
+                request.PathFilters);
 
-            await PublishGraphEvent(evt, normalisedTitle, normalisedKeywords, normalisedLinks);
+            await PublishGraphEvent(evt, normalisedTitle, normalisedKeywords, normalisedLinks, detectedLanguageIso3);
 
-            var linkType = evt.CrawlPageEvent.FollowExternalLinks ? "external" : "internal";
-            _logger.LogDebug($"Publishing GraphPageEvent for {evt.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
+            var linkType = request.FollowExternalLinks ? "external" : "internal";
+            _logger.LogDebug($"Publishing GraphPageEvent for {result.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
         }
 
         private async Task<string?> GetHtmlDocumentAsync(string blobId, string? container, string encoding)
@@ -134,7 +149,7 @@ namespace Normalisation.Core
             return text;
         }
 
-        public string NormaliseKeywords(string? text)
+        public string NormaliseKeywords(string? text, string languageIso3)
         {
             if (text == null) return string.Empty;
 
@@ -142,7 +157,8 @@ namespace Normalisation.Core
             text = TextNormaliser.RemovePunctuation(text);
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
-            text = StopWordFilter.RemoveStopWords(text, LanguageIdentifier.DetectLanguage(text));
+            if (languageIso3 != null)
+                text = StopWordFilter.RemoveStopWords(text, languageIso3);
             text = TextNormaliser.RemoveDuplicateWords(text);
             text = TextNormaliser.Truncate(text, MAX_KEYWORD_LENGTH);
 

@@ -32,18 +32,19 @@ namespace Graphing.Core
 
         private async Task ProcessGraphPageEventAsync(GraphPageEvent evt)
         {
+            var request = evt.CrawlPageRequest;
             var webPage = Map(evt);
 
             //Create delegate:
             Action<string> onLinkDiscovered = (url) =>
             {
-                var depth = evt.CrawlPageEvent.Depth + 1;
+                var depth = request.Depth + 1;
 
                 var crawlPageEvent = new CrawlPageEvent(
-                    evt.CrawlPageEvent,
                     new Uri(url),
                     attempt: 1,
-                    depth);
+                    depth,
+                    request);
 
                 var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
 
@@ -57,13 +58,18 @@ namespace Graphing.Core
 
         private WebPageItem Map(GraphPageEvent evt)
         {
+            var request = evt.CrawlPageRequest;
+            var result = evt.NormalisePageResult;
+
             return new WebPageItem
             {
-                Url = evt.Url.AbsoluteUri,
-                OriginalUrl = evt.OriginalUrl.AbsoluteUri,
-                IsRedirect = evt.IsRedirect,
-                Links = evt.Links != null ? evt.Links.Select(l => l.AbsoluteUri) : new List<string>(),
-                SourceLastModified = evt.SourceLastModified
+                Url = result.Url.AbsoluteUri,
+                OriginalUrl = result.OriginalUrl.AbsoluteUri,
+                GraphId = request.GraphId,
+                DetectedLanguageIso3 = result.DetectedLanguageIso3,
+                IsRedirect = result.IsRedirect,
+                Links = result.Links != null ? result.Links.Select(l => l.AbsoluteUri) : new List<string>(),
+                SourceLastModified = result.SourceLastModified
             };
         }
 

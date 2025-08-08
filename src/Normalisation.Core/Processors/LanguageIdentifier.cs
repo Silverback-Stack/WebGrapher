@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using LanguageDetection;
 
@@ -7,8 +6,8 @@ namespace Normalisation.Core.Processors
 {
     public static class LanguageIdentifier
     {
-        private const string DEFAULT_LANGUAGE_ISO2_CODE = "en";
-        private const string DEFAULT_LANGUAGE_ISO3_CODE = "eng";
+        public const string DEFAULT_LANGUAGE_ISO2_CODE = "en";
+        public const string DEFAULT_LANGUAGE_ISO3_CODE = "eng";
 
         /// <summary>
         /// Retruns ISO 639-3 language code
@@ -25,7 +24,12 @@ namespace Normalisation.Core.Processors
 
             try
             {
-                return detector.Detect(input);
+                var result = detector.Detect(input);
+
+                if (result is null)
+                    result = DEFAULT_LANGUAGE_ISO3_CODE;
+
+                return result;
             }
             catch (Exception)
             {

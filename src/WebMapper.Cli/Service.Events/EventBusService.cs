@@ -14,12 +14,12 @@ namespace WebMapper.Cli.Service.Events
             var serviceName = typeof(EventBusService).Name;
             var logFilePath = $"logs/{serviceName}.log";
 
-            Log.Logger = new LoggerConfiguration()
+            var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
                 .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
+            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
 
             var logger = loggerFactory.CreateLogger<IEventBus>();
 

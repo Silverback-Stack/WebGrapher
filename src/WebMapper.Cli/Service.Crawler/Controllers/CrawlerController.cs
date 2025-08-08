@@ -21,8 +21,7 @@ namespace WebMapper.Cli.Service.Crawler.Controllers
         {
             var crawlPageEvent = new CrawlPageEvent(
             url: crawlPageDto.Url,
-            mapId: crawlPageDto.MapId,
-            correlationId: Guid.NewGuid(),
+            graphId: crawlPageDto.MapId,
             followExternalLinks: crawlPageDto.FollowExternalLinks,
             removeQueryStrings: crawlPageDto.RemoveQueryStrings,
             maxDepth: crawlPageDto.MaxDepth,

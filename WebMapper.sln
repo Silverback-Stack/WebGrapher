@@ -66,6 +66,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Core", "src\Strea
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Graphing.Tests", "tests\Service.Graphing.Tests\Service.Graphing.Tests.csproj", "{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebMapper.WebUI", "src\WebMapper.WebUI\WebMapper.WebUI.csproj", "{77323C2E-C662-4F47-B374-2099F3703E3F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -128,6 +130,10 @@ Global
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77323C2E-C662-4F47-B374-2099F3703E3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77323C2E-C662-4F47-B374-2099F3703E3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77323C2E-C662-4F47-B374-2099F3703E3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77323C2E-C662-4F47-B374-2099F3703E3F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -155,5 +161,6 @@ Global
 		{F1557BF3-4839-4B5F-A520-43AB129E270C} = {918A18B5-B3A1-4EF9-8B23-3DCBB4E886B3}
 		{93FB7F25-0BC5-448F-A4CF-68BF880C5C49} = {F1557BF3-4839-4B5F-A520-43AB129E270C}
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3} = {785AE35B-D59A-48BB-9CB5-2EBDA56F1248}
+		{77323C2E-C662-4F47-B374-2099F3703E3F} = {82C3C83E-1FAE-4950-9A5F-AEE5AB823C11}
 	EndGlobalSection
 EndGlobal

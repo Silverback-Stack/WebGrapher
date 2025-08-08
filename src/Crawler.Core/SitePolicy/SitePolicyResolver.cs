@@ -36,7 +36,7 @@ namespace Crawler.Core.SitePolicy
                 //check if HTML document
                 if (robotsTxt?.Contains("<!DOCTYPE html>", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    _logger.LogDebug($"Invalid Robots.txt detected for {url.AbsoluteUri} file masquerading as HTML.");
+                    _logger.LogDebug($"Invalid Robots.txt detected for {url.AbsoluteUri} file detected as HTML.");
                     robotsTxt = null;
                 }
 

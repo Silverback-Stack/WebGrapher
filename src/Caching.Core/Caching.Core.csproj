@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Adapters\Redis\**" />
+    <EmbeddedResource Remove="Adapters\Redis\**" />
+    <None Remove="Adapters\Redis\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.7" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.7" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.41" />
@@ -14,7 +20,7 @@
 
   <ItemGroup>
     <Folder Include="Adapters\AzureBlobStorage\" />
-    <Folder Include="Adapters\Redis\" />
+    <Folder Include="Adapters\AzureRedis\" />
   </ItemGroup>
 
 </Project>
