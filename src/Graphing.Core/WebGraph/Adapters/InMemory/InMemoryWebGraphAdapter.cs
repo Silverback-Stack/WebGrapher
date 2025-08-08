@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Data;
-using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Graphing.Core.WebGraph.Adapters
+namespace Graphing.Core.WebGraph.Adapters.InMemory
 {
     public class InMemoryWebGraphAdapter : BaseWebGraph
     {

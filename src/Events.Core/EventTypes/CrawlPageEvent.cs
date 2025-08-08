@@ -1,61 +1,86 @@
 ﻿using System;
+using Events.Core.Dtos;
 
 namespace Events.Core.EventTypes
 {
     public record CrawlPageEvent
     {
-        public Uri Url { get; init; }
-        public int Attempt { get; init; } = 1;
-        public int Depth { get; init; } = 0;
-        public int MapId { get; init; }
-        public Guid CorrelationId { get; init; }
-        public bool FollowExternalLinks { get; init; }
-        public int MaxDepth { get; init; }
-        public bool RemoveQueryStrings { get; init; }
-        public IEnumerable<string>? PathFilters { get; init; }
-        public string UserAgent { get; init; }
-        public string UserAccepts { get; init; }
+        public CrawlPageRequestDto CrawlPageRequest { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
-
 
         private CrawlPageEvent() { }
 
+        private CrawlPageEvent(
+            Uri url,
+            int graphId,
+            Guid correlationId,
+            int attempt,
+            int depth,
+            int maxDepth,
+            bool followExternalLinks,
+            bool removeQueryStrings,
+            IEnumerable<string>? pathFilters,
+            string userAgent,
+            string userAccepts) 
+        {
+            CrawlPageRequest = new CrawlPageRequestDto
+            {
+                Url = url,
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Attempt = 1,
+                Depth = 0,
+                MaxDepth = maxDepth,
+                FollowExternalLinks = followExternalLinks,
+                RemoveQueryStrings = removeQueryStrings,
+                PathFilters = pathFilters,
+                UserAgent = userAgent,
+                UserAccepts = userAccepts,
+                RequestedAt = DateTimeOffset.UtcNow
+            };
+            CreatedAt = DateTimeOffset.UtcNow;
+        }
+
         public CrawlPageEvent(
-            Uri url, 
-            int mapId, 
-            Guid correlationId, 
+            Uri url,
+            int graphId,
             bool followExternalLinks,
             bool removeQueryStrings,
             int maxDepth,
             IEnumerable<string>? pathFilters,
             string? userAgent,
-            string? userAccepts) { 
+            string? userAccepts)
+            : this(
+                url,
+                graphId,
+                correlationId: Guid.NewGuid(),
+                attempt: 1,
+                depth: 0,
+                maxDepth,
+                followExternalLinks,
+                removeQueryStrings,
+                pathFilters,
+                userAgent,
+                userAccepts) { }
 
-            Url = url;
-            MapId = mapId;
-            CorrelationId = correlationId;
-            FollowExternalLinks = followExternalLinks;
-            RemoveQueryStrings = removeQueryStrings;
-            MaxDepth = maxDepth;
-            PathFilters = pathFilters;
-            UserAgent = userAgent;
-            UserAccepts = userAccepts;
-        }
 
-        public CrawlPageEvent(CrawlPageEvent evt, Uri url, int attempt, int depth) 
-        {
-            Url = url;
-            Attempt = attempt;
-            Depth = depth;
-            MapId = evt.MapId;
-            CorrelationId = evt.CorrelationId;
-            FollowExternalLinks = evt.FollowExternalLinks;
-            RemoveQueryStrings = evt.RemoveQueryStrings;
-            MaxDepth = evt.MaxDepth;
-            PathFilters = evt.PathFilters;
-            UserAgent = evt.UserAgent;
-            UserAccepts = evt.UserAccepts;
-            CreatedAt = DateTimeOffset.UtcNow;
-        }
+        public CrawlPageEvent(
+            Uri url,
+            int attempt,
+            int depth,
+            CrawlPageRequestDto crawlPageRequest)
+            : this(
+                url,
+                crawlPageRequest.GraphId,
+                crawlPageRequest.CorrelationId,
+                attempt,
+                depth,
+                crawlPageRequest.MaxDepth,
+                crawlPageRequest.FollowExternalLinks,
+                crawlPageRequest.RemoveQueryStrings,
+                crawlPageRequest.PathFilters,
+                crawlPageRequest.UserAgent,
+                crawlPageRequest.UserAccepts) { } 
+
     }
 }

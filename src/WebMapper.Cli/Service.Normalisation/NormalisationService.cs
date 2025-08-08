@@ -16,14 +16,14 @@ namespace WebMapper.Cli.Service.Normalisation
             var serviceName = typeof(NormalisationService).Name;
             var logFilePath = $"logs/{serviceName}.log";
 
-            Log.Logger = new LoggerConfiguration()
+            var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
                 .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
+            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
 
-            var logger = loggerFactory.CreateLogger<IHtmlNormalisation>();
+            var logger = loggerFactory.CreateLogger<IPageNormaliser>();
 
             var cache = CacheFactory.CreateCache(
                 serviceName,

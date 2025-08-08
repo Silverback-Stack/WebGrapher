@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using Caching.Core;
 using Caching.Core.Helpers;
 using Microsoft.Extensions.Logging;
@@ -78,10 +79,13 @@ namespace Requests.Core
 
                 _logger.LogDebug($"Fetch request for {url.AbsoluteUri} returned status code {responseEnvelope.Metadata.StatusCode}");
 
-                var expiry = CacheDurationHelper.Clamp(responseEnvelope.Metadata?.Expires);
-                var metaTask = _metaCache.SetAsync(key, responseEnvelope.Metadata, expiry);
-                var blobTask = _blobCache.SetAsync(key, responseEnvelope.Data?.Payload, expiry);
-                await Task.WhenAll(metaTask, blobTask);
+                if (IsCachable(responseEnvelope.Metadata.StatusCode))
+                {
+                    var expiry = CacheDurationHelper.Clamp(responseEnvelope.Metadata?.Expires);
+                    var metaTask = _metaCache.SetAsync(key, responseEnvelope.Metadata, expiry);
+                    var blobTask = _blobCache.SetAsync(key, responseEnvelope.Data?.Payload, expiry);
+                    await Task.WhenAll(metaTask, blobTask);
+                }
 
                 responseEnvelope.IsFromCache = false;
                 return responseEnvelope;
@@ -92,6 +96,27 @@ namespace Requests.Core
             }
 
             return null;
+        }
+
+        private bool IsCachable(HttpStatusCode statusCode)
+        {
+            switch (statusCode)
+            {
+                case HttpStatusCode.OK:
+                case HttpStatusCode.NonAuthoritativeInformation:
+                case HttpStatusCode.NoContent:
+                case HttpStatusCode.PartialContent:
+                case HttpStatusCode.MultipleChoices:
+                case HttpStatusCode.MovedPermanently:
+                case HttpStatusCode.NotFound:
+                case HttpStatusCode.MethodNotAllowed:
+                case HttpStatusCode.Gone:
+                case HttpStatusCode.NotImplemented:
+                    return true;
+
+                default:
+                    return false;
+            }
         }
 
     }

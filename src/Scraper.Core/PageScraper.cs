@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using Events.Core.Bus;
+using Events.Core.Dtos;
 using Events.Core.EventTypes;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
@@ -34,67 +35,76 @@ namespace Scraper.Core
 
         private async Task ScrapeContent(ScrapePageEvent evt)
         {
+            var request = evt.CrawlPageRequest;
+
             var response = await FetchAsync(
-                evt.CrawlPageEvent.Url,
-                evt.CrawlPageEvent.UserAgent,
-                evt.CrawlPageEvent.UserAccepts);
+                request.Url,
+                request.UserAgent,
+                request.UserAccepts);
 
             if (response is null)
             {
-                _logger.LogDebug($"Scrape failed: No response for {evt.CrawlPageEvent.Url} (Attempt {evt.CrawlPageEvent.Attempt})");
+                _logger.LogDebug($"Scrape failed: No response for {request.Url} (Attempt {request.Attempt})");
                 return;
             }
 
             if (response.Metadata.StatusCode != HttpStatusCode.OK)
             {
-                _logger.LogDebug($"Scrape failed: {evt.CrawlPageEvent.Url} returned status {response.Metadata.StatusCode} Attempt {evt.CrawlPageEvent.Attempt})");
-                await PublishScrapePageFailedEvent(evt, response);
+                _logger.LogDebug($"Scrape failed: {request.Url} returned status {response.Metadata.StatusCode} Attempt {request.Attempt})");
+                await PublishScrapePageFailedEvent(request, response);
                 return;
             }
 
             if (response.IsFromCache)
             {
-                _logger.LogDebug($"Skipped re-scrape for {evt.CrawlPageEvent.Url} - found in cache.");
+                _logger.LogDebug($"Skipped re-scrape for {request.Url} - found in cache.");
                 return;
             }
 
-            _logger.LogDebug($"Scraped page {evt.CrawlPageEvent.Url} Attempt {evt.CrawlPageEvent.Attempt} Status: {response.Metadata.StatusCode}");
+            _logger.LogDebug($"Scraped page {request.Url} Attempt {request.Attempt} Status: {response.Metadata.StatusCode}");
 
-            await PublishNormalisePageEvent(evt, response);
+            await PublishNormalisePageEvent(request, response);
         }
 
         private async Task PublishScrapePageFailedEvent(
-            ScrapePageEvent evt,
+            CrawlPageRequestDto request,
             HttpResponseEnvelope response)
         {
             await _eventBus.PublishAsync(new ScrapePageFailedEvent
             {
-                CrawlPageEvent = evt.CrawlPageEvent,
+                CrawlPageRequest = request,
                 CreatedAt = DateTimeOffset.UtcNow,
                 StatusCode = response.Metadata.StatusCode,
                 LastModified = response.Metadata.LastModified,
                 RetryAfter = response.Metadata.RetryAfter
-            }, priority: evt.CrawlPageEvent.Depth);
+            }, priority: request.Depth);
         }
 
         private async Task PublishNormalisePageEvent(
-            ScrapePageEvent scrapeEvent,
+            CrawlPageRequestDto request,
             HttpResponseEnvelope response)
         {
-            await _eventBus.PublishAsync(new NormalisePageEvent
+            
+            var result = new ScrapePageResultDto
             {
-                CrawlPageEvent = scrapeEvent.CrawlPageEvent,
                 OriginalUrl = response.Metadata.OriginalUrl,
                 Url = response.Metadata.Url,
+                StatusCode = response.Metadata.StatusCode,
                 IsRedirect = response.Metadata.IsRedirect,
+                SourceLastModified = response.Metadata.LastModified,
                 BlobId = response.Metadata.ResponseData?.BlobId,
                 BlobContainer = response.Metadata.ResponseData?.BlobContainer,
                 ContentType = response.Metadata.ResponseData?.ContentType,
                 Encoding = response.Metadata.ResponseData?.Encoding,
-                LastModified = response.Metadata.LastModified,
-                StatusCode = response.Metadata.StatusCode,
                 CreatedAt = DateTimeOffset.UtcNow
-            }, priority: scrapeEvent.CrawlPageEvent.Depth);
+            };
+
+            await _eventBus.PublishAsync(new NormalisePageEvent
+            {
+                CrawlPageRequest = request,
+                ScrapePageResult = result,
+                CreatedAt = DateTimeOffset.UtcNow
+            }, priority: request.Depth);
         }
 
         public async Task<HttpResponseEnvelope?> FetchAsync(Uri url, string? userAgent, string? clientAccept)

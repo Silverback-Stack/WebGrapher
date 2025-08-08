@@ -17,12 +17,12 @@ namespace WebMapper.Cli.Service.Scraper
             var serviceName = typeof(ScraperService).Name;
             var logFilePath = $"logs/{serviceName}.log";
 
-            Log.Logger = new LoggerConfiguration()
+            var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Debug)
+                .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(Log.Logger);
+            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
 
             var logger = loggerFactory.CreateLogger<IRequestSender>();
 

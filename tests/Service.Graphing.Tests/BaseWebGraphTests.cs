@@ -1,9 +1,8 @@
 ﻿using Moq;
 using Microsoft.Extensions.Logging;
-using Graphing.Core.Models;
-using Graphing.Core.Adapters;
 using Graphing.Core.WebGraph.Models;
 using Graphing.Core.WebGraph;
+using Graphing.Core.WebGraph.Adapters.InMemory;
 
 namespace Service.Graphing.Tests
 {
