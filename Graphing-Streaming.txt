@@ -1,0 +1,153 @@
+﻿GWe want  **incremental streaming** of a graph where edges are only sent once both their endpoints are populated, but also with the special case that *newly discovered edges to already-populated nodes should be sent immediately*.
+
+
+## **Core principles**
+
+1. **Separate node creation from edge creation in your stream protocol.**
+
+   * A *node message* creates or updates a node’s properties.
+   * An *edge message* adds a link between two nodes.
+
+2. **Track node states in memory on the server:**
+
+   * `UNPOPULATED` — node discovered but not yet fetched (dummy node).
+   * `POPULATED` — node fully fetched and has properties.
+
+3. **Only send an edge to the client if both nodes are POPULATED.**
+
+4. **When a node becomes POPULATED, check if it connects to any other POPULATED nodes** and send those edges too.
+
+---
+
+## **Example server flow**
+
+Let’s imagine you have:
+
+```csharp
+enum NodeState { Unpopulated, Populated }
+
+class Node
+{
+    public string Id { get; set; }
+    public NodeState State { get; set; }
+    public List<string> OutgoingLinks { get; set; } = new();
+}
+```
+
+And you keep:
+
+```csharp
+Dictionary<string, Node> graph = new();
+```
+
+---
+
+### **When fetching a new page:**
+
+```csharp
+void OnNodePopulated(string nodeId, List<string> links)
+{
+    var node = graph[nodeId];
+    node.State = NodeState.Populated;
+    node.OutgoingLinks = links;
+
+    // Send this node to client
+    StreamNode(node);
+
+    foreach (var targetId in links)
+    {
+        if (!graph.ContainsKey(targetId))
+        {
+            graph[targetId] = new Node { Id = targetId, State = NodeState.Unpopulated };
+        }
+
+        var targetNode = graph[targetId];
+        
+        // Only send edge if BOTH nodes are populated
+        if (targetNode.State == NodeState.Populated)
+        {
+            StreamEdge(node.Id, targetId);
+        }
+    }
+
+    // Also check other nodes that might have edges TO this one
+    foreach (var otherNode in graph.Values)
+    {
+        if (otherNode.State == NodeState.Populated && otherNode.OutgoingLinks.Contains(nodeId))
+        {
+            StreamEdge(otherNode.Id, nodeId);
+        }
+    }
+}
+```
+
+---
+
+### **Stream message format**
+
+You could use SignalR/WebSocket to send messages like:
+
+```json
+{
+  "type": "node",
+  "data": {
+    "id": "A",
+    "label": "Page A",
+    "color": "#ff0000"
+  }
+}
+```
+
+```json
+{
+  "type": "edge",
+  "data": {
+    "id": "A->C",
+    "source": "A",
+    "target": "C"
+  }
+}
+```
+
+SigmaJS can handle these as:
+
+```js
+if (msg.type === "node") {
+    graph.addNode(msg.data.id, msg.data);
+} else if (msg.type === "edge") {
+    graph.addEdge(msg.data.id, msg.data.source, msg.data.target, msg.data);
+}
+```
+
+---
+
+### **Example walk-through of your scenario**
+
+1. Fetch **A** → links to **B**, **C**
+
+   * Stream **node A** only.
+   * Don’t send edges A→B, A→C because B and C are not populated yet.
+
+2. Fetch **B** → links to **C**
+
+   * Stream **node B**.
+   * Check links: C is unpopulated → don’t send B→C.
+   * Check reverse links: A→B exists but A is populated and B is populated → send edge A→B.
+
+3. Fetch **C** → links to **D**
+
+   * Stream **node C**.
+   * C→D skipped (D unpopulated).
+   * Reverse check finds:
+
+     * A→C (A populated) → send A→C.
+     * B→C (B populated) → send B→C.
+
+---
+
+This way:
+
+* The client never has dangling edges to dummy nodes.
+* You get edges retroactively as soon as both endpoints are ready.
+* The client remains dumb — all logic is server-side.
+

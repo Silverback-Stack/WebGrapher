@@ -11,9 +11,9 @@ namespace Streaming.Core
         public static IGraphStreamer Create
             (ILogger logger, 
             IEventBus eventBus,
-            IHubContext<GraphHub> hubContext)
+            IHubContext<GraphStreamerHub> hubContext)
         {
-            var service = new SignalRGraphAdapter(logger, eventBus, hubContext);
+            var service = new SignalRGraphStreamerAdapter(logger, eventBus, hubContext);
             service.SubscribeAll();
             return service;
         }

@@ -1,10 +1,17 @@
 ﻿using System;
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace Normalisation.Core.Processors
 {
     public static class TextNormaliser
     {
+
+        public static string DecodeHtml(string text)
+        {
+            return WebUtility.HtmlDecode(text);
+        }
+
         public static string ToLowerCase(string text)
         {
             return text.ToLower();
@@ -49,6 +56,19 @@ namespace Normalisation.Core.Processors
             return text.Substring(0, maxLength);
         }
 
+        public static string TruncateToWords(string text, int maxWords)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return string.Empty;
+
+            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (words.Length <= maxWords)
+                return text;
+
+            return string.Join(' ', words.Take(maxWords));
+        }
+
         public static string RemoveDuplicateWords(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -60,6 +80,50 @@ namespace Normalisation.Core.Processors
                 .Distinct(StringComparer.OrdinalIgnoreCase);
 
             return string.Join(' ', distinctWords);
+        }
+
+        public static string CondenseKeywords(string text, int limit)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            var distinctWords = words
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            return string.Join(' ', distinctWords);
+        }
+
+        public static string RemoveNumericalWords(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
+            var filteredWords = text
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(word => !int.TryParse(word, out _));
+
+            return string.Join(' ', filteredWords);
+        }
+
+        public static IEnumerable<string> ExtractTags(string text, int maxTags)
+        {
+            if (text == null) return Enumerable.Empty<string>();
+
+            var keywords = text
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(k => k.Trim());
+
+            var tags = keywords
+                .GroupBy(k => k, StringComparer.OrdinalIgnoreCase)
+                .Select(g => new { Keyword = g.Key, Count = g.Count() })
+                .OrderByDescending(k => k.Count)
+                .ThenBy(k => k.Keyword) // tie-breaker by alphabetical
+                .Take(maxTags)
+                .Select(k => k.Keyword);
+
+            return tags;
         }
 
     }

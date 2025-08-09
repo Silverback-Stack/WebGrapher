@@ -11,7 +11,8 @@ namespace Service.Graphing.Tests
     {
         private Mock<ILogger> _logger;
         private IWebGraph _webGraph;
-        private static readonly Action<string> NoOpAction = _ => { };
+        private static readonly Func<Node, Task> OnNodePopulatedNoAction = _ => Task.CompletedTask;
+        private static readonly Func<string, Task> OnLinkDiscoveredNoAction = _ => Task.CompletedTask;
 
         [SetUp]
         public void Setup()
@@ -33,7 +34,7 @@ namespace Service.Graphing.Tests
                 Links = new List<string>()
             };
 
-            await _webGraph.AddWebPageAsync(page, NoOpAction);
+            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
             var total = await _webGraph.TotalPopulatedNodesAsync(page.GraphId);
 
             Assert.That(total, Is.EqualTo(1));
@@ -62,8 +63,8 @@ namespace Service.Graphing.Tests
                 Links = new List<string> { "B" }
             };
 
-            await _webGraph.AddWebPageAsync(page1, NoOpAction);
-            await _webGraph.AddWebPageAsync(page2, NoOpAction);
+            await _webGraph.AddWebPageAsync(page1, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(page2, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             var total1 = await _webGraph.TotalPopulatedNodesAsync(graphId: 1);
             var total2 = await _webGraph.TotalPopulatedNodesAsync(graphId: 2);
@@ -85,7 +86,7 @@ namespace Service.Graphing.Tests
                 Links = new List<string> { "A" } // Self-link
             };
 
-            await _webGraph.AddWebPageAsync(page, NoOpAction);
+            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             var node = await _webGraph.GetNodeAsync(page.GraphId, "A");
 
@@ -110,8 +111,8 @@ namespace Service.Graphing.Tests
                 Links = new List<string>()
             };
 
-            await _webGraph.AddWebPageAsync(page, NoOpAction);
-            await _webGraph.AddWebPageAsync(page, NoOpAction); // same again
+            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction); // same again
 
             var total = await _webGraph.TotalPopulatedNodesAsync(1);
 
@@ -131,7 +132,7 @@ namespace Service.Graphing.Tests
                 Links = new List<string> { "B" }
             };
 
-            await _webGraph.AddWebPageAsync(page, NoOpAction);
+            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             // Retrieve both nodes
             var nodeA = await _webGraph.GetNodeAsync(1, "A");
@@ -160,7 +161,7 @@ namespace Service.Graphing.Tests
                 SourceLastModified = DateTimeOffset.UtcNow,
                 Links = new List<string> { "B" }
             };
-            await _webGraph.AddWebPageAsync(pageA, NoOpAction);
+            await _webGraph.AddWebPageAsync(pageA, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             // Add Page B -> C
             var pageB = new WebPageItem
@@ -172,7 +173,7 @@ namespace Service.Graphing.Tests
                 SourceLastModified = DateTimeOffset.UtcNow,
                 Links = new List<string> { "C" }
             };
-            await _webGraph.AddWebPageAsync(pageB, NoOpAction);
+            await _webGraph.AddWebPageAsync(pageB, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             // Get node B and verify it's populated
             var nodeB = await _webGraph.GetNodeAsync(graphId, "B");
@@ -196,7 +197,7 @@ namespace Service.Graphing.Tests
                 SourceLastModified = DateTimeOffset.UtcNow,
                 Links = new List<string> { "B" }
             };
-            await _webGraph.AddWebPageAsync(pageA, NoOpAction);
+            await _webGraph.AddWebPageAsync(pageA, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             // Step 2: Add Page B -> C (redirect)
             var pageB = new WebPageItem
@@ -208,7 +209,7 @@ namespace Service.Graphing.Tests
                 SourceLastModified = DateTimeOffset.UtcNow,
                 Links = new List<string>()
             };
-            await _webGraph.AddWebPageAsync(pageB, NoOpAction);
+            await _webGraph.AddWebPageAsync(pageB, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             // ASSERT 1: Node B should exist and be in Redirected state
             var nodeB = await _webGraph.GetNodeAsync(graphId, "B");
@@ -248,7 +249,7 @@ namespace Service.Graphing.Tests
                 Links = new List<string> { "C" }
             };
 
-            await _webGraph.AddWebPageAsync(page, NoOpAction);
+            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             var nodeA = await _webGraph.GetNodeAsync(1, "A");
             var nodeB = await _webGraph.GetNodeAsync(1, "B");
@@ -276,7 +277,11 @@ namespace Service.Graphing.Tests
             var graphId = 1;
 
             var mockSchedules = new List<string>();
-            Action<string> onLinkDiscovered = url => mockSchedules.Add(url);
+            Func<string, Task> onLinkDiscovered = url =>
+            {
+                mockSchedules.Add(url);
+                return Task.CompletedTask;
+            };
 
             var page = new WebPageItem
             {
@@ -289,10 +294,10 @@ namespace Service.Graphing.Tests
             };
 
             // First call should schedule B
-            await _webGraph.AddWebPageAsync(page, onLinkDiscovered);
+            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, onLinkDiscovered);
 
             // Immediately call again - should NOT re-schedule B due to throttling
-            await _webGraph.AddWebPageAsync(page, onLinkDiscovered);
+            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, onLinkDiscovered);
 
             Assert.That(mockSchedules.Count, Is.EqualTo(1), "Link B should only be scheduled once due to throttle");
         }

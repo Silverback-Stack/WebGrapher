@@ -56,22 +56,36 @@ namespace WebMapper.Cli.Service.Streaming
             logger.LogInformation($"Streaming service started on {HOST}");
         }
 
-        private async static Task<(IHost host, IHubContext<GraphHub>)> StartHubServerAsync()
+        private async static Task<(IHost host, IHubContext<GraphStreamerHub>)> StartHubServerAsync()
         {
             // Create and build web host to get hubContext and host SignalR
             var host = Host.CreateDefaultBuilder()
                 .ConfigureServices(services =>
                 {
                     services.AddSignalR();
+
+                    services.AddCors(options => 
+                    {
+                        options.AddDefaultPolicy(builder =>
+                        {
+                            builder
+                                .AllowAnyHeader()
+                                .AllowAnyMethod()
+                                .AllowCredentials()
+                                .SetIsOriginAllowed(_ => true); // Allow all origins (or restrict as needed)
+                                //.WithOrigins("https://AddressOfUI:PORT")
+                        });
+                    });
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.Configure(app =>
                     {
+                        app.UseCors();
                         app.UseRouting();
                         app.UseEndpoints(endpoints =>
                         {
-                            endpoints.MapHub<GraphHub>("/graphhub");
+                            endpoints.MapHub<GraphStreamerHub>("/graphStreamerHub");
                             endpoints.MapGet("/", () => "SignalR server is running!");
                         });
                     })
@@ -84,7 +98,7 @@ namespace WebMapper.Cli.Service.Streaming
                 })
                 .Build();
 
-            var hubContext = host.Services.GetRequiredService<IHubContext<GraphHub>>();
+            var hubContext = host.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();
 
             await host.StartAsync();
 

@@ -3,6 +3,7 @@ using Events.Core.Bus;
 using Events.Core.EventTypes;
 using Events.Core.Helpers;
 using Graphing.Core.WebGraph;
+using Graphing.Core.WebGraph.Adapters.SigmaJs;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 
@@ -27,16 +28,16 @@ namespace Graphing.Core
 
         public void UnsubscribeAll()
         {
-            _eventBus.Subscribe<GraphPageEvent>(ProcessGraphPageEventAsync);
+            _eventBus.Unsubscribe<GraphPageEvent>(ProcessGraphPageEventAsync);
         }
 
         private async Task ProcessGraphPageEventAsync(GraphPageEvent evt)
         {
             var request = evt.CrawlPageRequest;
-            var webPage = Map(evt);
+            var webPage = MapToWebPage(evt);
 
-            //Create delegate:
-            Action<string> onLinkDiscovered = (url) =>
+            //Delegate : When Link is discovered
+            Func<string, Task> onLinkDiscovered = async (url) =>
             {
                 var depth = request.Depth + 1;
 
@@ -50,26 +51,45 @@ namespace Graphing.Core
 
                 _logger.LogDebug($"Scheduling crawl for link {url} at depth {depth}");
 
-                _eventBus.PublishAsync(crawlPageEvent, priority: depth, scheduledOffset);
+                await _eventBus.PublishAsync(crawlPageEvent, priority: depth, scheduledOffset);
             };
 
-            await _webGraph.AddWebPageAsync(webPage, onLinkDiscovered);
+            //Delegate : When Node is populated with data
+            Func<Node, Task> onNodePopulated = async (node) =>
+            {
+                var sigmaNodes = SigmaJsGraphSerializer.MapNodes(node);
+                var sigmaEdges = SigmaJsGraphSerializer.MapEdges(node);
+
+                _logger.LogDebug($"Publishing node populated event for {node.Url}");
+
+                await _eventBus.PublishAsync(new GraphNodeAddedEvent
+                {
+                    GraphId = node.GraphId,
+                    Nodes = sigmaNodes,
+                    Edges = sigmaEdges
+                });
+            };
+
+            await _webGraph.AddWebPageAsync(webPage, onNodePopulated, onLinkDiscovered);
         }
 
-        private WebPageItem Map(GraphPageEvent evt)
+        private WebPageItem MapToWebPage(GraphPageEvent evt)
         {
             var request = evt.CrawlPageRequest;
             var result = evt.NormalisePageResult;
 
             return new WebPageItem
             {
+                GraphId = request.GraphId,
                 Url = result.Url.AbsoluteUri,
                 OriginalUrl = result.OriginalUrl.AbsoluteUri,
-                GraphId = request.GraphId,
-                DetectedLanguageIso3 = result.DetectedLanguageIso3,
                 IsRedirect = result.IsRedirect,
-                Links = result.Links != null ? result.Links.Select(l => l.AbsoluteUri) : new List<string>(),
-                SourceLastModified = result.SourceLastModified
+                SourceLastModified = result.SourceLastModified,
+                Title = result.Title,
+                Keywords = result.Keywords,
+                Tags = result.Tags,
+                Links = result.Links?.Select(l => l.AbsoluteUri) ?? Enumerable.Empty<string>(),
+                DetectedLanguageIso3 = result.DetectedLanguageIso3,
             };
         }
 

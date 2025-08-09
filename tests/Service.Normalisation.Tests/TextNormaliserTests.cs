@@ -69,5 +69,19 @@ namespace Service.Normalisation.Tests
             Assert.That(result, Is.EqualTo(expected));
         }
 
+        [TestCase("one two three four five six seven eight nine ten", 3)]
+        [TestCase("short text", 5)] // fewer words than limit
+        public void TruncateToWords_ReturnsTheNumberOfExpectedWords(string input, int expected)
+        {
+            var inputWordCount = input.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+
+            var truncatedWords = TextNormaliser.TruncateToWords(input, expected);
+
+            var truncatedWordCount = truncatedWords.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+
+            Assert.That(truncatedWordCount, Is.EqualTo(Math.Min(expected, inputWordCount)));
+        }
+
+
     }
 }

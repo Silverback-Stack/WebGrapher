@@ -1,4 +1,4 @@
-
+﻿
 GRAPHING CONCEPTS
 =================
 
@@ -35,3 +35,55 @@ Optimistic concurrency control (OCC):
 Unit testing edge cases
 
 + Testing graph nodes
+
+
+
+
+The flow of data:
+
+Normalisation service → emits NormalisePageResultDto
+
+Graph service → maps that into a Sigma-ready DTO (plus edges)
+
+Graph service → raises GraphNodeAddedEvent with only the Sigma payload that the streaming service can send straight to the client.
+
+Streaming service → doesn’t care about internal web-page details — it just pushes whatever the event gives it to the browser.
+
+This keeps concerns seperate with each service unaware of the others purpose.
+
+
+
+
+
+Classic “degree centrality” problem in graph theory:
+To attain the importance of a node, we can count the number of incomming connections (links)
+
+Maintain an Incoming Link Counter:
+How it works: Each Node gets an IncomingLinkCount property
+Every time you create a link A → B, you increment B.IncomingLinkCount.
+
+Pros:
+Fast lookups for node popularity calculation — just read the stored number.
+No need for heavy real-time calculation queries.
+
+Cons:
+You have to keep the counter in sync, which means extra writes whenever links are added
+and also need to decrement counts, when links removed.
+If you have high link churn, this could get chatty with the DB — but if most nodes aren’t getting new links every second, it’s fine.
+To counter this we can batch write the updates to the DB in the adapter.
+
+
+
+Ideas:
+1. find the “most popular” node
+return the node with the highest incomming links count
+
+2. Traversal to get related nodes up to maxDepth
+Use a BFS (Breadth-First Search) from the starting node so you don’t get stuck in deep cycles and you control depth.
+We only want “expanding outward” so we can just skip traversing IncomingLinks.
+
+3. Consider Pagination / limit results:
+If the graph is large, you might want to limit the number of nodes returned for Sigma.js initial load.
+
+4. Graph snapshots:
+If you plan to serve this graph to many clients, it might be worth caching the traversal results per graphId for speed.
