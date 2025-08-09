@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Graphing.Core.WebGraph.Models
+﻿namespace Graphing.Core.WebGraph.Models
 {
     public class Node
     {
@@ -12,8 +6,10 @@ namespace Graphing.Core.WebGraph.Models
         public string Url { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Keywords { get; set; } = string.Empty;
+        public IEnumerable<string> Tags { get; set; } = Enumerable.Empty<string>();
         public NodeState State { get; set; }
         public HashSet<Node> OutgoingLinks { get; set; } = new();
+        public int IncomingLinkCount { get; set; }
         public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
         public DateTimeOffset ModifiedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset? LastScheduledAt { get; set; }
@@ -27,5 +23,6 @@ namespace Graphing.Core.WebGraph.Models
             Url = url;
             State = state;
         }
+
     }
 }

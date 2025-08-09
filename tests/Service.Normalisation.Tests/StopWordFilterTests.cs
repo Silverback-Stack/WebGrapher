@@ -7,10 +7,7 @@ namespace Service.Normalisation.Tests
     {
 
         [SetUp]
-        public void Setup()
-        {
-
-        }
+        public void Setup() { }
 
 
         [TestCase("I will go to the market", "en", "market")] //English
@@ -23,18 +20,18 @@ namespace Service.Normalisation.Tests
         }
 
         [Test]
-        public void RemoveStopWords_FromInput_ReturnsEmpty()
+        public void RemoveStopWords_FromNoInput_ReturnsEmpty()
         {
             var result = StopWordFilter.RemoveStopWords("", "en");
             Assert.That(result, Is.Empty);
         }
 
         [Test]
-        public void RemoveStopWords_UnknownLanguageCode_ReturnsInputUnchanged()
+        public void RemoveStopWords_UnknownLanguageCode_DefaultsToEnglishAndRemovesStopWords()
         {
-            var input = "This is a test";
-            var result = StopWordFilter.RemoveStopWords(input, "xx");
-            Assert.That(result, Is.EqualTo(input));
+            var input = "This is a test of unknown language";
+            var result = StopWordFilter.RemoveStopWords(input, "xx"); //defaults to English
+            Assert.That(result, Is.EqualTo("unknown language")); //stop words removed
         }
     }
 }

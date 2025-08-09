@@ -22,7 +22,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return await Task.FromResult<Node?>(null);
         }
 
-        protected async override Task<Node> SetNodeAsync(Node node)
+        public async override Task<Node> SetNodeAsync(Node node)
         {
             var storedNode = await GetNodeAsync(node.GraphId, node.Url);
             if (storedNode != null &&
@@ -96,5 +96,64 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
 
             return await Task.FromResult(0);
         }
+
+        public async Task<IEnumerable<Node>?> GetMostPopularNodesAsync(int graphId, int limit)
+        {
+            if (!_graphs.TryGetValue(graphId, out var nodes) || nodes.Count == 0)
+            {
+                _logger.LogDebug($"Graph {graphId} is empty. Cannot determine most popular node.");
+                return await Task.FromResult<IEnumerable<Node>?>(null);
+            }
+
+            var mostPopular = nodes.Values
+                .OrderByDescending(n => n.IncomingLinkCount)
+                .ThenByDescending(n => n.CreatedAt) // Tie-breaker: newest first
+                .Take(limit);
+
+            return await Task.FromResult(mostPopular);
+        }
+
+        public async Task<IEnumerable<Node>> TraverseGraphAsync(int graphId, string startUrl, int maxDepth, int? maxNodes = null)
+        {
+            if (!_graphs.TryGetValue(graphId, out var nodes) || !nodes.TryGetValue(startUrl, out var startNode))
+            {
+                _logger.LogDebug($"Graph {graphId} or start node {startUrl} not found.");
+                return Enumerable.Empty<Node>();
+            }
+
+            var visited = new HashSet<string>();
+            var result = new List<Node>();
+            var queue = new Queue<(Node node, int depth)>();
+
+            queue.Enqueue((startNode, 0));
+            visited.Add(startNode.Url);
+
+            while (queue.Count > 0)
+            {
+                var (currentNode, currentDepth) = queue.Dequeue();
+                result.Add(currentNode);
+
+                if (maxNodes.HasValue && result.Count >= maxNodes.Value)
+                {
+                    break;
+                }
+
+                if (currentDepth >= maxDepth)
+                {
+                    continue;
+                }
+
+                foreach (var neighbor in currentNode.OutgoingLinks)
+                {
+                    if (visited.Add(neighbor.Url))
+                    {
+                        queue.Enqueue((neighbor, currentDepth + 1));
+                    }
+                }
+            }
+
+            return await Task.FromResult(result);
+        }
+
     }
 }

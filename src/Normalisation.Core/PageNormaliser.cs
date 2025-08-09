@@ -15,9 +15,10 @@ namespace Normalisation.Core
         private readonly ICache _blobCache;
         private readonly IEventBus _eventBus;
 
-        private const int MAX_TITLE_LENGTH = 60;
-        private const int MAX_KEYWORD_LENGTH = 4069;
-        private const int MAX_LINKS_PER_PAGE = 1000;
+        private const int MAX_TITLE_LENGTH = 100;
+        private const int MAX_KEYWORDS = 300; //1 page of text
+        private const int MAX_KEYWORD_TAGS = 10;
+        private const int MAX_LINKS_PER_PAGE = 3;
 
         private static readonly string[] ALLOWABLE_LINK_SCHEMAS = ["http", "https"];
 
@@ -39,7 +40,7 @@ namespace Normalisation.Core
         }
 
         private async Task PublishGraphEvent(NormalisePageEvent evt,
-            string? title, string? keywords, IEnumerable<Uri>? links, string? languageIso3)
+            string? title, string? keywords, IEnumerable<string>? tags, IEnumerable<Uri>? links, string? languageIso3)
         {
             var request = evt.CrawlPageRequest;
             var result = evt.ScrapePageResult;
@@ -53,6 +54,7 @@ namespace Normalisation.Core
                 SourceLastModified = result.SourceLastModified,
                 Title = title,
                 Keywords = keywords,
+                Tags = tags,
                 Links = links,
                 DetectedLanguageIso3 = languageIso3,
                 CreatedAt = DateTimeOffset.UtcNow
@@ -92,6 +94,7 @@ namespace Normalisation.Core
 
             var normalisedTitle = NormaliseTitle(extractedTitle);
             var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
+            var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, MAX_KEYWORD_TAGS);
             var normalisedLinks = NormaliseLinks(
                 extractedLinks,
                 request.Url,
@@ -99,7 +102,7 @@ namespace Normalisation.Core
                 request.RemoveQueryStrings,
                 request.PathFilters);
 
-            await PublishGraphEvent(evt, normalisedTitle, normalisedKeywords, normalisedLinks, detectedLanguageIso3);
+            await PublishGraphEvent(evt, normalisedTitle, normalisedKeywords, normalisedTags, normalisedLinks, detectedLanguageIso3);
 
             var linkType = request.FollowExternalLinks ? "external" : "internal";
             _logger.LogDebug($"Publishing GraphPageEvent for {result.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
@@ -132,6 +135,7 @@ namespace Normalisation.Core
         {
             if (text == null) return string.Empty;
 
+            text = TextNormaliser.DecodeHtml(text);
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
             text = TextNormaliser.Truncate(text, MAX_TITLE_LENGTH);
@@ -143,8 +147,8 @@ namespace Normalisation.Core
         {
             if (text == null) return string.Empty;
 
+            text = TextNormaliser.DecodeHtml(text);
             text = TextNormaliser.CollapseWhitespace(text);
-            text = TextNormaliser.Truncate(text, MAX_KEYWORD_LENGTH);
 
             return text;
         }
@@ -153,6 +157,7 @@ namespace Normalisation.Core
         {
             if (text == null) return string.Empty;
 
+            text = TextNormaliser.DecodeHtml(text);
             text = TextNormaliser.ToLowerCase(text);
             text = TextNormaliser.RemovePunctuation(text);
             text = TextNormaliser.RemoveSpecialCharacters(text);
@@ -160,9 +165,25 @@ namespace Normalisation.Core
             if (languageIso3 != null)
                 text = StopWordFilter.RemoveStopWords(text, languageIso3);
             text = TextNormaliser.RemoveDuplicateWords(text);
-            text = TextNormaliser.Truncate(text, MAX_KEYWORD_LENGTH);
+            text = TextNormaliser.TruncateToWords(text, MAX_KEYWORDS);
 
             return text;
+        }
+
+        public IEnumerable<string> NormaliseTags(string? text, string languageIso3, int maxTags)
+        {
+            if (text == null) return Enumerable.Empty<string>();
+
+            text = TextNormaliser.DecodeHtml(text);
+            text = TextNormaliser.ToLowerCase(text);
+            text = TextNormaliser.RemovePunctuation(text);
+            text = TextNormaliser.RemoveSpecialCharacters(text);
+            text = TextNormaliser.CollapseWhitespace(text);
+            if (languageIso3 != null)
+                text = StopWordFilter.RemoveStopWords(text, languageIso3);
+            text = TextNormaliser.RemoveNumericalWords(text);
+
+            return TextNormaliser.ExtractTags(text, maxTags);
         }
 
         public IEnumerable<Uri> NormaliseLinks(

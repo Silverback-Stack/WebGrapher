@@ -22,16 +22,16 @@ namespace Shared.Caching.Tests
         }
 
         [Test]
-        public void Clamp_ExpiryInPast_ReturnsNull()
+        public void Clamp_ExpiryInPast_ReturnsMinTTL()
         {
             var expiresActual = DateTimeOffset.UtcNow.AddMinutes(-10);
-            var expiresActualAsTimeSpan = expiresActual - DateTimeOffset.UtcNow;
 
-            var minDirationInMinutes = 10;
-            var maxDirationInMinutes = 20;
-            var result = CacheDurationHelper.Clamp(expiresActual, minDirationInMinutes, maxDirationInMinutes);
+            var minDurationInMinutes = 10;
+            var maxDurationInMinutes = 20;
 
-            Assert.That(result, Is.Null);
+            var result = CacheDurationHelper.Clamp(expiresActual, minDurationInMinutes, maxDurationInMinutes);
+
+            Assert.That(result, Is.EqualTo(TimeSpan.FromMinutes(minDurationInMinutes)));
         }
     }
 }

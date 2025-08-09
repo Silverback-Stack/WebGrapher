@@ -60,47 +60,58 @@ namespace Events.Core.Bus.Adapters.InMemory
             }
         }
 
-        public override async Task PublishAsync<TEvent>(
+        public override Task PublishAsync<TEvent>(
             TEvent @event,
             int priority = 0,
             DateTimeOffset? scheduledEnqueueTime = null,
             CancellationToken cancellationToken = default) where TEvent : class
         {
-            var delay = scheduledEnqueueTime.HasValue
-                ? scheduledEnqueueTime.Value - DateTimeOffset.UtcNow
-                : TimeSpan.Zero;
+            // In-memory bus doesnt support scheduled events so we simulate it using Task.Delay
+            // To prevent blocking main thread, we can
+            // Fire and forget the whole dispatch on a background thread
+            // We must remove async from the method signature , but for other implementations it will be more relevent
 
-            if (delay > TimeSpan.Zero)
+            _ = Task.Run(async () => //background thread
             {
-                try
-                {
-                    await Task.Delay(delay, cancellationToken);
-                }
-                catch (Exception)
-                {
-                    _logger.LogWarning($"Timout for event {typeof(TEvent).Name}, delay cancelled after {delay.TotalSeconds} seconds.");
-                    return;
-                }
-            }
+                var delay = scheduledEnqueueTime.HasValue
+                    ? scheduledEnqueueTime.Value - DateTimeOffset.UtcNow
+                    : TimeSpan.Zero;
 
-            if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
-            {
-                foreach (var handler in subscribers.Cast<Func<TEvent, Task>>())
+                if (delay > TimeSpan.Zero)
                 {
                     try
                     {
-                        _ = handler(@event); // fire-and-forget, or add await for sequential
-
-                        var scheduled = delay.TotalSeconds > 0 ? $"scheduled in {delay.TotalSeconds} seconds." : string.Empty;
-
-                        _logger.LogDebug($"Handler executed for event {typeof(TEvent).Name} Priority: {priority} {scheduled}");
+                        await Task.Delay(delay, cancellationToken);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        _logger.LogError(ex, "Handler execution failed for event {EventType}", typeof(TEvent).Name);
+                        _logger.LogWarning($"Timout for event {typeof(TEvent).Name}, delay cancelled after {delay.TotalSeconds} seconds.");
+                        return;
                     }
                 }
-            }
+
+                if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
+                {
+                    foreach (var handler in subscribers.Cast<Func<TEvent, Task>>())
+                    {
+                        try
+                        {
+                            _ = handler(@event); // fire-and-forget, or add await for sequential
+
+                            var scheduled = delay.TotalSeconds > 0 ? $"scheduled in {delay.TotalSeconds} seconds." : string.Empty;
+
+                            _logger.LogDebug($"Handler executed for event {typeof(TEvent).Name} Priority: {priority} {scheduled}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Handler execution failed for event {EventType}", typeof(TEvent).Name);
+                        }
+                    }
+                }
+            });
+
+            // Return immediately without waiting for handlers
+            return Task.CompletedTask;
         }
 
     }
