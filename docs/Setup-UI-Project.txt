@@ -1,0 +1,66 @@
+﻿
+SETUP WebMapper.WebUI interface
+
++ Install Node.js
+If you haven’t already: [Download Node.js](https://nodejs.org) (LTS version). This gives you `npm`.
+
+When installing choose the option: Automatically install nessesary tools
+
+
++ Add a New Project to Your Solution
+In Visual Studio:
+- Right-click the Apps folder and select Add → New Project
+
+- Choose: Vue App (Javascript)
+
+- Name it `WebMapper.WebUI`
+
+- Select src as installation folder
+
+
+
+Install & Run
+
+Open the terminal in Visual Studio (or use PowerShell):
+
+cd src/WebMapper.WebUI
+npm install
+npm run dev
+
+
+Note the port number and then open in browser eg:
+http://localhost:52924/
+
+You can keep this running while developing.
+
+
+
+Install Sigma.js and Graphology:
+
+Open the terminal in Visual Studio (or use PowerShell):
+
+cd src/WebMapper.WebUI
+
+npm install sigma graphology
+npm install graphology-layout-forceatlas2
+
+
+Create landing page:
+
+In VS WebMapper.WebUI project modify
+
+src/App.vue
+
+Replace contents with new content
+
+
+Run the app:
+
+npm run dev
+
+
+
+
+Install SignalR:
+
+npm install @microsoft/signalr

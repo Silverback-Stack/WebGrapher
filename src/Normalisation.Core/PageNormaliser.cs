@@ -3,7 +3,7 @@ using System.Text;
 using Caching.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
-using Events.Core.EventTypes;
+using Events.Core.Events;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core.Processors;
 
@@ -18,7 +18,7 @@ namespace Normalisation.Core
         private const int MAX_TITLE_LENGTH = 100;
         private const int MAX_KEYWORDS = 300; //1 page of text
         private const int MAX_KEYWORD_TAGS = 10;
-        private const int MAX_LINKS_PER_PAGE = 3;
+        private const int MAX_LINKS_PER_PAGE = 25;
 
         private static readonly string[] ALLOWABLE_LINK_SCHEMAS = ["http", "https"];
 

@@ -1,6 +1,6 @@
 ﻿using System;
 using Events.Core.Bus;
-using Events.Core.EventTypes;
+using Events.Core.Events;
 using Events.Core.Helpers;
 using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.SigmaJs;
@@ -36,25 +36,7 @@ namespace Graphing.Core
             var request = evt.CrawlPageRequest;
             var webPage = MapToWebPage(evt);
 
-            //Delegate : When Link is discovered
-            Func<string, Task> onLinkDiscovered = async (url) =>
-            {
-                var depth = request.Depth + 1;
-
-                var crawlPageEvent = new CrawlPageEvent(
-                    new Uri(url),
-                    attempt: 1,
-                    depth,
-                    request);
-
-                var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
-
-                _logger.LogDebug($"Scheduling crawl for link {url} at depth {depth}");
-
-                await _eventBus.PublishAsync(crawlPageEvent, priority: depth, scheduledOffset);
-            };
-
-            //Delegate : When Node is populated with data
+            //Delegate : Called when Node is populated with data
             Func<Node, Task> onNodePopulated = async (node) =>
             {
                 var sigmaNodes = SigmaJsGraphSerializer.MapNodes(node);
@@ -68,6 +50,24 @@ namespace Graphing.Core
                     Nodes = sigmaNodes,
                     Edges = sigmaEdges
                 });
+            };
+
+            //Delegate : Called when Link is discovered
+            Func<Node, Task> onLinkDiscovered = async (node) =>
+            {
+                var depth = request.Depth + 1;
+
+                var crawlPageEvent = new CrawlPageEvent(
+                    new Uri(node.Url),
+                    attempt: 1,
+                    depth,
+                    request);
+
+                var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
+
+                _logger.LogDebug($"Scheduling crawl for link {node.Url} at depth {depth}");
+
+                await _eventBus.PublishAsync(crawlPageEvent, priority: depth, scheduledOffset);
             };
 
             await _webGraph.AddWebPageAsync(webPage, onNodePopulated, onLinkDiscovered);

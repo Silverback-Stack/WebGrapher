@@ -2,7 +2,7 @@
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
 using Events.Core.Dtos;
-using Events.Core.EventTypes;
+using Events.Core.Events;
 using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
 using Requests.Core;

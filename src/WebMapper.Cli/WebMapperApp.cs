@@ -1,7 +1,7 @@
 ﻿using System;
 using Crawler.Core;
 using Events.Core.Bus;
-using Events.Core.EventTypes;
+using Events.Core.Events;
 using WebMapper.Cli.Service.Crawler;
 using WebMapper.Cli.Service.Events;
 using WebMapper.Cli.Service.Graphing;

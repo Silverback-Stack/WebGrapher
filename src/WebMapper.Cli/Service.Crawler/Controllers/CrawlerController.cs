@@ -1,5 +1,5 @@
 ﻿using Events.Core.Bus;
-using Events.Core.EventTypes;
+using Events.Core.Events;
 using System;
 using Microsoft.AspNetCore.Mvc;
 

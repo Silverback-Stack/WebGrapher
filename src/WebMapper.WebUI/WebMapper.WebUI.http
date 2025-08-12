@@ -1,6 +1,0 @@
-@WebMapper.WebUI_HostAddress = http://localhost:5150
-
-GET {{WebMapper.WebUI_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

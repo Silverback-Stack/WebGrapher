@@ -1,6 +1,6 @@
 ﻿using System;
 using Events.Core.Bus;
-using Events.Core.EventTypes;
+using Events.Core.Events;
 using Microsoft.Extensions.Logging;
 using Streaming.Core.Models;
 
@@ -29,7 +29,7 @@ namespace Streaming.Core
             _eventBus.Unsubscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEvent);
         }
 
-        public abstract Task StreamNodeAsync(WebNode webNode, int graphId);
+        public abstract Task StreamNodeAsync(GraphNode node, int graphId);
 
         public abstract Task StreamGraphAsync(int graphId, int maxDepth, int maxNodes);
 
@@ -41,14 +41,14 @@ namespace Streaming.Core
         {
             try
             {
-                var webNode = new WebNode
+                var node = new GraphNode
                 {
                     Nodes = evt.Nodes,
                     Edges = evt.Edges
                 };
 
                 await BroadcastMessageAsync("Sending node...", evt.GraphId);
-                await StreamNodeAsync(webNode, evt.GraphId);
+                await StreamNodeAsync(node, evt.GraphId);
             }
             catch (Exception ex)
             {

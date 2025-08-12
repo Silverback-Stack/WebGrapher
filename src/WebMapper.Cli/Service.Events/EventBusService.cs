@@ -1,5 +1,7 @@
 ﻿using System;
 using Events.Core.Bus;
+using Events.Core.Events;
+using Events.Core.RateLimiters;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
@@ -11,6 +13,7 @@ namespace WebMapper.Cli.Service.Events
     {
         public async static Task<IEventBus> StartAsync()
         {
+            //configure logging:
             var serviceName = typeof(EventBusService).Name;
             var logFilePath = $"logs/{serviceName}.log";
 
@@ -23,7 +26,19 @@ namespace WebMapper.Cli.Service.Events
 
             var logger = loggerFactory.CreateLogger<IEventBus>();
 
-            var eventBus = EventBusFactory.CreateEventBus(logger);
+
+            //configure event bus rate limits:
+            var concurrencyLimits = new Dictionary<Type, int>
+            {
+                { typeof(CrawlPageEvent), 10 },
+                { typeof(ScrapePageEvent), 10 },
+                { typeof(ScrapePageFailedEvent), 10 },
+                { typeof(NormalisePageEvent), 10 },
+                { typeof(GraphPageEvent), 10 },
+                { typeof(GraphNodeAddedEvent), 10 }
+            };
+
+            var eventBus = EventBusFactory.CreateEventBus(logger, concurrencyLimits);
             await eventBus.StartAsync();
 
             logger.LogInformation("Event bus service started.");

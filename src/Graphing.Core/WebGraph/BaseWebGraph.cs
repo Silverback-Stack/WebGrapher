@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Xml.Linq;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,7 @@ namespace Graphing.Core.WebGraph
             _logger = logger;
         }
 
-        public async Task AddWebPageAsync(WebPageItem webPage, Func<Node, Task> onNodePopulated, Func<string, Task> onLinkDiscovered)
+        public async Task AddWebPageAsync(WebPageItem webPage, Func<Node, Task> onNodePopulated, Func<Node, Task> onLinkDiscovered)
         {
             _logger.LogDebug($"AddWebPageAsync started for {webPage.Url}");
 
@@ -32,21 +33,54 @@ namespace Graphing.Core.WebGraph
 
             await ClearOutgoingLinksAsync(node);
 
-            // Add new outgoing links (if any)
-            foreach (var link in webPage.Links)
-            {
-                _logger.LogDebug($"Adding outgoing link from {webPage.Url} to {link}.");
-                await AddLinkAsync(webPage.GraphId, webPage.Url, link, onLinkDiscovered);
-            }
-
             if (webPage.IsRedirect)
             {
                 _logger.LogInformation($"Handling redirect {webPage.OriginalUrl} -> {webPage.Url}");
                 await SetRedirectedAsync(webPage.GraphId, webPage.OriginalUrl, webPage.Url);
             }
 
+            var addedLinks = await AddLinksAsync(webPage);
+
             if (onNodePopulated != null)
+            {
                 await onNodePopulated(node);
+            }
+
+            if (onLinkDiscovered != null)
+            {
+                await ScheduleAddedLinksAsync(addedLinks, onLinkDiscovered);
+            }
+        }
+
+        private async Task<IEnumerable<Node>> AddLinksAsync(WebPageItem webPage)
+        {
+            var addedLinks = new HashSet<Node>();
+
+            // Add new outgoing links (if any)
+            foreach (var link in webPage.Links)
+            {
+                var linkedNode = await AddLinkAsync(webPage.GraphId, webPage.Url, link);
+                if (linkedNode != null)
+                {
+                    addedLinks.Add(linkedNode);
+                }
+            }
+
+            return addedLinks;
+        }
+
+        private async Task ScheduleAddedLinksAsync(IEnumerable<Node> addedLinks, Func<Node, Task> onLinkDiscovered)
+        {
+            foreach (var link in addedLinks)
+            {
+                if (CanScheduleCrawl(link))
+                {
+                    link.LastScheduledAt = DateTimeOffset.UtcNow;
+                    await SaveNodeAsync(link);
+
+                    await onLinkDiscovered(link);
+                }
+            }
         }
 
         protected async Task<Node> GetOrCreateNodeAsync(
@@ -81,10 +115,13 @@ namespace Graphing.Core.WebGraph
             await SaveNodeAsync(node);
         }
 
-        protected async Task AddLinkAsync(int graphId, string fromUrl, string toUrl, Func<string, Task> onLinkDiscovered)
+        /// <summary>
+        /// Returns target Node if a link was added.
+        /// </summary>
+        protected async Task<Node?> AddLinkAsync(int graphId, string fromUrl, string toUrl)
         {
             if (fromUrl == toUrl)
-                return; //ignore circular links to self
+                return null; //ignore circular links to self
 
             if (string.IsNullOrEmpty(fromUrl)) throw new ArgumentNullException(nameof(fromUrl));
             if (string.IsNullOrEmpty(toUrl)) throw new ArgumentNullException(nameof(toUrl));
@@ -94,18 +131,24 @@ namespace Graphing.Core.WebGraph
 
             if (fromNode.OutgoingLinks.Add(toNode))
             {
+                _logger.LogDebug($"Adding outgoing/incoming links from {fromNode.Url} to {toNode.Url}.");
+
+                toNode.IncomingLinks.Add(fromNode);
+
                 await SaveNodeAsync(fromNode);
+                await SaveNodeAsync(toNode);
 
-                await IncrementIncommingLinkCountAsync(toNode);
-
-                if (onLinkDiscovered != null)
-                {
-                    await TryScheduleCrawlAsync(toNode, onLinkDiscovered);
-                }
+                return toNode;
             }
+
+            //no link added
+            return null;
         }
 
-        protected async Task TryScheduleCrawlAsync(Node node, Func<string, Task> onLinkDiscovered)
+        /// <summary>
+        /// Returns True if a Node can be scheduled for a crawl.
+        /// </summary>
+        protected bool CanScheduleCrawl(Node node)
         {
             var now = DateTimeOffset.UtcNow;
             var backoff = TimeSpan.FromMinutes(SCHEDULE_THROTTLE_MINUTES);
@@ -113,23 +156,15 @@ namespace Graphing.Core.WebGraph
             if (node.LastScheduledAt == null ||
                 now >= node.LastScheduledAt.Value + backoff)
             {
-                _logger.LogDebug($"Scheduling crawl for {node.Url} last scheduled: {node.LastScheduledAt}.");
-
-                if (onLinkDiscovered != null)
-                {
-                    node.LastScheduledAt = now;
-                    await SaveNodeAsync(node);
-
-                    await onLinkDiscovered(node.Url);
-                }
-                else
-                {
-                    var nextTime = node.LastScheduledAt?.AddMinutes(SCHEDULE_THROTTLE_MINUTES);
-                    _logger.LogDebug($"Scheduled crawl for {node.Url} throttled. Next eligible time: {nextTime}");
-                    //Discard policy - if node recently crawled then dont crawl again during the throttle period
-                }
+                return true;
             }
+
+            //Discard policy: node recently crawled - dont crawl again during the throttle period
+            var nextTime = node.LastScheduledAt?.AddMinutes(SCHEDULE_THROTTLE_MINUTES);
+            _logger.LogDebug($"Scheduled crawl for {node.Url} throttled. Next eligible time: {nextTime}");
+            return false;
         }
+
 
         protected async Task MarkNodeAsPopulatedAsync(Node node)
         {
@@ -188,7 +223,8 @@ namespace Graphing.Core.WebGraph
 
             foreach (var target in node.OutgoingLinks)
             {
-                await DecrementIncommingLinkCountAsync(target);
+                target.IncomingLinks.Remove(node);
+                await SaveNodeAsync(target);
             }
 
             node.OutgoingLinks.Clear();
@@ -201,18 +237,6 @@ namespace Graphing.Core.WebGraph
 
             return node.State != NodeState.Populated ||
                 node.SourceLastModified != webPage.SourceLastModified;
-        }
-
-        private async Task IncrementIncommingLinkCountAsync(Node node)
-        {
-            node.IncomingLinkCount++;
-            await SaveNodeAsync(node);
-        }
-
-        private async Task DecrementIncommingLinkCountAsync(Node node)
-        {
-            node.IncomingLinkCount = Math.Max(0, node.IncomingLinkCount - 1); //prevent negative number
-            await SaveNodeAsync(node);
         }
 
         private async Task SaveNodeAsync(Node node)
