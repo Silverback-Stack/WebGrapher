@@ -24,10 +24,27 @@ namespace Service.Graphing.Tests
         {
             int graphId = 1;
 
-            var node1 = new Node(graphId, "url1") { IncomingLinkCount = 5, CreatedAt = DateTimeOffset.UtcNow.AddHours(-2) };
-            var node2 = new Node(graphId, "url2") { IncomingLinkCount = 10, CreatedAt = DateTimeOffset.UtcNow.AddHours(-3) };
-            var node3 = new Node(graphId, "url3") { IncomingLinkCount = 10, CreatedAt = DateTimeOffset.UtcNow.AddHours(-1) };
-            var node4 = new Node(graphId, "url4") { IncomingLinkCount = 1, CreatedAt = DateTimeOffset.UtcNow };
+            // Helper to create a node with N incoming links
+            Node CreateNode(string url, int incomingLinks, DateTimeOffset createdAt)
+            {
+                var node = new Node(graphId, url)
+                {
+                    CreatedAt = createdAt
+                };
+
+                // Populate incoming links with dummy nodes to match the desired count
+                for (int i = 0; i < incomingLinks; i++)
+                {
+                    node.IncomingLinks.Add(new Node(graphId, $"{url}_incoming_{i}"));
+                }
+
+                return node;
+            }
+
+            var node1 = CreateNode("url1", 5, DateTimeOffset.UtcNow.AddHours(-2));
+            var node2 = CreateNode("url2", 10, DateTimeOffset.UtcNow.AddHours(-3));
+            var node3 = CreateNode("url3", 10, DateTimeOffset.UtcNow.AddHours(-1));
+            var node4 = CreateNode("url4", 1, DateTimeOffset.UtcNow);
 
             await _adapter.SetNodeAsync(node1);
             await _adapter.SetNodeAsync(node2);
@@ -40,6 +57,7 @@ namespace Service.Graphing.Tests
             Assert.That(result.ElementAt(0).Url, Is.EqualTo("url3")); // same IncomingLinkCount but newer CreatedAt wins
             Assert.That(result.ElementAt(1).Url, Is.EqualTo("url2"));
         }
+
 
         [Test]
         public async Task TraverseGraphAsync_TraversesGraphUpToMaxDepth()
@@ -109,7 +127,57 @@ namespace Service.Graphing.Tests
             Assert.That(result.Count(), Is.EqualTo(3));
             Assert.That(result, Has.Some.Matches<Node>(n => n.Url == "A"));
         }
+
+        [Test]
+        public async Task UpdatingNodeOutgoingLinks_UpdatesIncomingLinksOnTargetNodes()
+        {
+            int graphId = 1;
+
+            var webPageA = new WebPageItem
+            {
+                GraphId = graphId,
+                Url = "A",
+                OriginalUrl = "A",
+                IsRedirect = false,
+                Links = new List<string> { "B" },
+                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
+            };
+
+            var webPageB = new WebPageItem
+            {
+                GraphId = graphId,
+                Url = "B",
+                OriginalUrl = "B",
+                IsRedirect = false,
+                Links = new List<string> { "C" },
+                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
+            };
+
+            await _adapter.AddWebPageAsync(webPageA, null, null);
+            await _adapter.AddWebPageAsync(webPageB, null, null);
+
+            var nodeB = await _adapter.GetNodeAsync(graphId, "B");
+
+            Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
+            Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.True);
+
+            var webPageARevisited = new WebPageItem
+            {
+                GraphId = graphId,
+                Url = "A",
+                OriginalUrl = "A",
+                IsRedirect = false,
+                Links = new List<string> { },
+                SourceLastModified = DateTimeOffset.UtcNow
+            };
+
+            await _adapter.AddWebPageAsync(webPageARevisited, null, null);
+
+            nodeB = await _adapter.GetNodeAsync(graphId, "B");
+
+            Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(0));
+            Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.False);
+        }
+
     }
-
-
 }

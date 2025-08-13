@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Xml.XPath;
+using HtmlAgilityPack;
 
 namespace Normalisation.Core.Processors
 {
@@ -60,13 +62,36 @@ namespace Normalisation.Core.Processors
             return urls.Where(u => schemas.Contains(u.Scheme)).ToHashSet();
         }
 
-        public static HashSet<Uri> FilterByPath(HashSet<Uri> urls, IEnumerable<string>? paths)
+        public static HashSet<Uri> FilterByXPath(HashSet<Uri> urls, string linkUrlFilterXPath)
         {
-            if (paths is null || !paths.Any()) return urls;
+            if (string.IsNullOrWhiteSpace(linkUrlFilterXPath)) return urls;
 
-            return urls.Where(u =>
-                paths.Any(p => u.AbsolutePath.Contains(p, StringComparison.OrdinalIgnoreCase))
-            ).ToHashSet();
+            try
+            {
+                // Validate XPath syntax
+                XPathExpression.Compile(linkUrlFilterXPath);
+            }
+            catch (Exception)
+            {
+                //invalid Xpath
+                return urls;
+            }
+
+            var filtered = new HashSet<Uri>();
+            foreach (var url in urls)
+            {
+                string html = $"<a href='{url.AbsoluteUri}'></a>";
+
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
+
+                var node = doc.DocumentNode.SelectSingleNode(linkUrlFilterXPath);
+                if (node != null)
+                {
+                    filtered.Add(url);
+                }
+            }
+            return filtered;
         }
 
         public static HashSet<Uri> RemoveExternalLinks(HashSet<Uri> urls, Uri baseUrl)

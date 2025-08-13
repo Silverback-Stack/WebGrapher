@@ -85,7 +85,7 @@ namespace WebMapper.Cli.Service.Streaming
                         app.UseRouting();
                         app.UseEndpoints(endpoints =>
                         {
-                            endpoints.MapHub<GraphStreamerHub>("/graphStreamerHub");
+                            endpoints.MapHub<GraphStreamerHub>("/graphstreamerhub");
                             endpoints.MapGet("/", () => "SignalR server is running!");
                         });
                     })

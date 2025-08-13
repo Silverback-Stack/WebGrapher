@@ -13,10 +13,9 @@ namespace Events.Core.Bus.Adapters.InMemory
         //Continer for subscribers/handlers
         private readonly ConcurrentDictionary<Type, List<Delegate>> _handlers = new();
 
-        //Priority queues per event type
-        private readonly ConcurrentDictionary<Type, SortedDictionary<int, ConcurrentQueue<(object Event, DateTimeOffset? Scheduled)>>> _eventQueues = new();
-
-        public InMemoryEventBusAdapter(ILogger logger) : base(logger) { }
+        public InMemoryEventBusAdapter(
+            ILogger logger,
+            Dictionary<Type, int>? concurrencyLimits = null) : base(logger, concurrencyLimits) { }
 
         public async override Task StartAsync()
         {
@@ -29,17 +28,14 @@ namespace Events.Core.Bus.Adapters.InMemory
             //nothing to do for in-memory implementation
             _logger.LogDebug($"Stopped event bus {typeof(InMemoryEventBusAdapter).Name}");
         }
-        public override void Dispose()
-        {
-            _logger.LogDebug($"Disposing event bus {typeof(InMemoryEventBusAdapter).Name}, handlers cleared.");
-            _handlers.Clear();
-        }
 
         public override void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
         {
+            var wrapped = WrapWithLimiter(handler);
+
             _handlers.AddOrUpdate(typeof(TEvent),
-                _ => new List<Delegate> { handler },
-                (_, list) => { list.Add(handler); return list; }
+                _ => new List<Delegate> { wrapped },
+                (_, list) => { list.Add(wrapped); return list; }
             );
 
             _logger.LogDebug($"Subscribed to event {typeof(TEvent).Name}");
@@ -60,59 +56,82 @@ namespace Events.Core.Bus.Adapters.InMemory
             }
         }
 
-        public override Task PublishAsync<TEvent>(
+        public override async Task PublishAsync<TEvent>(
             TEvent @event,
             int priority = 0,
             DateTimeOffset? scheduledEnqueueTime = null,
             CancellationToken cancellationToken = default) where TEvent : class
         {
-            // In-memory bus doesnt support scheduled events so we simulate it using Task.Delay
-            // To prevent blocking main thread, we can
-            // Fire and forget the whole dispatch on a background thread
-            // We must remove async from the method signature , but for other implementations it will be more relevent
+            // In-memory bus doesnt support priority queues
 
-            _ = Task.Run(async () => //background thread
-            {
-                var delay = scheduledEnqueueTime.HasValue
+            var delay = scheduledEnqueueTime.HasValue
                     ? scheduledEnqueueTime.Value - DateTimeOffset.UtcNow
                     : TimeSpan.Zero;
 
-                if (delay > TimeSpan.Zero)
+
+            // Scheduled event:
+            // In-memory bus doesnt support scheduled events so we simulate it using Task.Delay
+            if (delay > TimeSpan.Zero)
+            {
+                //Use a background thread to prevent main thread being blocked
+                _ = Task.Run(async () =>
                 {
                     try
                     {
                         await Task.Delay(delay, cancellationToken);
+                        await PublishInternalAsync(@event, priority, delay, cancellationToken);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        _logger.LogWarning($"Timout for event {typeof(TEvent).Name}, delay cancelled after {delay.TotalSeconds} seconds.");
-                        return;
+                        _logger.LogError(ex, "Error publishing event.");
                     }
-                }
-
-                if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
+                });
+            }
+            else
+            {
+                // Non-scheduled event:
+                try
                 {
-                    foreach (var handler in subscribers.Cast<Func<TEvent, Task>>())
-                    {
-                        try
-                        {
-                            _ = handler(@event); // fire-and-forget, or add await for sequential
-
-                            var scheduled = delay.TotalSeconds > 0 ? $"scheduled in {delay.TotalSeconds} seconds." : string.Empty;
-
-                            _logger.LogDebug($"Handler executed for event {typeof(TEvent).Name} Priority: {priority} {scheduled}");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Handler execution failed for event {EventType}", typeof(TEvent).Name);
-                        }
-                    }
+                    await PublishInternalAsync(@event, priority, delay, cancellationToken);
                 }
-            });
-
-            // Return immediately without waiting for handlers
-            return Task.CompletedTask;
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error publishing event.");
+                }
+            }  
         }
 
+        private async Task PublishInternalAsync<TEvent>(
+            TEvent @event,
+            int priority,
+            TimeSpan delay,
+            CancellationToken cancellationToken = default) where TEvent : class
+        {
+            if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
+            {
+                foreach (var handler in subscribers.Cast<Func<TEvent, Task>>())
+                {
+                    try
+                    {
+                        await handler(@event);
+
+                        var scheduled = delay.TotalSeconds > 0 ? $"scheduled in {delay.TotalSeconds} seconds." : string.Empty;
+
+                        _logger.LogDebug($"Handler executed for event {typeof(TEvent).Name} Priority: {priority} {scheduled}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Handler execution failed for event {EventType}", typeof(TEvent).Name);
+                    }
+                }
+            }
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            _logger.LogDebug($"Disposing event bus {typeof(InMemoryEventBusAdapter).Name}, handlers cleared.");
+            _handlers.Clear();
+        }
     }
 }

@@ -5,7 +5,7 @@ namespace Streaming.Core
 {
     public interface IGraphStreamer
     {
-        Task StreamNodeAsync(WebNode webNode, int graphId);
+        Task StreamNodeAsync(GraphNode node, int graphId);
 
         Task StreamGraphAsync(int graphId, int maxDepth, int maxNodes);
 

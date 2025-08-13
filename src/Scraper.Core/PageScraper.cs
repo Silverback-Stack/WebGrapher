@@ -2,7 +2,7 @@
 using System.Net;
 using Events.Core.Bus;
 using Events.Core.Dtos;
-using Events.Core.EventTypes;
+using Events.Core.Events;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 

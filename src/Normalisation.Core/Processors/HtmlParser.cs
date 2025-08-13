@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Net;
+using System.Xml.XPath;
 using HtmlAgilityPack;
 
 namespace Normalisation.Core.Processors
 {
     public class HtmlParser
     {
-        private const string TITLE_XPATH = "//head/title";
+        private const string TITLE_XPATH = "//title";
         private const string LINKS_XPATH = "//a[@href]";
 
         private readonly HtmlDocument _htmlDocument;
@@ -17,9 +18,33 @@ namespace Normalisation.Core.Processors
             _htmlDocument.LoadHtml(htmlDocument);
         }
 
-        public string ExtractTitle()
+        public string ExtractTitle(string titleFilterXPath = "")
         {
-            var title = _htmlDocument.DocumentNode.SelectSingleNode(TITLE_XPATH);
+            if (!string.IsNullOrWhiteSpace(titleFilterXPath))
+            {
+                try
+                {
+                    // Validate XPath syntax
+                    XPathExpression.Compile(titleFilterXPath);
+                }
+                catch (Exception)
+                {
+                    //invalid Xpath syntax
+                    titleFilterXPath = string.Empty;
+                }
+            }
+
+            HtmlNode? title = null;
+            if (!string.IsNullOrEmpty(titleFilterXPath))
+            {
+                title = _htmlDocument.DocumentNode.SelectSingleNode(titleFilterXPath);
+            } 
+            
+            if (title == null)
+            {
+                title = _htmlDocument.DocumentNode.SelectSingleNode(TITLE_XPATH);
+            }
+
             return title != null ? title.InnerText : string.Empty;
         }
 

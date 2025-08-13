@@ -1,4 +1,4 @@
-﻿using Events.Core.EventTypes;
+﻿using Events.Core.Events;
 
 namespace Normalisation.Core
 {

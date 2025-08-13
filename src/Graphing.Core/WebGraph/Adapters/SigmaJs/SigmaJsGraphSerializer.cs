@@ -8,26 +8,62 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
     {
         public static IEnumerable<SigmaGraphNodeDto> MapNodes(Node node)
         {
-            // Main node
-            yield return CreateNodeDto(node);
+            // Always include the main node if populated
+            if (node.State == NodeState.Populated)
+                yield return CreateNodeDto(node);
 
-            // Outgoing linked nodes
-            foreach (var linkedNode in node.OutgoingLinks)
+            // Include outgoing links if they point to populated nodes (after redirect resolution)
+            // make snapshot as collection can be modified by parallel tasks
+            var outgoingSnapshot = node.OutgoingLinks.ToList();
+            foreach (var linkedNode in outgoingSnapshot
+                .Select(ResolveRedirect)
+                .Where(n => n.State == NodeState.Populated))
             {
                 yield return CreateNodeDto(linkedNode);
             }
+
+            // Include incoming links if they are populated
+            // make snapshot as collection can be modified by parallel tasks
+            var incomingSnapshot = node.IncomingLinks.ToList();
+            foreach (var sourceNode in incomingSnapshot
+                .Select(ResolveRedirect)
+                .Where(n => n.State == NodeState.Populated))
+            {
+                yield return CreateNodeDto(sourceNode);
+            }
         }
+
         public static IEnumerable<SigmaGraphEdgeDto> MapEdges(Node node)
         {
-            foreach (var link in node.OutgoingLinks)
+            // Outgoing edges to populated nodes
+            var outgoingSnapshot = node.OutgoingLinks.ToList();
+            foreach (var target in outgoingSnapshot
+                .Select(ResolveRedirect)
+                .Where(n => n.State == NodeState.Populated))
             {
-                yield return new SigmaGraphEdgeDto
-                {
-                    Id = $"{node.Url}->{link.Url}",
-                    Source = node.Url,
-                    Target = link.Url
-                };
+                yield return CreateEdgeDto(node, target);
             }
+
+            // Incoming edges from populated nodes
+            var incomingSnapshot = node.IncomingLinks.ToList();
+            foreach (var source in incomingSnapshot
+                .Select(ResolveRedirect)
+                .Where(n => n.State == NodeState.Populated))
+            {
+                yield return CreateEdgeDto(source, node);
+            }
+        }
+
+        private static Node ResolveRedirect(Node node)
+        {
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (node.State == NodeState.Redirected && node.OutgoingLinks.Any())
+            {
+                if (!visited.Add(node.Url))
+                    break;
+                node = node.OutgoingLinks.First();
+            }
+            return node;
         }
 
         private static SigmaGraphNodeDto CreateNodeDto(Node node)
@@ -45,11 +81,20 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
             };
         }
 
+        private static SigmaGraphEdgeDto CreateEdgeDto(Node source, Node target)
+        {
+            return new SigmaGraphEdgeDto
+            {
+                Id = $"{source.Url}->{target.Url}",
+                Source = source.Url,
+                Target = target.Url
+            };
+        }
 
         private static double CalculateNodeSize(int incomingLinks)
         {
-            const double minSize = 1.5;
-            const double maxSize = 10.0;
+            const double minSize = 10;
+            const double maxSize = 20;
 
             // Logarithmic scaling: keeps huge counts from exploding
             return minSize +

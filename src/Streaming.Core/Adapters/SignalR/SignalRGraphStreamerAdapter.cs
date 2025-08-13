@@ -18,13 +18,13 @@ namespace Streaming.Core.Adapters.SignalR
             _hubContext = hubContext;
         }
 
-        public async override Task StreamNodeAsync(WebNode webNode, int graphId)
+        public async override Task StreamNodeAsync(GraphNode node, int graphId)
         {
-            _logger.LogInformation($"Streaming node {webNode.Nodes.FirstOrDefault()?.Id} to graph {graphId}");
+            _logger.LogInformation($"Streaming node {node.Nodes.FirstOrDefault()?.Id} to graph {graphId}");
             
             var clients = _hubContext.Clients.Group(graphId.ToString());
 
-            await clients.SendAsync("ReceiveWebNode", webNode);
+            await clients.SendAsync("ReceiveNode", node);
         }
 
         public async override Task StreamGraphAsync(int graphId, int maxDepth, int maxNodes)

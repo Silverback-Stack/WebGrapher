@@ -12,7 +12,7 @@ namespace Service.Graphing.Tests
         private Mock<ILogger> _logger;
         private IWebGraph _webGraph;
         private static readonly Func<Node, Task> OnNodePopulatedNoAction = _ => Task.CompletedTask;
-        private static readonly Func<string, Task> OnLinkDiscoveredNoAction = _ => Task.CompletedTask;
+        private static readonly Func<Node, Task> OnLinkDiscoveredNoAction = _ => Task.CompletedTask;
 
         [SetUp]
         public void Setup()
@@ -276,10 +276,10 @@ namespace Service.Graphing.Tests
             // Arrange
             var graphId = 1;
 
-            var mockSchedules = new List<string>();
-            Func<string, Task> onLinkDiscovered = url =>
+            var mockSchedules = new List<Node>();
+            Func<Node, Task> onLinkDiscovered = node =>
             {
-                mockSchedules.Add(url);
+                mockSchedules.Add(node);
                 return Task.CompletedTask;
             };
 

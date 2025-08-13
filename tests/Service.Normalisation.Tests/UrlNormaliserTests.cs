@@ -67,7 +67,7 @@ namespace Service.Normalisation.Tests
             new Uri("https://example.com/contact")
         };
 
-            var filtered = UrlNormaliser.FilterByPath(urls, new[] { "/products", "/blog" });
+            var filtered = UrlNormaliser.FilterByXPath(urls, "//a[contains(@href, '/products/') or contains(@href, '/blog/')]");
 
             Assert.That(filtered.Count, Is.EqualTo(2));
             Assert.That(filtered.Any(u => u.AbsolutePath.Contains("products")), Is.True);

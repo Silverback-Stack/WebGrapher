@@ -45,14 +45,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 	ProjectSection(SolutionItems) = preProject
 		docs\Architecture.txt = docs\Architecture.txt
 		docs\Console_Setup.txt = docs\Console_Setup.txt
-		Graphing-Streaming.txt = Graphing-Streaming.txt
-		docs\Graph_Nodes_Redirects.txt = docs\Graph_Nodes_Redirects.txt
 		docs\Graphing-Concepts.txt = docs\Graphing-Concepts.txt
+		docs\Graphing-Streaming.txt = docs\Graphing-Streaming.txt
+		docs\Graph_Nodes_Redirects.txt = docs\Graph_Nodes_Redirects.txt
 		docs\Ideas.txt = docs\Ideas.txt
 		docs\LectureOrder.txt = docs\LectureOrder.txt
 		docs\Node_Redirects.txt = docs\Node_Redirects.txt
 		docs\Priority_Queue_Concepts.txt = docs\Priority_Queue_Concepts.txt
 		docs\README.md = docs\README.md
+		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Scraper.Tests", "tests\Service.Scraper.Tests\Service.Scraper.Tests.csproj", "{3BC7B8B4-70A9-4105-932A-B4B98BE39D47}"
@@ -67,7 +68,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Core", "src\Strea
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Graphing.Tests", "tests\Service.Graphing.Tests\Service.Graphing.Tests.csproj", "{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebMapper.WebUI", "src\WebMapper.WebUI\WebMapper.WebUI.csproj", "{77323C2E-C662-4F47-B374-2099F3703E3F}"
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "webmapper.webui", "src\WebMapper.WebUI\webmapper.webui.esproj", "{9218FBE3-827A-7AB1-C971-72E94FA301A3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -131,10 +132,12 @@ Global
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{77323C2E-C662-4F47-B374-2099F3703E3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{77323C2E-C662-4F47-B374-2099F3703E3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{77323C2E-C662-4F47-B374-2099F3703E3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{77323C2E-C662-4F47-B374-2099F3703E3F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -162,6 +165,9 @@ Global
 		{F1557BF3-4839-4B5F-A520-43AB129E270C} = {918A18B5-B3A1-4EF9-8B23-3DCBB4E886B3}
 		{93FB7F25-0BC5-448F-A4CF-68BF880C5C49} = {F1557BF3-4839-4B5F-A520-43AB129E270C}
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3} = {785AE35B-D59A-48BB-9CB5-2EBDA56F1248}
-		{77323C2E-C662-4F47-B374-2099F3703E3F} = {82C3C83E-1FAE-4950-9A5F-AEE5AB823C11}
+		{9218FBE3-827A-7AB1-C971-72E94FA301A3} = {82C3C83E-1FAE-4950-9A5F-AEE5AB823C11}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B99AE7C8-1566-45E6-8A0C-24230118B3F6}
 	EndGlobalSection
 EndGlobal

@@ -1,7 +1,7 @@
 ﻿using System;
 using Crawler.Core;
 using Events.Core.Bus;
-using Events.Core.EventTypes;
+using Events.Core.Events;
 using WebMapper.Cli.Service.Crawler;
 using WebMapper.Cli.Service.Events;
 using WebMapper.Cli.Service.Graphing;
@@ -99,9 +99,13 @@ namespace WebMapper.Cli
                 url: url, 
                 graphId: 1, 
                 followExternalLinks: false,
-                removeQueryStrings: true,
+                excludeQueryStrings: true,
                 maxDepth: 3,
-                pathFilters: null, 
+                titleFilterXPath: "",
+                contentFilterXPath: "",
+                relatedContentFilterXPath: "",
+                linkUrlFilterXPath: "",
+                imageUrlFilterXPath: "",
                 userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
                 userAccepts: "text/html,text/plain"));
         }
