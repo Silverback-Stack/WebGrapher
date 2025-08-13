@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices.Marshalling;
 using Events.Core.RateLimiters;
 using Microsoft.Extensions.Logging;
 

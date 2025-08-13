@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using Events.Core.RateLimiters;
 using Microsoft.Extensions.Logging;
 
 namespace Events.Core.Bus.Adapters.InMemory

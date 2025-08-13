@@ -20,14 +20,18 @@ namespace WebMapper.Cli.Service.Crawler.Controllers
         public async Task<IActionResult> CrawlUrlAsync(CrawlPageDto crawlPageDto)
         {
             var crawlPageEvent = new CrawlPageEvent(
-            url: crawlPageDto.Url,
-            graphId: crawlPageDto.MapId,
-            followExternalLinks: crawlPageDto.FollowExternalLinks,
-            removeQueryStrings: crawlPageDto.RemoveQueryStrings,
-            maxDepth: crawlPageDto.MaxDepth,
-            pathFilters: crawlPageDto.PathFilters?.Split(',').ToArray(),
-            userAgent: crawlPageDto.UserAgent,
-            userAccepts: crawlPageDto.UserAccepts
+            crawlPageDto.Url,
+            crawlPageDto.GraphId,
+            crawlPageDto.FollowExternalLinks,
+            crawlPageDto.ExcludeQueryStrings,
+            crawlPageDto.MaxDepth,
+            crawlPageDto.TitleFilterXPath,
+            crawlPageDto.ContentFilterXPath,
+            crawlPageDto.RelatedContentFilterXPath,
+            crawlPageDto.LinkUrlFilterXPath,
+            crawlPageDto.ImageUrlFilterXPath,
+            crawlPageDto.UserAgent,
+            crawlPageDto.UserAccepts
             );
 
             await _eventBus.PublishAsync(crawlPageEvent);

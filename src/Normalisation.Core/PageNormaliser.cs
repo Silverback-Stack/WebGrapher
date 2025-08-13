@@ -18,7 +18,7 @@ namespace Normalisation.Core
         private const int MAX_TITLE_LENGTH = 100;
         private const int MAX_KEYWORDS = 300; //1 page of text
         private const int MAX_KEYWORD_TAGS = 10;
-        private const int MAX_LINKS_PER_PAGE = 25;
+        private const int MAX_LINKS_PER_PAGE = 100;
 
         private static readonly string[] ALLOWABLE_LINK_SCHEMAS = ["http", "https"];
 
@@ -87,7 +87,7 @@ namespace Normalisation.Core
             }
 
             var htmlParser = new HtmlParser(htmlDocument);
-            var extractedTitle = htmlParser.ExtractTitle();
+            var extractedTitle = htmlParser.ExtractTitle(request.TitleFilterXPath);
             var extractedContent = htmlParser.ExtractContentAsPlainText();
             var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent);
             var extractedLinks = htmlParser.ExtractLinks();
@@ -99,8 +99,8 @@ namespace Normalisation.Core
                 extractedLinks,
                 request.Url,
                 request.FollowExternalLinks,
-                request.RemoveQueryStrings,
-                request.PathFilters);
+                request.ExcludeQueryStrings,
+                request.LinkUrlFilterXPath);
 
             await PublishGraphEvent(evt, normalisedTitle, normalisedKeywords, normalisedTags, normalisedLinks, detectedLanguageIso3);
 
@@ -190,8 +190,8 @@ namespace Normalisation.Core
             IEnumerable<string> links,
             Uri baseUrl,
             bool allowExternal,
-            bool removeQueryStrings,
-            IEnumerable<string>? pathFilters)
+            bool excludeQueryStrings,
+            string linkUrlFilterXPath)
         {
             var uniqueUrls = UrlNormaliser.MakeAbsolute(links, baseUrl);
 
@@ -204,10 +204,10 @@ namespace Normalisation.Core
             if (!allowExternal)
                 uniqueUrls = UrlNormaliser.RemoveExternalLinks(uniqueUrls, baseUrl);
 
-            if (removeQueryStrings)
+            if (excludeQueryStrings)
                 uniqueUrls = UrlNormaliser.RemoveQueryStrings(uniqueUrls);
 
-            uniqueUrls = UrlNormaliser.FilterByPath(uniqueUrls, pathFilters);
+            uniqueUrls = UrlNormaliser.FilterByXPath(uniqueUrls, linkUrlFilterXPath);
 
             uniqueUrls = UrlNormaliser.Truncate(uniqueUrls, MAX_LINKS_PER_PAGE);
 

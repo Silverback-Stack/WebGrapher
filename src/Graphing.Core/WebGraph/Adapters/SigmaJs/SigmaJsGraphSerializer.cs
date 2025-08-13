@@ -13,7 +13,9 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
                 yield return CreateNodeDto(node);
 
             // Include outgoing links if they point to populated nodes (after redirect resolution)
-            foreach (var linkedNode in node.OutgoingLinks
+            // make snapshot as collection can be modified by parallel tasks
+            var outgoingSnapshot = node.OutgoingLinks.ToList();
+            foreach (var linkedNode in outgoingSnapshot
                 .Select(ResolveRedirect)
                 .Where(n => n.State == NodeState.Populated))
             {
@@ -21,7 +23,9 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
             }
 
             // Include incoming links if they are populated
-            foreach (var sourceNode in node.IncomingLinks
+            // make snapshot as collection can be modified by parallel tasks
+            var incomingSnapshot = node.IncomingLinks.ToList();
+            foreach (var sourceNode in incomingSnapshot
                 .Select(ResolveRedirect)
                 .Where(n => n.State == NodeState.Populated))
             {
@@ -32,7 +36,8 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
         public static IEnumerable<SigmaGraphEdgeDto> MapEdges(Node node)
         {
             // Outgoing edges to populated nodes
-            foreach (var target in node.OutgoingLinks
+            var outgoingSnapshot = node.OutgoingLinks.ToList();
+            foreach (var target in outgoingSnapshot
                 .Select(ResolveRedirect)
                 .Where(n => n.State == NodeState.Populated))
             {
@@ -40,7 +45,8 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
             }
 
             // Incoming edges from populated nodes
-            foreach (var source in node.IncomingLinks
+            var incomingSnapshot = node.IncomingLinks.ToList();
+            foreach (var source in incomingSnapshot
                 .Select(ResolveRedirect)
                 .Where(n => n.State == NodeState.Populated))
             {

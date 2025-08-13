@@ -1,20 +1,25 @@
 <script setup>
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, computed } from 'vue'
+  import { useRoute } from 'vue-router'
   import * as signalR from '@microsoft/signalr'
   import Sigma from 'sigma'
   import Graph from 'graphology'
   import forceAtlas2 from 'graphology-layout-forceatlas2'
   import FA2Layout from 'graphology-layout-forceatlas2/worker'
+  import { createNodeImageProgram } from '@sigma/node-image'
 
   const container = ref(null)
   const graph = new Graph()
   let sigmaInstance = null
   let fa2 = null
-  const graphId = '1'
+
+  const route = useRoute()
+  const graphId = computed(() => route.params.id || '1') // /Graph/:id
 
   onMounted(async () => {
 
     sigmaInstance = new Sigma(graph, container.value)
+    sigmaInstance.registerNodeProgram('image', createNodeImageProgram())
 
     // Prepare ForceAtlas2 worker layout (keeps running in background)
     fa2 = new FA2Layout(graph, {
@@ -31,7 +36,7 @@
       console.log('SignalR connected')
 
       // Join the graph group on the server
-      await connection.invoke('JoinGraphGroup', graphId)
+      await connection.invoke('JoinGraphGroup', graphId.value)
 
     }
     catch (err) {
@@ -120,6 +125,7 @@
   </header>
 
   <main>
+    <div v-if="graphId">Graph: {{ graphId }}</div>
     <div id="graph-container" ref="container" style="height: 100vh;"></div>
   </main>
 </template>

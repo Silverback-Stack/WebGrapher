@@ -35,6 +35,13 @@ You can keep this running while developing.
 
 
 
+Install Componenets:
+
+npm install vue-router
+
+
+
+
 Install Sigma.js and Graphology:
 
 Open the terminal in Visual Studio (or use PowerShell):
@@ -43,6 +50,7 @@ cd src/WebMapper.WebUI
 
 npm install sigma graphology
 npm install graphology-layout-forceatlas2
+npm install @sigma/node-image
 
 
 Create landing page:

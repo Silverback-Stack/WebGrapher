@@ -14,10 +14,12 @@
   },
   "dependencies": {
     "@microsoft/signalr": "^9.0.6",
+    "@sigma/node-image": "^3.0.0",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "sigma": "^3.0.2",
-    "vue": "^3.5.18"
+    "vue": "^3.5.18",
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
