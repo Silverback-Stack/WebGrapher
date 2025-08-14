@@ -25,11 +25,13 @@ namespace WebMapper.Cli.Service.Crawler.Controllers
             crawlPageDto.FollowExternalLinks,
             crawlPageDto.ExcludeQueryStrings,
             crawlPageDto.MaxDepth,
-            crawlPageDto.TitleFilterXPath,
-            crawlPageDto.ContentFilterXPath,
-            crawlPageDto.RelatedContentFilterXPath,
-            crawlPageDto.LinkUrlFilterXPath,
-            crawlPageDto.ImageUrlFilterXPath,
+            crawlPageDto.MaxLinks,
+            crawlPageDto.UrlMatchRegex,
+            crawlPageDto.TitleElementXPath,
+            crawlPageDto.ContentElementXPath,
+            crawlPageDto.SummaryElementXPath,
+            crawlPageDto.ImageElementXPath,
+            crawlPageDto.RelatedLinksElementXPath,
             crawlPageDto.UserAgent,
             crawlPageDto.UserAccepts
             );

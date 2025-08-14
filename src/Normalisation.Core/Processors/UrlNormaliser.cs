@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using System.Xml.XPath;
 using HtmlAgilityPack;
 
@@ -28,18 +29,41 @@ namespace Normalisation.Core.Processors
                 if (string.IsNullOrWhiteSpace(url))
                     continue;
 
+                var trimmedUrl = url.Trim();
                 Uri absolute;
 
-                if (Uri.TryCreate(url, UriKind.Absolute, out var abs))
+                // Handle protocol-relative URLs (//something)
+                if (trimmedUrl.StartsWith("//"))
                 {
+                    // Prepend the scheme from baseUrl
+                    var urlWithScheme = $"{baseUri.Scheme}:{trimmedUrl}";
+
+                    if (Uri.TryCreate(urlWithScheme, UriKind.Absolute, out var abs) 
+                        && abs.Host.Contains(".")) //simple heuristic to detect actual domain name 
+                    {
+                        // Valid host → treat as absolute
+                        absolute = abs;
+                    }
+                    else
+                    {
+                        // No valid host → treat as relative path
+                        absolute = new Uri(baseUri, trimmedUrl.Substring(2)); // remove leading //
+                    }
+
+                }
+                else if (Uri.TryCreate(trimmedUrl, UriKind.Absolute, out var abs))
+                {
+                    // Already absolute
                     absolute = abs;
                 }
                 else
                 {
-                    var combined = new Uri(baseUri, url);
-                    absolute = RemoveFragment(combined);
+                    // Relative URL → resolve against base
+                    absolute = new Uri(baseUri, trimmedUrl);
                 }
 
+                // Remove fragments (#something) if any
+                absolute = RemoveFragment(absolute);
                 uniqueUrls.Add(absolute);
             }
 
@@ -62,35 +86,31 @@ namespace Normalisation.Core.Processors
             return urls.Where(u => schemas.Contains(u.Scheme)).ToHashSet();
         }
 
-        public static HashSet<Uri> FilterByXPath(HashSet<Uri> urls, string linkUrlFilterXPath)
+        public static HashSet<Uri> FilterByRegex(HashSet<Uri> urls, string regex)
         {
-            if (string.IsNullOrWhiteSpace(linkUrlFilterXPath)) return urls;
+            if (string.IsNullOrWhiteSpace(regex)) return urls;
 
+            Regex pattern;
             try
             {
-                // Validate XPath syntax
-                XPathExpression.Compile(linkUrlFilterXPath);
+                // Compile the regex to validate syntax
+                pattern = new Regex(regex, RegexOptions.Compiled);
             }
             catch (Exception)
             {
-                //invalid Xpath
+                // Invalid regex — return original set
                 return urls;
             }
 
             var filtered = new HashSet<Uri>();
             foreach (var url in urls)
             {
-                string html = $"<a href='{url.AbsoluteUri}'></a>";
-
-                var doc = new HtmlDocument();
-                doc.LoadHtml(html);
-
-                var node = doc.DocumentNode.SelectSingleNode(linkUrlFilterXPath);
-                if (node != null)
+                if (pattern.IsMatch(url.AbsoluteUri))
                 {
                     filtered.Add(url);
                 }
             }
+
             return filtered;
         }
 
@@ -125,23 +145,26 @@ namespace Normalisation.Core.Processors
             return urls.Where(u => !u.Equals(baseUrl)).ToHashSet();
         }
 
-        public static HashSet<Uri> RemoveTrailingSlash(HashSet<Uri> urls)
-        {
-            var results = new HashSet<Uri>();
+        //DO NOT USE - CAUSING UNEXPECTED REDIRECTS - ALWAYS STAY TRUE TO SOURCE PAGE URLS
+        //public static HashSet<Uri> RemoveTrailingSlash(HashSet<Uri> urls)
+        //{
+        //    var results = new HashSet<Uri>();
 
-            foreach (var url in urls)
-            {
-                var path = url.AbsolutePath;
-                var builder = new UriBuilder(url)
-                {
-                    Path = path == "/" ? path : path.TrimEnd('/')
-                };
+        //    foreach (var url in urls)
+        //    {
+        //        var path = url.AbsolutePath;
+        //        var builder = new UriBuilder(url)
+        //        {
+        //            Path = path == "/" ? path : path.TrimEnd('/')
+        //        };
 
-                results.Add(builder.Uri);
-            }
+        //        results.Add(builder.Uri);
+        //    }
 
-            return results;
-        }
+        //    return results;
+        //}
+
+
         public static HashSet<Uri> Truncate(HashSet<Uri> urls, int size)
         {
             return urls.Take(size).ToHashSet();

@@ -19,8 +19,14 @@ namespace Events.Core.Dtos
         [JsonPropertyName("state")]
         public required string State { get; set; }
 
-        [JsonPropertyName("keywords")]
-        public string Keywords { get; set; } = string.Empty;
+        [JsonPropertyName("summery")]
+        public required string Summery { get; set; }
+
+        [JsonPropertyName("image")]
+        public string? Image { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type => Image != null ? "image" : "circle";
 
         [JsonPropertyName("tags")]
         public IEnumerable<string> Tags { get; set; } = Enumerable.Empty<string>();
@@ -30,5 +36,6 @@ namespace Events.Core.Dtos
 
         [JsonPropertyName("createdAt")]
         public DateTimeOffset CreatedAt { get; init; }
+
     }
 }

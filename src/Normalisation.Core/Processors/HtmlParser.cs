@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Xml.XPath;
 using HtmlAgilityPack;
 
@@ -7,67 +6,155 @@ namespace Normalisation.Core.Processors
 {
     public class HtmlParser
     {
-        private const string TITLE_XPATH = "//title";
-        private const string LINKS_XPATH = "//a[@href]";
+        private const string TITLE_XPATH = ".//title";
+        private const string LINKS_XPATH = ".//a[@href]";
 
         private readonly HtmlDocument _htmlDocument;
 
         public HtmlParser(string htmlDocument) {
 
             _htmlDocument = new HtmlDocument();
+            _htmlDocument.OptionFixNestedTags = true;
             _htmlDocument.LoadHtml(htmlDocument);
         }
 
-        public string ExtractTitle(string titleFilterXPath = "")
+        public string ExtractTitle(string xPathExpression = "")
         {
-            if (!string.IsNullOrWhiteSpace(titleFilterXPath))
+            var node = GetNodeOrRoot(xPathExpression);
+            var result = node.InnerText?.Trim() ?? string.Empty;
+
+            // If empty, try extracting from page <title>
+            if (string.IsNullOrWhiteSpace(result) || node == _htmlDocument.DocumentNode)
             {
-                try
-                {
-                    // Validate XPath syntax
-                    XPathExpression.Compile(titleFilterXPath);
-                }
-                catch (Exception)
-                {
-                    //invalid Xpath syntax
-                    titleFilterXPath = string.Empty;
-                }
+                var titleNode = _htmlDocument.DocumentNode.SelectSingleNode(TITLE_XPATH);
+                if (!string.IsNullOrWhiteSpace(titleNode?.InnerText))
+                    result = titleNode.InnerText.Trim();
             }
 
-            HtmlNode? title = null;
-            if (!string.IsNullOrEmpty(titleFilterXPath))
-            {
-                title = _htmlDocument.DocumentNode.SelectSingleNode(titleFilterXPath);
-            } 
-            
-            if (title == null)
-            {
-                title = _htmlDocument.DocumentNode.SelectSingleNode(TITLE_XPATH);
-            }
-
-            return title != null ? title.InnerText : string.Empty;
+            return result;
         }
 
-        public string ExtractContentAsPlainText()
+        public string ExtractSummeryAsPlainText(string xPathExpression = "")
         {
-            return _htmlDocument.DocumentNode.InnerText;
+            if (string.IsNullOrWhiteSpace(xPathExpression))
+                return string.Empty;
+
+            var node = GetNode(xPathExpression);
+
+            if (node == null)
+                return string.Empty;
+
+            return node.InnerText?.Trim() ?? string.Empty;
         }
 
-        public IEnumerable<string> ExtractLinks()
+        public string ExtractContentAsPlainText(string xPathExpression = "")
         {
-            var links = new List<string>();
+            var node = GetNodeOrRoot(xPathExpression);
+            var result = node.InnerText?.Trim() ?? string.Empty;
 
-            //select all <a> tags with href
-            var tags = _htmlDocument.DocumentNode.SelectNodes(LINKS_XPATH);
-            if (tags != null)
+            // Fallback: entire document text if empty
+            if (string.IsNullOrWhiteSpace(result))
+                result = _htmlDocument.DocumentNode.InnerText?.Trim() ?? string.Empty;
+
+            return result;
+        }
+
+
+        public IEnumerable<string> ExtractLinks(string xPathExpression = "")
+        {
+            HtmlNode node;
+
+            if (!string.IsNullOrEmpty(xPathExpression))
             {
-                foreach (var tag in tags)
-                {
-                    var href = WebUtility.HtmlDecode(tag.GetAttributeValue("href", ""));
-                    if (!string.IsNullOrEmpty(href)) links.Add(href);
-                }
+                node = GetNode(xPathExpression);
+                if (node == null)
+                    return Enumerable.Empty<string>(); // filter provided but container not found
             }
+            else
+            {
+                node = _htmlDocument.DocumentNode; // no filter → whole document
+            }
+
+            var links = (node.SelectNodes(LINKS_XPATH) ?? Enumerable.Empty<HtmlNode>())
+                .Select(tag => WebUtility.HtmlDecode(tag.GetAttributeValue("href", "")))
+                .Where(href => !string.IsNullOrEmpty(href))
+                .ToHashSet();
+
             return links;
+        }
+
+        public string ExtractImageUrl(string xPathExpression = "")
+        {
+            if (string.IsNullOrEmpty(xPathExpression))
+                return string.Empty;
+
+            var node = GetNode(xPathExpression);
+            if (node == null)
+                return string.Empty;
+
+            // Try src
+            var src = node.GetAttributeValue("src", null);
+            if (!string.IsNullOrEmpty(src))
+                return src;
+
+            // Try srcset — get first URL
+            var srcset = node.GetAttributeValue("srcset", null);
+            if (!string.IsNullOrEmpty(srcset))
+            {
+                var firstUrl = srcset.Split(',')[0].Trim().Split(' ')[0];
+                return firstUrl;
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Picks either a filtered node or the document root, and guarantees non-null.
+        /// </summary>
+        private HtmlNode GetNodeOrRoot(string xPathExpression)
+        {
+            if (IsValidExpression(xPathExpression))
+            {
+                var node = _htmlDocument.DocumentNode.SelectSingleNode(xPathExpression);
+                if (node != null)
+                    return node;
+            }
+
+            // Default to entire document if no valid node found
+            return _htmlDocument.DocumentNode;
+        }
+
+        /// <summary>
+        /// Picks a filtered node or null.
+        /// </summary>
+        private HtmlNode? GetNode(string xPathExpression)
+        {
+            if (IsValidExpression(xPathExpression))
+            {
+                var node = _htmlDocument.DocumentNode.SelectSingleNode(xPathExpression);
+                return node;
+            }
+
+            return null;
+        }
+
+        private bool IsValidExpression(string xPathExpression)
+        {
+            if (string.IsNullOrWhiteSpace(xPathExpression))
+                return false;
+
+            try
+            {
+                // Validate XPath syntax
+                XPathExpression.Compile(xPathExpression);
+            }
+            catch (Exception)
+            {
+                //invalid Xpath syntax
+                return false;
+            }
+
+            return true;
         }
     }
 }

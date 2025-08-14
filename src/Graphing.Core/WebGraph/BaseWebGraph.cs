@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Xml.Linq;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 
@@ -16,7 +15,11 @@ namespace Graphing.Core.WebGraph
             _logger = logger;
         }
 
-        public async Task AddWebPageAsync(WebPageItem webPage, Func<Node, Task> onNodePopulated, Func<Node, Task> onLinkDiscovered)
+        public async Task AddWebPageAsync(
+            WebPageItem webPage, 
+            Func<Node, Task> onNodePopulated, 
+            Func<Node, Task> onLinkDiscovered,
+            LinkUpdateMode linkUpdateMode = LinkUpdateMode.Append)
         {
             _logger.LogDebug($"AddWebPageAsync started for {webPage.Url}");
 
@@ -31,7 +34,10 @@ namespace Graphing.Core.WebGraph
 
             await PopulateNodeFromWebPageAsync(node, webPage);
 
-            await ClearOutgoingLinksAsync(node);
+            if (linkUpdateMode == LinkUpdateMode.Replace)
+            {
+                await ClearOutgoingLinksAsync(node);
+            }
 
             if (webPage.IsRedirect)
             {
@@ -109,6 +115,8 @@ namespace Graphing.Core.WebGraph
         protected async Task PopulateNodeFromWebPageAsync(Node node, WebPageItem webPage)
         {
             node.Title = webPage.Title ?? string.Empty;
+            node.Summery = webPage.Summary ?? string.Empty;
+            node.ImageUrl = webPage.ImageUrl ?? string.Empty;
             node.Keywords = webPage.Keywords ?? string.Empty;
             node.Tags = webPage.Tags ?? Enumerable.Empty<string>();
             node.SourceLastModified = webPage.SourceLastModified;
@@ -174,33 +182,13 @@ namespace Graphing.Core.WebGraph
             await SaveNodeAsync(node);
         }
 
-        protected async Task MarkNodeAsRedirectedAsync(Node node)
-        {
-            if (node.State == NodeState.Populated)
-                throw new InvalidOperationException("Cannot change a populated node into a redirect node.");
-
-            node.State = NodeState.Redirected;
-            await SaveNodeAsync(node);
-        }
-
-        protected async Task AddRedirectLinkAsync(int graphId, string fromUrl, string toUrl)
-        {
-            var fromNode = await GetOrCreateNodeAsync(graphId, fromUrl);
-            var toNode = await GetOrCreateNodeAsync(graphId, toUrl);
-
-            if (fromNode.State == NodeState.Populated)
-                throw new InvalidOperationException("Cannot add redirect link from a populated node.");
-
-            fromNode.OutgoingLinks.Add(toNode);
-            await SaveNodeAsync(fromNode);
-        }
-
         protected async Task SetRedirectedAsync(int graphId, string fromUrl, string toUrl)
         {
             if (string.IsNullOrEmpty(fromUrl)) throw new ArgumentNullException(nameof(fromUrl));
             if (string.IsNullOrEmpty(toUrl)) throw new ArgumentNullException(nameof(toUrl));
 
             var fromNode = await GetOrCreateNodeAsync(graphId, fromUrl);
+            var toNode = await GetOrCreateNodeAsync(graphId, toUrl);
 
             if (fromNode.State == NodeState.Populated)
             {
@@ -208,13 +196,18 @@ namespace Graphing.Core.WebGraph
                 return;
             }
 
-            // Mark as redirected if not already populated
-            _logger.LogDebug($"Marked node {fromUrl} as redirected.");
-            await MarkNodeAsRedirectedAsync(fromNode);
+            // Mark as redirected
+            fromNode.State = NodeState.Redirected;
+            fromNode.RedirectedToUrl = toUrl;
 
-            // Create edge from original to destination
-            _logger.LogDebug($"Added redirect link from {fromUrl} to {toUrl}");
-            await AddRedirectLinkAsync(graphId, fromUrl, toUrl);
+            // Maintain incoming/outgoing links
+            fromNode.OutgoingLinks.Add(toNode);
+            toNode.IncomingLinks.Add(fromNode);
+            
+            _logger.LogDebug($"Marked node {fromUrl} as redirected to {toUrl} and updated links.");
+
+            await SaveNodeAsync(toNode);
+            await SaveNodeAsync(fromNode);
         }
 
         protected async Task ClearOutgoingLinksAsync(Node node)

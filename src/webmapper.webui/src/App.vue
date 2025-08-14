@@ -23,10 +23,12 @@
 
     // Prepare ForceAtlas2 worker layout (keeps running in background)
     fa2 = new FA2Layout(graph, {
+      iterations: 100,
       settings: {
-        slowDown: 10,
-        gravity: 5,
-        scalingRatio: 1,
+        slowDown: 5,
+        gravity: 1,
+        scalingRatio: 10,
+        strongGravityMode: true,
         adjustSizes: true
       }
     })
@@ -42,6 +44,7 @@
     catch (err) {
       console.error('SignalR connection error:', err)
     }
+
   })
 
 
@@ -70,39 +73,52 @@
     // Update/Add nodes
     console.log('Received node:', node);
 
-    node.nodes.forEach(node => {
-      if (graph.hasNode(node.id)) {
-        graph.mergeNodeAttributes(node.id, {
-          label: node.label,
-          size: node.size,
-          color: node.state === 'Populated' ? '#4CAF50' : '#888',
-          keywords: node.keywords,
-          tags: node.tags,
-          sourceLastModified: node.sourceLastModified,
-          createdAt: node.createdAt
-        })
-      }
-      else {
-        const pos = getRandomPosition(5)
-        graph.addNode(node.id, {
-          label: node.label,
-          size: node.size,
-          color: node.state === 'Populated' ? '#4CAF50' : '#888',
-          keywords: node.keywords,
-          tags: node.tags,
-          sourceLastModified: node.sourceLastModified,
-          createdAt: node.createdAt,
+    // Add or merge nodes
+    node.nodes.forEach(n => {
+      if (graph.hasNode(n.id)) {
+        graph.mergeNodeAttributes(n.id, {
+          label: n.label,
+          size: n.size,
+          color: n.state === 'Populated' ? '#4CAF50' : '#888',
+          image: n.image,
+          type: n.type,
+          summary: n.summary,
+          tags: n.tags,
+          sourceLastModified: n.sourceLastModified,
+          createdAt: n.createdAt
+        });
+      } else {
+        const pos = getRandomPosition(5);
+        graph.addNode(n.id, {
+          label: n.label,
+          size: n.size,
+          color: n.state === 'Populated' ? '#4CAF50' : '#888',
+          image: n.image,
+          type: n.type,
+          summary: n.summary,
+          tags: n.tags,
+          sourceLastModified: n.sourceLastModified,
+          createdAt: n.createdAt,
           x: pos.x,
           y: pos.y
-        })
+        });
       }
-    })
+    });
 
-    // Add any new edges
-    node.edges.forEach(edge => {
-      if (!graph.hasEdge(edge.id)) {
-        graph.addEdgeWithKey(edge.id, edge.source, edge.target);
-        console.log(`Added edge ${edge.id} from ${edge.source} to ${edge.target}`);
+    // Add edges (flattened)
+    node.edges.forEach(e => {
+      // Ensure both source and target exist in the graph
+      const sourceId = graph.hasNode(e.source) ? e.source : null;
+      const targetId = graph.hasNode(e.target) ? e.target : null;
+
+      if (!sourceId || !targetId) {
+        console.warn(`Skipped edge ${e.id}: source or target missing`, e);
+        return;
+      }
+
+      if (!graph.hasEdge(e.id)) {
+        graph.addEdgeWithKey(e.id, sourceId, targetId);
+        console.log(`Added edge ${e.id} from ${sourceId} to ${targetId}`);
       }
     });
 
@@ -112,7 +128,30 @@
       fa2.start()
       setTimeout(() => {
         fa2.stop()
-      }, 3000) // run for 2 seconds after each update
+      }, 2000) // run for 2 seconds after each update
+    }
+
+    function explodeLayout() {
+      if (fa2.isRunning()) fa2.stop();
+
+      // Run a fresh layout burst with stronger spacing
+      const positions = forceAtlas2(graph, {
+        iterations: 100,
+        settings: {
+          gravity: 1,
+          scalingRatio: 100,
+          strongGravityMode: true,
+          adjustSizes: true
+        }
+      });
+
+      graph.updateEachNodeAttributes((node, attr) => ({
+        ...attr,
+        x: positions[node].x,
+        y: positions[node].y
+      }));
+
+      sigmaInstance.refresh();
     }
 
 
@@ -126,6 +165,9 @@
 
   <main>
     <div v-if="graphId">Graph: {{ graphId }}</div>
+    <button @click="explodeLayout" style="position: absolute; top: 10px; left: 10px; z-index: 10;">
+      Explode Layout
+    </button>
     <div id="graph-container" ref="container" style="height: 100vh;"></div>
   </main>
 </template>

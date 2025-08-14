@@ -9,13 +9,15 @@ namespace Events.Core.Dtos
         public int Attempt { get; init; } = 1;
         public int Depth { get; init; } = 0;
         public int MaxDepth { get; init; }
+        public int MaxLinks { get; init; }
         public bool FollowExternalLinks { get; init; }
-        public bool ExcludeQueryStrings { get; init; }        
-        public string TitleFilterXPath { get; init; }
-        public string ContentFilterXPath { get; init; }
-        public string RelatedContentFilterXPath { get; init; }
-        public string LinkUrlFilterXPath { get; init; }
-        public string ImageUrlFilterXPath { get; init; }                       
+        public bool ExcludeQueryStrings { get; init; }
+        public string UrlMatchRegex { get; init; }
+        public string TitleElementXPath { get; init; }
+        public string ContentElementXPath { get; init; }
+        public string SummaryElementXPath { get; init; }
+        public string ImageElementXPath { get; init; }
+        public string RelatedLinksElementXPath { get; init; }
         public string UserAgent { get; init; }
         public string UserAccepts { get; init; }
         public DateTimeOffset RequestedAt { get; init; }
