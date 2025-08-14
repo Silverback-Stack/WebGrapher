@@ -4,9 +4,16 @@ namespace Graphing.Core.WebGraph
 {
     public interface IWebGraph
     {
-        Task AddWebPageAsync(WebPageItem webPage, Func<Node, Task> onNodePopulated, Func<Node, Task> onLinkDiscovered);
+        Task AddWebPageAsync(
+            WebPageItem webPage, 
+            Func<Node, Task> onNodePopulated, 
+            Func<Node, Task> onLinkDiscovered,
+            LinkUpdateMode linkUpdateMode = LinkUpdateMode.Append);
+
         Task<Node?> GetNodeAsync(int graphId, string url);
+        
         Task<int> TotalPopulatedNodesAsync(int graphId);
+        
         Task CleanupOrphanedNodesAsync(int graphId);
 
         // IDEAS FOR FUNCTIONS:

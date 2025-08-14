@@ -16,7 +16,8 @@ namespace Normalisation.Core
         private readonly IEventBus _eventBus;
 
         private const int MAX_TITLE_LENGTH = 100;
-        private const int MAX_KEYWORDS = 300; //1 page of text
+        private const int MAX_SUMMERY_WORDS = 100;
+        private const int MAX_KEYWORDS = 300; // one page of text
         private const int MAX_KEYWORD_TAGS = 10;
         private const int MAX_LINKS_PER_PAGE = 100;
 
@@ -39,8 +40,15 @@ namespace Normalisation.Core
             _eventBus.Unsubscribe<NormalisePageEvent>(NormalisePageContentAsync);
         }
 
-        private async Task PublishGraphEvent(NormalisePageEvent evt,
-            string? title, string? keywords, IEnumerable<string>? tags, IEnumerable<Uri>? links, string? languageIso3)
+        private async Task PublishGraphEvent(
+            NormalisePageEvent evt,
+            string? title, 
+            string? summery,
+            string? keywords, 
+            IEnumerable<string>? tags, 
+            IEnumerable<Uri>? links, 
+            Uri? imageUrl,
+            string? languageIso3)
         {
             var request = evt.CrawlPageRequest;
             var result = evt.ScrapePageResult;
@@ -53,9 +61,11 @@ namespace Normalisation.Core
                 IsRedirect = result.IsRedirect,
                 SourceLastModified = result.SourceLastModified,
                 Title = title,
+                Summery = summery,
                 Keywords = keywords,
                 Tags = tags,
                 Links = links,
+                ImageUrl = imageUrl,
                 DetectedLanguageIso3 = languageIso3,
                 CreatedAt = DateTimeOffset.UtcNow
             };
@@ -87,12 +97,15 @@ namespace Normalisation.Core
             }
 
             var htmlParser = new HtmlParser(htmlDocument);
-            var extractedTitle = htmlParser.ExtractTitle(request.TitleFilterXPath);
-            var extractedContent = htmlParser.ExtractContentAsPlainText();
+            var extractedTitle = htmlParser.ExtractTitle(request.TitleElementXPath);
+            var extractedSummery = htmlParser.ExtractSummeryAsPlainText(request.SummaryElementXPath);
+            var extractedContent = htmlParser.ExtractContentAsPlainText(request.ContentElementXPath);
             var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent);
-            var extractedLinks = htmlParser.ExtractLinks();
+            var extractedLinks = htmlParser.ExtractLinks(request.RelatedLinksElementXPath);
+            var extractedImageUrl = htmlParser.ExtractImageUrl(request.ImageElementXPath);   
 
             var normalisedTitle = NormaliseTitle(extractedTitle);
+            var normalisedSummery = NormaliseSummery(extractedSummery);
             var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
             var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, MAX_KEYWORD_TAGS);
             var normalisedLinks = NormaliseLinks(
@@ -100,9 +113,11 @@ namespace Normalisation.Core
                 request.Url,
                 request.FollowExternalLinks,
                 request.ExcludeQueryStrings,
-                request.LinkUrlFilterXPath);
+                request.MaxLinks,
+                request.UrlMatchRegex);
+            var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
 
-            await PublishGraphEvent(evt, normalisedTitle, normalisedKeywords, normalisedTags, normalisedLinks, detectedLanguageIso3);
+            await PublishGraphEvent(evt, normalisedTitle, normalisedSummery, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
 
             var linkType = request.FollowExternalLinks ? "external" : "internal";
             _logger.LogDebug($"Publishing GraphPageEvent for {result.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
@@ -139,6 +154,16 @@ namespace Normalisation.Core
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
             text = TextNormaliser.Truncate(text, MAX_TITLE_LENGTH);
+
+            return text;
+        }
+
+        public string NormaliseSummery(string? text)
+        {
+            if (text == null) return string.Empty;
+
+            text = TextNormaliser.DecodeHtml(text);
+            text = TextNormaliser.TruncateToWords(text, MAX_SUMMERY_WORDS);
 
             return text;
         }
@@ -191,13 +216,14 @@ namespace Normalisation.Core
             Uri baseUrl,
             bool allowExternal,
             bool excludeQueryStrings,
-            string linkUrlFilterXPath)
+            int maxLinks,
+            string linkUrlFilterRegex)
         {
             var uniqueUrls = UrlNormaliser.MakeAbsolute(links, baseUrl);
 
             uniqueUrls = UrlNormaliser.RemoveCyclicalLinks(uniqueUrls, baseUrl);
 
-            uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
+            //uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
 
             uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, ALLOWABLE_LINK_SCHEMAS);
 
@@ -207,11 +233,34 @@ namespace Normalisation.Core
             if (excludeQueryStrings)
                 uniqueUrls = UrlNormaliser.RemoveQueryStrings(uniqueUrls);
 
-            uniqueUrls = UrlNormaliser.FilterByXPath(uniqueUrls, linkUrlFilterXPath);
+            uniqueUrls = UrlNormaliser.FilterByRegex(uniqueUrls, linkUrlFilterRegex);
 
-            uniqueUrls = UrlNormaliser.Truncate(uniqueUrls, MAX_LINKS_PER_PAGE);
+            uniqueUrls = UrlNormaliser.Truncate(uniqueUrls, GetLinkLimit(maxLinks));
 
             return uniqueUrls;
+        }
+
+        public Uri? NormaliseImageUrl(
+            string imageUrl,
+            Uri baseUrl)
+        {
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                return null;
+            }
+
+            var uniqueUrls = UrlNormaliser.MakeAbsolute(new List<string> { imageUrl }, baseUrl);
+
+            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, ALLOWABLE_LINK_SCHEMAS);
+
+            return uniqueUrls.FirstOrDefault();
+        }
+
+        private int GetLinkLimit(int maxLinks)
+        {
+            if (maxLinks <= 0) return 0;
+            if (maxLinks > MAX_LINKS_PER_PAGE) return MAX_LINKS_PER_PAGE;
+            return maxLinks;
         }
     }
 }

@@ -23,19 +23,29 @@ namespace Service.Normalisation.Tests
         {
             var urls = new List<string>
             {
-                "/page1",
-                "https://other.com/page2",
-                "page3#fragment",
-                "",
-                " "
+                "/page1",                     // root-relative
+                "page2",                      // relative
+                "https://other.com/page3",    // absolute
+                "//other.com/page4",          // protocol-relative with host
+                "//images/page5",             // protocol-relative without host
+                "page6#fragment",             // relative with fragment
+                "",                           // empty
+                " "                           // whitespace
             };
 
             var results = UrlNormaliser.MakeAbsolute(urls, _baseUrl);
 
-            Assert.That(results.Count, Is.EqualTo(3));
-            Assert.That(results, Has.Some.Matches<Uri>(u => u.ToString() == "https://example.com/page1"));
-            Assert.That(results, Has.Some.Matches<Uri>(u => u.ToString() == "https://other.com/page2"));
-            Assert.That(results, Has.Some.Matches<Uri>(u => u.ToString() == "https://example.com/page3"));
+            // Remove fragments for comparison
+            var resultStrings = results.Select(u => u.ToString()).ToHashSet();
+
+            Assert.That(resultStrings.Count, Is.EqualTo(6));
+
+            Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/page1"));
+            Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/page2"));
+            Assert.That(resultStrings, Has.Some.EqualTo("https://other.com/page3"));
+            Assert.That(resultStrings, Has.Some.EqualTo("https://other.com/page4"));
+            Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/images/page5"));
+            Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/page6"));
         }
 
         [Test]
@@ -58,16 +68,19 @@ namespace Service.Normalisation.Tests
         }
 
         [Test]
-        public void FilterByPath_FiltersUrlsContainingPathSegment()
+        public void FilterByRegex_FiltersUrlsContainingMatchingPattern()
         {
             var urls = new HashSet<Uri>
         {
             new Uri("https://example.com/products/item1"),
             new Uri("https://example.com/blog/post"),
-            new Uri("https://example.com/contact")
+            new Uri("https://example.com/contact"),
+            new Uri("https://example.com/chat/hello")
         };
 
-            var filtered = UrlNormaliser.FilterByXPath(urls, "//a[contains(@href, '/products/') or contains(@href, '/blog/')]");
+            //match only URLs that contain either /products/ or /blog/
+            var filtered = UrlNormaliser.FilterByRegex(urls, ".*/(products|blog)/.*"); 
+
 
             Assert.That(filtered.Count, Is.EqualTo(2));
             Assert.That(filtered.Any(u => u.AbsolutePath.Contains("products")), Is.True);
@@ -118,22 +131,24 @@ namespace Service.Normalisation.Tests
             Assert.That(filtered.Count, Is.EqualTo(1));
         }
 
-        [Test]
-        public void RemoveTrailingSlash_RemovesTrailingSlashExceptRoot()
-        {
-            var urls = new HashSet<Uri>
-        {
-            new Uri("https://example.com/path/"),
-            new Uri("https://example.com/"),
-            new Uri("https://example.com/path/sub/")
-        };
 
-            var cleaned = UrlNormaliser.RemoveTrailingSlash(urls);
+        //DO NOT USE - CAUSING UNEXPECTED REDIRECTS - ALWAYS STAY TRUE TO SOURCE PAGE URLS
+        //[Test]
+        //public void RemoveTrailingSlash_RemovesTrailingSlashExceptRoot()
+        //{
+        //    var urls = new HashSet<Uri>
+        //{
+        //    new Uri("https://example.com/path/"),
+        //    new Uri("https://example.com/"),
+        //    new Uri("https://example.com/path/sub/")
+        //};
 
-            Assert.That(cleaned.Any(u => u.ToString().EndsWith("/path")), Is.True);
-            Assert.That(cleaned.Any(u => u.ToString().EndsWith("/")), Is.True); // root remains with slash
-            Assert.That(cleaned.Any(u => u.ToString().EndsWith("/sub")), Is.True);
-        }
+        //    var cleaned = UrlNormaliser.RemoveTrailingSlash(urls);
+
+        //    Assert.That(cleaned.Any(u => u.ToString().EndsWith("/path")), Is.True);
+        //    Assert.That(cleaned.Any(u => u.ToString().EndsWith("/")), Is.True); // root remains with slash
+        //    Assert.That(cleaned.Any(u => u.ToString().EndsWith("/sub")), Is.True);
+        //}
 
         [Test]
         public void Truncate_ReturnsOnlySpecifiedNumberOfUrls()

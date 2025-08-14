@@ -88,6 +88,8 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
 
         public override async Task<int> TotalPopulatedNodesAsync(int graphId)
         {
+            _logger.LogWarning(DumpGraphContents());
+
             if (_graphs.TryGetValue(graphId, out var nodes))
             {
                 int count = nodes.Values.Count(n => n.State == NodeState.Populated);
@@ -153,6 +155,45 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             }
 
             return await Task.FromResult(result);
+        }
+
+
+        public string DumpGraphContents()
+        {
+            var sb = new System.Text.StringBuilder();
+
+            foreach (var (graphId, nodes) in _graphs)
+            {
+                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodes.Count}");
+                foreach (var node in nodes.Values.OrderBy(n => n.Url))
+                {
+                    sb.AppendLine($"  Node: {node.Url}");
+                    sb.AppendLine($"    State: {node.State}");
+                    sb.AppendLine($"    Title: {node.Title}");
+                    sb.AppendLine($"    Incoming: {node.IncomingLinkCount} | Outgoing: {node.OutgoingLinkCount}");
+
+                    if (node.OutgoingLinks.Any())
+                    {
+                        sb.AppendLine("    Outgoing Links:");
+                        foreach (var outNode in node.OutgoingLinks)
+                        {
+                            sb.AppendLine($"      -> {outNode.Url} [{outNode.State}]");
+                        }
+                    }
+
+                    if (node.IncomingLinks.Any())
+                    {
+                        sb.AppendLine("    Incoming Links:");
+                        foreach (var inNode in node.IncomingLinks)
+                        {
+                            sb.AppendLine($"      <- {inNode.Url} [{inNode.State}]");
+                        }
+                    }
+                }
+                sb.AppendLine(new string('-', 50));
+            }
+
+            return sb.ToString();
         }
 
     }

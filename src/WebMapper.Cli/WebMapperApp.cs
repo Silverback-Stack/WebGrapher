@@ -101,11 +101,13 @@ namespace WebMapper.Cli
                 followExternalLinks: false,
                 excludeQueryStrings: true,
                 maxDepth: 3,
-                titleFilterXPath: "",
-                contentFilterXPath: "",
-                relatedContentFilterXPath: "",
-                linkUrlFilterXPath: "",
-                imageUrlFilterXPath: "",
+                maxLinks: 10,
+                urlMatchRegex: "",
+                titleElementXPath: "",
+                contentElementXPath: "",
+                summaryElementXPath: "",
+                imageElementXPath: "",
+                relatedLinksElementXPath: "",
                 userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
                 userAccepts: "text/html,text/plain"));
         }

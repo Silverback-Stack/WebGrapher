@@ -39,16 +39,20 @@ namespace Graphing.Core
             //Delegate : Called when Node is populated with data
             Func<Node, Task> onNodePopulated = async (node) =>
             {
-                var sigmaNodes = SigmaJsGraphSerializer.MapNodes(node);
-                var sigmaEdges = SigmaJsGraphSerializer.MapEdges(node);
+                // Get the new nodes/edges for this populated node
+                var (nodesToSend, edgesToSend) = SigmaJsGraphSerializer.GetPopulationDelta(node);
 
-                _logger.LogDebug($"Publishing node populated event for {node.Url}");
+                if (nodesToSend.Count == 0 && edgesToSend.Count == 0)
+                    return;
+
+                _logger.LogDebug($"Publishing node populated event for {node.Url} " +
+                     $"(nodes: {nodesToSend.Count}, edges: {edgesToSend.Count})");
 
                 await _eventBus.PublishAsync(new GraphNodeAddedEvent
                 {
                     GraphId = node.GraphId,
-                    Nodes = sigmaNodes,
-                    Edges = sigmaEdges
+                    Nodes = nodesToSend,
+                    Edges = edgesToSend
                 });
             };
 
@@ -71,6 +75,8 @@ namespace Graphing.Core
             };
 
             await _webGraph.AddWebPageAsync(webPage, onNodePopulated, onLinkDiscovered);
+
+            var totalNodes = await _webGraph.TotalPopulatedNodesAsync(evt.CrawlPageRequest.GraphId);
         }
 
         private WebPageItem MapToWebPage(GraphPageEvent evt)
@@ -86,6 +92,8 @@ namespace Graphing.Core
                 IsRedirect = result.IsRedirect,
                 SourceLastModified = result.SourceLastModified,
                 Title = result.Title,
+                Summary = result.Summery,
+                ImageUrl = result.ImageUrl?.AbsoluteUri,
                 Keywords = result.Keywords,
                 Tags = result.Tags,
                 Links = result.Links?.Select(l => l.AbsoluteUri) ?? Enumerable.Empty<string>(),

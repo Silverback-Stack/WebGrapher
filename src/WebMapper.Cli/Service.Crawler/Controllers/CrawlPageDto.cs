@@ -16,23 +16,29 @@ namespace WebMapper.Cli.Service.Crawler.Controllers
         [DefaultValue(true)]
         public bool ExcludeQueryStrings { get; set; }
 
+        [DefaultValue(10)]
+        public int MaxLinks { get; set; }
+
         [DefaultValue(3)]
         public int MaxDepth { get; set; }
 
+        [DefaultValue("^https?://[^/]+/(artist|album)/")]
+        public string UrlMatchRegex { get; set; }
+
         [DefaultValue("//div[@class='col-sm-4']//h1/text()")]
-        public string TitleFilterXPath { get; set; }
+        public string TitleElementXPath { get; set; }
 
         [DefaultValue("//div[@class='container']/*")]
-        public string ContentFilterXPath { get; set; }
+        public string ContentElementXPath { get; set; }
 
-        [DefaultValue("")]
-        public string RelatedContentFilterXPath { get; set; }
-
-        [DefaultValue("//a[contains(@href, '/artist/') or contains(@href, '/album/')]")]
-        public string LinkUrlFilterXPath { get; set; }
+        [DefaultValue("//div[@class='container']/*")]
+        public string SummaryElementXPath { get; set; }
 
         [DefaultValue("(//div[contains(@class, 'col-sm-4')]//img[1]/@src)[1]")]
-        public string ImageUrlFilterXPath { get; set; }
+        public string ImageElementXPath { get; set; }
+
+        [DefaultValue("")]
+        public string RelatedLinksElementXPath { get; set; }
 
 
         [DefaultValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")]
