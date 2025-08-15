@@ -17,7 +17,8 @@ namespace Shared.Caching.Tests
             var userAgent = "UserAgent_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
             var userAccepts = "Accepts_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
 
-            var result = CacheKeyHelper.Generate(url.AbsoluteUri, userAgent, userAccepts);
+            var compositeKey = $"{url.AbsoluteUri}|{userAgent}|{userAccepts}";
+            var result = CacheKeyHelper.GetHashCode(compositeKey);
 
             //SHA-256 hash output → 256 bits = 32 bytes
             Assert.That(result, Has.Length.LessThanOrEqualTo(64));
@@ -30,9 +31,11 @@ namespace Shared.Caching.Tests
             var userAgent = "UserAgent_Example";
             var userAccepts = "Accepts_Example";
 
-            var result1 = CacheKeyHelper.Generate(url.AbsoluteUri, userAgent, userAccepts);
+            var compositeKey = $"{url.AbsoluteUri}|{userAgent}|{userAccepts}";
 
-            var result2 = CacheKeyHelper.Generate(url.AbsoluteUri, userAgent, userAccepts);
+            var result1 = CacheKeyHelper.GetHashCode(compositeKey);
+
+            var result2 = CacheKeyHelper.GetHashCode(compositeKey);
 
             Assert.That(result1, Is.EquivalentTo(result2));
         }

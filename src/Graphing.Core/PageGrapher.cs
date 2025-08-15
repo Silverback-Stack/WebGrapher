@@ -75,8 +75,6 @@ namespace Graphing.Core
             };
 
             await _webGraph.AddWebPageAsync(webPage, onNodePopulated, onLinkDiscovered);
-
-            var totalNodes = await _webGraph.TotalPopulatedNodesAsync(evt.CrawlPageRequest.GraphId);
         }
 
         private WebPageItem MapToWebPage(GraphPageEvent evt)

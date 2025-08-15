@@ -76,8 +76,8 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
 
         private static double CalculateNodeSize(int incomingLinks)
         {
-            const double minSize = 20;
-            const double maxSize = 40;
+            const double minSize = 10;
+            const double maxSize = 100;
 
             // Logarithmic scaling: keeps huge counts from exploding
             return minSize +
