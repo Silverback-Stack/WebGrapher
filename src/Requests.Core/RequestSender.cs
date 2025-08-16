@@ -30,10 +30,11 @@ namespace Requests.Core
 
 
         public async Task<HttpResponseEnvelope?> FetchAsync(
-            Uri url, 
-            string userAgent, 
-            string userAccepts, 
-            int contentMaxBytes = 0, 
+            Uri url,
+            string userAgent,
+            string userAccepts,
+            int contentMaxBytes = 0,
+            string compositeKey = "",
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(url.AbsoluteUri)) 
@@ -45,10 +46,16 @@ namespace Requests.Core
             if (string.IsNullOrWhiteSpace(userAccepts))
                 throw new ArgumentNullException(nameof(userAccepts));
 
+            if (string.IsNullOrEmpty(compositeKey))
+            {
+                compositeKey = $"{url}|{userAgent}|{userAccepts}";
+            }
+
             try
             {
                 //fetch cached data:
-                var key = CacheKeyHelper.Generate(url.AbsoluteUri, userAgent, userAccepts);
+                string key = CacheKeyHelper.GetHashCode(compositeKey);
+
                 var metaData = await _metaCache.GetAsync<HttpResponseMetadata>(key);
 
                 if (metaData is not null)

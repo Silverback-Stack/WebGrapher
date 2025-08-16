@@ -40,7 +40,8 @@ namespace Scraper.Core
             var response = await FetchAsync(
                 request.Url,
                 request.UserAgent,
-                request.UserAccepts);
+                request.UserAccepts,
+                request.ToCompositeKey);
 
             if (response is null)
             {
@@ -107,13 +108,20 @@ namespace Scraper.Core
             }, priority: request.Depth);
         }
 
-        public async Task<HttpResponseEnvelope?> FetchAsync(Uri url, string? userAgent, string? clientAccept)
+        public async Task<HttpResponseEnvelope?> FetchAsync(
+            Uri url,
+            string userAgent,
+            string clientAccept,
+            string compositeKey = "",
+            CancellationToken cancellationToken = default)
         {
             return await _requestSender.FetchAsync(
                 url,
                 userAgent,
                 clientAccept,
-                DEFAULT_CONTENT_MAX_BYTES);
+                DEFAULT_CONTENT_MAX_BYTES,
+                compositeKey,
+                cancellationToken);
         }
 
     }

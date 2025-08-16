@@ -75,8 +75,6 @@ namespace Graphing.Core
             };
 
             await _webGraph.AddWebPageAsync(webPage, onNodePopulated, onLinkDiscovered);
-
-            var totalNodes = await _webGraph.TotalPopulatedNodesAsync(evt.CrawlPageRequest.GraphId);
         }
 
         private WebPageItem MapToWebPage(GraphPageEvent evt)
@@ -92,7 +90,7 @@ namespace Graphing.Core
                 IsRedirect = result.IsRedirect,
                 SourceLastModified = result.SourceLastModified,
                 Title = result.Title,
-                Summary = result.Summery,
+                Summary = result.Summary,
                 ImageUrl = result.ImageUrl?.AbsoluteUri,
                 Keywords = result.Keywords,
                 Tags = result.Tags,

@@ -21,5 +21,23 @@ namespace Events.Core.Dtos
         public string UserAgent { get; init; }
         public string UserAccepts { get; init; }
         public DateTimeOffset RequestedAt { get; init; }
+
+        public string ToCompositeKey =>
+            string.Join("|", new[]
+            {
+                Url?.AbsoluteUri ?? string.Empty,
+                MaxDepth.ToString(),
+                MaxLinks.ToString(),
+                FollowExternalLinks.ToString(),
+                ExcludeQueryStrings.ToString(),
+                UrlMatchRegex ?? string.Empty,
+                TitleElementXPath ?? string.Empty,
+                ContentElementXPath ?? string.Empty,
+                SummaryElementXPath ?? string.Empty,
+                ImageElementXPath ?? string.Empty,
+                RelatedLinksElementXPath ?? string.Empty,
+                UserAgent ?? string.Empty,
+                UserAccepts ?? string.Empty
+            });
     }
 }

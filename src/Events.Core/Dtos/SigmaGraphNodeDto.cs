@@ -19,8 +19,8 @@ namespace Events.Core.Dtos
         [JsonPropertyName("state")]
         public required string State { get; set; }
 
-        [JsonPropertyName("summery")]
-        public required string Summery { get; set; }
+        [JsonPropertyName("summary")]
+        public required string Summary { get; set; }
 
         [JsonPropertyName("image")]
         public string? Image { get; set; }

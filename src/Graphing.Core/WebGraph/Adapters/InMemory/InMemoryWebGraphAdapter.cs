@@ -88,8 +88,6 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
 
         public override async Task<int> TotalPopulatedNodesAsync(int graphId)
         {
-            _logger.LogWarning(DumpGraphContents());
-
             if (_graphs.TryGetValue(graphId, out var nodes))
             {
                 int count = nodes.Values.Count(n => n.State == NodeState.Populated);

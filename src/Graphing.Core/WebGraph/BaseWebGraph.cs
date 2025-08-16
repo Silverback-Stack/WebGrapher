@@ -115,7 +115,7 @@ namespace Graphing.Core.WebGraph
         protected async Task PopulateNodeFromWebPageAsync(Node node, WebPageItem webPage)
         {
             node.Title = webPage.Title ?? string.Empty;
-            node.Summery = webPage.Summary ?? string.Empty;
+            node.Summary = webPage.Summary ?? string.Empty;
             node.ImageUrl = webPage.ImageUrl ?? string.Empty;
             node.Keywords = webPage.Keywords ?? string.Empty;
             node.Tags = webPage.Tags ?? Enumerable.Empty<string>();

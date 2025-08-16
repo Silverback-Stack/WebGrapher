@@ -5,6 +5,11 @@ namespace Scraper.Core
 {
     public interface IPageScraper
     {
-        Task<HttpResponseEnvelope?> FetchAsync(Uri url, string? userAgent, string? clientAccept);
+        Task<HttpResponseEnvelope?> FetchAsync(
+            Uri url,
+            string userAgent,
+            string clientAccept,
+            string compositeKey = null,
+            CancellationToken cancellationToken = default);
     }
 }

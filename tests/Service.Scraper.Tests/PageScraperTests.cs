@@ -18,8 +18,8 @@ namespace Service.Scraper.Tests
         private IPageScraper _scraper;
 
         private Uri _url;
-        private string? _userAgent = null;
-        private string? _userAccepts = null;
+        private string _userAgent = "";
+        private string _userAccepts = "";
 
         [SetUp]
         public void Setup()
@@ -56,7 +56,7 @@ namespace Service.Scraper.Tests
             };
 
             _requestSender.Setup(rs => rs.FetchAsync(
-                _url, _userAgent, _userAccepts, contentMaxBytes, CancellationToken.None))
+                _url, _userAgent, _userAccepts, contentMaxBytes, null, CancellationToken.None))
                 .ReturnsAsync(responseEnvelope);
 
             _scraper = new PageScraper(_logger.Object, _eventBus.Object, _requestSender.Object);

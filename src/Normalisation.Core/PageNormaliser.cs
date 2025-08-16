@@ -16,7 +16,7 @@ namespace Normalisation.Core
         private readonly IEventBus _eventBus;
 
         private const int MAX_TITLE_LENGTH = 100;
-        private const int MAX_SUMMERY_WORDS = 100;
+        private const int MAX_SUMMARY_WORDS = 100;
         private const int MAX_KEYWORDS = 300; // one page of text
         private const int MAX_KEYWORD_TAGS = 10;
         private const int MAX_LINKS_PER_PAGE = 100;
@@ -43,7 +43,7 @@ namespace Normalisation.Core
         private async Task PublishGraphEvent(
             NormalisePageEvent evt,
             string? title, 
-            string? summery,
+            string? summary,
             string? keywords, 
             IEnumerable<string>? tags, 
             IEnumerable<Uri>? links, 
@@ -61,7 +61,7 @@ namespace Normalisation.Core
                 IsRedirect = result.IsRedirect,
                 SourceLastModified = result.SourceLastModified,
                 Title = title,
-                Summery = summery,
+                Summary = summary,
                 Keywords = keywords,
                 Tags = tags,
                 Links = links,
@@ -98,14 +98,14 @@ namespace Normalisation.Core
 
             var htmlParser = new HtmlParser(htmlDocument);
             var extractedTitle = htmlParser.ExtractTitle(request.TitleElementXPath);
-            var extractedSummery = htmlParser.ExtractSummeryAsPlainText(request.SummaryElementXPath);
+            var extractedSummary = htmlParser.ExtractSummaryAsPlainText(request.SummaryElementXPath);
             var extractedContent = htmlParser.ExtractContentAsPlainText(request.ContentElementXPath);
             var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent);
             var extractedLinks = htmlParser.ExtractLinks(request.RelatedLinksElementXPath);
             var extractedImageUrl = htmlParser.ExtractImageUrl(request.ImageElementXPath);   
 
             var normalisedTitle = NormaliseTitle(extractedTitle);
-            var normalisedSummery = NormaliseSummery(extractedSummery);
+            var normalisedSummary = NormaliseSummary(extractedSummary);
             var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
             var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, MAX_KEYWORD_TAGS);
             var normalisedLinks = NormaliseLinks(
@@ -117,7 +117,7 @@ namespace Normalisation.Core
                 request.UrlMatchRegex);
             var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
 
-            await PublishGraphEvent(evt, normalisedTitle, normalisedSummery, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
+            await PublishGraphEvent(evt, normalisedTitle, normalisedSummary, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
 
             var linkType = request.FollowExternalLinks ? "external" : "internal";
             _logger.LogDebug($"Publishing GraphPageEvent for {result.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
@@ -158,12 +158,12 @@ namespace Normalisation.Core
             return text;
         }
 
-        public string NormaliseSummery(string? text)
+        public string NormaliseSummary(string? text)
         {
             if (text == null) return string.Empty;
 
             text = TextNormaliser.DecodeHtml(text);
-            text = TextNormaliser.TruncateToWords(text, MAX_SUMMERY_WORDS);
+            text = TextNormaliser.TruncateToWords(text, MAX_SUMMARY_WORDS);
 
             return text;
         }

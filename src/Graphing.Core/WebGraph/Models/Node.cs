@@ -5,7 +5,7 @@
         public int GraphId { get; set; }
         public string Url { get; set; }
         public string Title { get; set; } = string.Empty;
-        public string Summery { get; set; } = string.Empty;
+        public string Summary { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
         public string Keywords { get; set; } = string.Empty;
         public IEnumerable<string> Tags { get; set; } = Enumerable.Empty<string>();
