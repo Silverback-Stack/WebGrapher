@@ -69,23 +69,22 @@ export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
     const isNeighbor = neighbors.has(n);
 
     graph.updateNodeAttributes(n, oldAttr => {
-      // Store original size for reset if not already stored
-      if (oldAttr._originalSize === undefined) {
-        oldAttr._originalSize = oldAttr.size;
-      }
+      // Ensure _originalSize exists
+      const baseSize = oldAttr._originalSize ?? oldAttr.size;
 
-      let newSize = oldAttr._originalSize;
+      let newSize = baseSize;
 
       if (n === hoveredNode) {
-        newSize = oldAttr._originalSize * 1.5; // enlarge selected node
+        newSize = baseSize * 1.5; // enlarge selected node
       } else if (!isNeighbor) {
         newSize = 10; // shrink non-neighbors
       }
 
       return {
         ...oldAttr,
-        type: isNeighbor ? "image" : "circle",
+        _originalSize: baseSize, // keep base size for future updates
         size: newSize,
+        type: isNeighbor ? "image" : "circle",
         color: isNeighbor
           ? (n === hoveredNode ? GraphColors.NodeHover : GraphColors.NodeHoverNeighbour)
           : GraphColors.NodeHoverNonNeighbour
@@ -108,15 +107,19 @@ export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
   sigmaInstance.refresh();
 }
 
+
 export function resetHighlight(graph, sigmaInstance) {
   // Reset all nodes to default image type, color, and original size
   graph.forEachNode(n => {
-    graph.updateNodeAttributes(n, oldAttr => ({
-      ...oldAttr,
-      type: "image",
-      size: oldAttr._originalSize || oldAttr.size,
-      color: GraphColors.Node
-    }));
+    graph.updateNodeAttributes(n, oldAttr => {
+      const baseSize = oldAttr._originalSize ?? oldAttr.size; // fallback if _originalSize missing
+      return {
+        ...oldAttr,
+        type: "image",
+        size: baseSize,
+        color: GraphColors.Node
+      };
+    });
   });
 
   // Reset all edges to default color and size
@@ -130,3 +133,4 @@ export function resetHighlight(graph, sigmaInstance) {
 
   sigmaInstance.refresh();
 }
+

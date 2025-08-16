@@ -55,7 +55,7 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
             {
                 Id = node.Url,
                 Label = node.Title,
-                Size = CalculateNodeSize(node.IncomingLinkCount),
+                Size = CalculateNodeSize(node.IncomingLinkCount, node.OutgoingLinkCount),
                 State = node.State.ToString(), 
                 Summery = node.Summery,
                 Image = node.ImageUrl,
@@ -74,14 +74,16 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
             };
         }
 
-        private static double CalculateNodeSize(int incomingLinks)
+        private static double CalculateNodeSize(int incomingLinks, int outgoingLinks)
         {
             const double minSize = 10;
             const double maxSize = 100;
 
+            int totalLinks = incomingLinks + outgoingLinks;
+
             // Logarithmic scaling: keeps huge counts from exploding
             return minSize +
-                (Math.Log10(incomingLinks + 1) * (maxSize - minSize) / Math.Log10(1000));
+                (Math.Log10(totalLinks + 1) * (maxSize - minSize) / Math.Log10(1000));
         }
     }
 }

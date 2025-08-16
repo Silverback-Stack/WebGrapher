@@ -25,28 +25,6 @@
     .withAutomaticReconnect()
     .build()
 
-  function explodeLayout() {
-    if (fa2.isRunning()) fa2.stop();
-
-    // Run a fresh layout burst with stronger spacing
-    const positions = forceAtlas2(graph, {
-      iterations: 100,
-      settings: {
-        gravity: 1,
-        scalingRatio: 100,
-        strongGravityMode: true,
-        adjustSizes: true
-      }
-    });
-
-    graph.updateEachNodeAttributes((node, attr) => ({
-      ...attr,
-      x: positions[node].x,
-      y: positions[node].y
-    }));
-
-    sigmaInstance.refresh();
-  }
 
 
   onMounted(async () => {
@@ -63,24 +41,21 @@
     fa2 = new FA2Layout(graph, {
       iterations: 100,
       settings: {
-        slowDown: 5,
-        gravity: 0.5,
-        scalingRatio: 10,
-        strongGravityMode: true,
+        slowDown: 20,
+        gravity: 0.1,
+        scalingRatio: 5,
+        strongGravityMode: false,
         adjustSizes: true
       }
     })
 
-    //// Hover highlight events
-    //sigmaInstance.on('enterNode', ({ node }) => {
-    //  highlightNeighbors(graph, sigmaInstance, node);
-    //});
 
-    //sigmaInstance.on('leaveNode', () => {
-    //  resetHighlight(graph, sigmaInstance);
-    //});
 
-    // Node click
+
+
+
+
+
 
     sigmaInstance.on("clickNode", ({ node }) => {
       if (highlightedNode === node) return; // already highlighted
@@ -89,6 +64,12 @@
 
       highlightedNode = node;
       highlightNeighbors(graph, sigmaInstance, node);
+
+      // adjust layout burst animation
+      if (!fa2.isRunning()) {
+        fa2.start()
+        setTimeout(() => fa2.stop(), 250);
+      }
     });
 
     sigmaInstance.on("clickStage", () => {
@@ -100,6 +81,48 @@
     });
 
 
+
+
+
+    graph.on('edgeAdded', ({ edge, source, target }) => {
+      updateNodeSize(target);
+    });
+
+    graph.on('edgeDropped', ({ edge, source, target }) => {
+      updateNodeSize(target);
+    });
+
+    function updateNodeSize(nodeId) {
+      const incomingLinks = graph.inEdges(nodeId).length;
+      const outgoingLinks = graph.outEdges(nodeId).length;
+      const baseSize = calculateNodeSize(incomingLinks, outgoingLinks);
+
+      graph.updateNodeAttributes(nodeId, oldAttr => ({
+        ...oldAttr,
+        _baseSize: baseSize,               // store base size
+        size: oldAttr._highlighted
+          ? baseSize * 2                 // keep highlight enlargement if active
+          : baseSize
+      }));
+
+      sigmaInstance.refresh();
+    }
+
+    function calculateNodeSize(incomingLinks, outgoingLinks) {
+      const totalLinks = incomingLinks + outgoingLinks;
+      const minSize = 10;
+      const maxSize = 100;
+
+      // Logarithmic scaling: prevents huge counts from exploding
+      return minSize +
+        (Math.log10(totalLinks + 1) * (maxSize - minSize) / Math.log10(1000));
+    }
+
+
+
+
+
+
     try {
       await connection.start()
       await connection.invoke('JoinGraphGroup', graphId.value)
@@ -109,20 +132,47 @@
       console.error('SignalR connection error:', err)
     }
 
+
+
+
     // Receive messages from server
     connection.on('ReceiveMessage', (message) => {
       console.log('Received message:', message);
     })
 
-    connection.on('ReceiveNode', (node) => {
-      node.nodes.forEach(n => addOrUpdateNode(graph, n));
-      node.edges.forEach(e => addEdge(graph, e));
 
-      if (!fa2.isRunning()) {
-        fa2.start();
-        setTimeout(() => fa2.stop(), 2000);
-      }
+    let nodeBuffer = [];
+    let edgeBuffer = [];
+
+    connection.on('ReceiveNode', (node) => {
+      node.nodes.forEach(n => nodeBuffer.push(n));
+      node.edges.forEach(e => edgeBuffer.push(e));
     });
+
+    // Flush every 3 seconds
+    setInterval(() => {
+      if (nodeBuffer.length > 0 || edgeBuffer.length > 0) {
+        console.log(`Flushing ${nodeBuffer.length} nodes and ${edgeBuffer.length} edges`);
+
+        nodeBuffer.forEach(n => addOrUpdateNode(graph, n));
+        edgeBuffer.forEach(e => addEdge(graph, e));
+
+        nodeBuffer = [];
+        edgeBuffer = [];
+
+        // Run FA2 once after flush
+        if (!fa2.isRunning()) {
+          fa2.start();
+          setTimeout(() => fa2.stop(), 2000);
+        }
+      }
+    }, 3000);
+
+
+
+
+
+
 
   })
 </script>
@@ -133,9 +183,6 @@
 
   <main>
     <div v-if="graphId">Graph: {{ graphId }}</div>
-    <button @click="explodeLayout" style="position: absolute; top: 10px; left: 10px; z-index: 10;">
-      Explode Layout
-    </button>
     <div id="graph-container" ref="container" style="height: 100vh;"></div>
   </main>
 </template>
