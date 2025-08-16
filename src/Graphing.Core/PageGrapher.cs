@@ -90,7 +90,7 @@ namespace Graphing.Core
                 IsRedirect = result.IsRedirect,
                 SourceLastModified = result.SourceLastModified,
                 Title = result.Title,
-                Summary = result.Summery,
+                Summary = result.Summary,
                 ImageUrl = result.ImageUrl?.AbsoluteUri,
                 Keywords = result.Keywords,
                 Tags = result.Tags,

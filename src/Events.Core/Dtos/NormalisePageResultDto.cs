@@ -13,7 +13,7 @@ namespace Events.Core.Dtos
 
         //Normalised data:
         public string? Title { get; init; }
-        public string? Summery { get; init; }
+        public string? Summary { get; init; }
         public string? Keywords { get; init; }
         public IEnumerable<string>? Tags { get; init; }
         public IEnumerable<Uri>? Links { get; init; }

@@ -57,7 +57,7 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
                 Label = node.Title,
                 Size = CalculateNodeSize(node.IncomingLinkCount, node.OutgoingLinkCount),
                 State = node.State.ToString(), 
-                Summery = node.Summery,
+                Summary = node.Summary,
                 Image = node.ImageUrl,
                 Tags = node.Tags,
                 CreatedAt = node.CreatedAt,

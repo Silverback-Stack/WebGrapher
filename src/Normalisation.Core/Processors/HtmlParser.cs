@@ -34,7 +34,7 @@ namespace Normalisation.Core.Processors
             return result;
         }
 
-        public string ExtractSummeryAsPlainText(string xPathExpression = "")
+        public string ExtractSummaryAsPlainText(string xPathExpression = "")
         {
             if (string.IsNullOrWhiteSpace(xPathExpression))
                 return string.Empty;
