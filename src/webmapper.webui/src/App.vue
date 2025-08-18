@@ -26,7 +26,7 @@
   const signalrStatus = ref("disconnected")
 
   const route = useRoute()
-  const graphId = computed(() => route.params.id || '1') // /Graph/:id
+  const graphId = computed(() => route.params.id || '00000000-0000-0000-0000-000000000001') // /Graph/:id
 
   onMounted(async () => {
     sigmaInstance = setupSigma(graph, container.value)

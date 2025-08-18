@@ -5,13 +5,13 @@ namespace Streaming.Core
 {
     public interface IGraphStreamer
     {
-        Task StreamNodeAsync(GraphNode node, int graphId);
+        Task StreamNodeAsync(Guid graphId, GraphNode node);
 
-        Task StreamGraphAsync(int graphId, int maxDepth, int maxNodes);
+        Task StreamGraphAsync(Guid graphId, int maxDepth, int maxNodes);
 
-        Task BroadcastMessageAsync(string message, int graphId);
+        Task BroadcastMessageAsync(Guid graphId, string message);
 
-        Task BroadcastMetricsAsync(int graphId);
+        Task BroadcastMetricsAsync(Guid graphId);
 
     }
 }

@@ -1,28 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace Graphing.Core.WebGraph.Models
 {
     public record Graph
     {
         public Guid Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
 
-        public DateTimeOffset CreatedAt { get; set; }
-
-        public int MaxDepth { get; init; }
-        public int MaxLinks { get; init; }
-        public bool FollowExternalLinks { get; init; }
-        public bool ExcludeQueryStrings { get; init; }
-        public string UrlMatchRegex { get; init; }
-        public string TitleElementXPath { get; init; }
-        public string ContentElementXPath { get; init; }
-        public string SummaryElementXPath { get; init; }
-        public string ImageElementXPath { get; init; }
-        public string RelatedLinksElementXPath { get; init; }
+        public string Url { get; set; } = string.Empty;
+        public int MaxDepth { get; init; } = 3;
+        public int MaxLinks { get; init; } = 10;
+        public bool FollowExternalLinks { get; init; } = false;
+        public bool ExcludeQueryStrings { get; init; } = true;
+        public string UrlMatchRegex { get; init; } = string.Empty;
+        public string TitleElementXPath { get; init; } = string.Empty;
+        public string ContentElementXPath { get; init; } = string.Empty;
+        public string SummaryElementXPath { get; init; } = string.Empty;
+        public string ImageElementXPath { get; init; } = string.Empty;
+        public string RelatedLinksElementXPath { get; init; } = string.Empty;
     }
 }

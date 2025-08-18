@@ -10,11 +10,37 @@ namespace Graphing.Core.WebGraph
             Func<Node, Task> onLinkDiscovered,
             LinkUpdateMode linkUpdateMode = LinkUpdateMode.Append);
 
-        Task<Node?> GetNodeAsync(int graphId, string url);
+        Task<Graph?> GetGraphAsync(Guid graphId);
+
+        Task<Graph> CreateGraphAsync(
+            string name, 
+            string description,
+            Uri url,
+            int maxDepth,
+            int maxLinks,
+            bool followExternalLinks,
+            bool excludeQueryStrings,
+            string urlMatchRegex,
+            string titleElementXPath,
+            string contentElementXPath,
+            string summaryElementXPath,
+            string imageElementXPath,
+            string relatedLinksElementXPath);
+
+        Task<Graph> UpdateGraphAsync(Graph graph);
+
+        Task<Graph?> DeleteGraphAsync(Guid graphId);
+
+
+        Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize);
+
+        Task<Node?> GetNodeAsync(Guid graphId, string url);
+
+        Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
+
+        Task<int> TotalPopulatedNodesAsync(Guid graphId);
         
-        Task<int> TotalPopulatedNodesAsync(int graphId);
-        
-        Task CleanupOrphanedNodesAsync(int graphId);
+        Task CleanupOrphanedNodesAsync(Guid graphId);
 
         // IDEAS FOR FUNCTIONS:
         // AverageLinksPerNode()

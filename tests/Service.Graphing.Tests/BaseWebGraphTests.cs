@@ -24,9 +24,11 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task AddWebPageAsync_AddingPage_IncrementsTotalPopulatedNodes()
         {
+            var graphId = Guid.NewGuid();
+
             var page = new WebPageItem()
             {
-                GraphId = 1,
+                GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
                 IsRedirect = false,
@@ -43,9 +45,12 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task AddWebPageAsync_DifferentGraphIds_AreIsolated()
         {
+            var graphId1 = Guid.NewGuid();
+            var graphId2 = Guid.NewGuid();
+
             var page1 = new WebPageItem()
             {
-                GraphId = 1,
+                GraphId = graphId1,
                 Url = "A",
                 OriginalUrl = "A",
                 IsRedirect = false,
@@ -55,7 +60,7 @@ namespace Service.Graphing.Tests
 
             var page2 = new WebPageItem()
             {
-                GraphId = 2,
+                GraphId = graphId2,
                 Url = "A",
                 OriginalUrl = "A",
                 IsRedirect = false,
@@ -66,8 +71,8 @@ namespace Service.Graphing.Tests
             await _webGraph.AddWebPageAsync(page1, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
             await _webGraph.AddWebPageAsync(page2, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
-            var total1 = await _webGraph.TotalPopulatedNodesAsync(graphId: 1);
-            var total2 = await _webGraph.TotalPopulatedNodesAsync(graphId: 2);
+            var total1 = await _webGraph.TotalPopulatedNodesAsync(graphId: graphId1);
+            var total2 = await _webGraph.TotalPopulatedNodesAsync(graphId: graphId2);
 
             Assert.That(total1, Is.EqualTo(1));
             Assert.That(total2, Is.EqualTo(1));
@@ -76,9 +81,11 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task AddWebPageAsync_SelfLink_ShouldBeIgnored()
         {
+            var graphId = Guid.NewGuid();
+
             var page = new WebPageItem
             {
-                GraphId = 1,
+                GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
                 IsRedirect = false,
@@ -99,11 +106,13 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task AddWebPageAsync_SameUrl_UnchangedContent_NotAddedTwice()
         {
+            var graphId = Guid.NewGuid();
+
             var now = DateTimeOffset.UtcNow;
 
             var page = new WebPageItem
             {
-                GraphId = 1,
+                GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
                 IsRedirect = false,
@@ -114,7 +123,7 @@ namespace Service.Graphing.Tests
             await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
             await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction); // same again
 
-            var total = await _webGraph.TotalPopulatedNodesAsync(1);
+            var total = await _webGraph.TotalPopulatedNodesAsync(graphId);
 
             Assert.That(total, Is.EqualTo(1));
         }
@@ -122,9 +131,11 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task AddWebPageAsync_LinkIsAdded_TargetIsDummy()
         {
+            var graphId = Guid.NewGuid();
+
             var page = new WebPageItem
             {
-                GraphId = 1,
+                GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
                 IsRedirect = false,
@@ -135,8 +146,8 @@ namespace Service.Graphing.Tests
             await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
             // Retrieve both nodes
-            var nodeA = await _webGraph.GetNodeAsync(1, "A");
-            var nodeB = await _webGraph.GetNodeAsync(1, "B");
+            var nodeA = await _webGraph.GetNodeAsync(graphId, "A");
+            var nodeB = await _webGraph.GetNodeAsync(graphId, "B");
 
             // Confirm link from A to B
             Assert.That(nodeA.OutgoingLinks.Any(link => link.Url == "B"), Is.True, "Link from A to B should exist.");
@@ -149,7 +160,7 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task AddWebPageAsync_PageB_PromotedToPopulated()
         {
-            int graphId = 1;
+            var graphId = Guid.NewGuid();
 
             // Add Page A -> B
             var pageA = new WebPageItem
@@ -185,7 +196,7 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task AddWebPageAsync_PageBRedirectsToC_RedirectBehaviorVerified()
         {
-            int graphId = 1;
+            var graphId = Guid.NewGuid();
 
             // Step 1: Add Page A -> B
             var pageA = new WebPageItem
@@ -239,9 +250,11 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task AddWebPageAsync_RedirectFromAToB_ShouldCreateRedirectNodeA_AndPopulatedNodeB()
         {
+            var graphId = Guid.NewGuid();
+
             var page = new WebPageItem
             {
-                GraphId = 1,
+                GraphId = graphId,
                 OriginalUrl = "A",
                 Url = "B",
                 IsRedirect = true,
@@ -251,9 +264,9 @@ namespace Service.Graphing.Tests
 
             await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
 
-            var nodeA = await _webGraph.GetNodeAsync(1, "A");
-            var nodeB = await _webGraph.GetNodeAsync(1, "B");
-            var nodeC = await _webGraph.GetNodeAsync(1, "C");
+            var nodeA = await _webGraph.GetNodeAsync(graphId, "A");
+            var nodeB = await _webGraph.GetNodeAsync(graphId, "B");
+            var nodeC = await _webGraph.GetNodeAsync(graphId, "C");
 
             Assert.Multiple(() =>
             {
@@ -274,7 +287,7 @@ namespace Service.Graphing.Tests
         public async Task AddWebPageAsync_ShouldNotInvoke_OnLinkDiscovered_WhenAlreadyRecentlyScheduled()
         {
             // Arrange
-            var graphId = 1;
+            var graphId = Guid.NewGuid();
 
             var mockSchedules = new List<Node>();
             Func<Node, Task> onLinkDiscovered = node =>

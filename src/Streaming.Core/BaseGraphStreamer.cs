@@ -29,13 +29,13 @@ namespace Streaming.Core
             _eventBus.Unsubscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEvent);
         }
 
-        public abstract Task StreamNodeAsync(GraphNode node, int graphId);
+        public abstract Task StreamNodeAsync(Guid graphId, GraphNode node);
 
-        public abstract Task StreamGraphAsync(int graphId, int maxDepth, int maxNodes);
+        public abstract Task StreamGraphAsync(Guid graphId, int maxDepth, int maxNodes);
 
-        public abstract Task BroadcastMessageAsync(string message, int graphId);
+        public abstract Task BroadcastMessageAsync(Guid graphId, string message);
 
-        public abstract Task BroadcastMetricsAsync(int graphId);
+        public abstract Task BroadcastMetricsAsync(Guid graphId);
 
         private async Task ProcessGraphNodeAddedEvent(GraphNodeAddedEvent evt)
         {
@@ -47,8 +47,8 @@ namespace Streaming.Core
                     Edges = evt.Edges
                 };
 
-                await BroadcastMessageAsync("Sending node...", evt.GraphId);
-                await StreamNodeAsync(node, evt.GraphId);
+                await BroadcastMessageAsync(evt.GraphId, "Sending node...");
+                await StreamNodeAsync(evt.GraphId, node);
             }
             catch (Exception ex)
             {

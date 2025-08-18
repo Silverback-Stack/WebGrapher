@@ -2,7 +2,7 @@
 {
     public class WebPageItem
     {
-        public int GraphId { get; set; }
+        public Guid GraphId { get; set; }
         public string Url { get; set; }
         public string OriginalUrl { get; set; }
         public bool IsRedirect { get; set; }

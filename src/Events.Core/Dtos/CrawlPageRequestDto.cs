@@ -4,7 +4,7 @@ namespace Events.Core.Dtos
     public record CrawlPageRequestDto
     {
         public Uri Url { get; init; }
-        public int GraphId { get; init; }
+        public Guid GraphId { get; init; }
         public Guid CorrelationId { get; init; }
         public int Attempt { get; init; } = 1;
         public int Depth { get; init; } = 0;
