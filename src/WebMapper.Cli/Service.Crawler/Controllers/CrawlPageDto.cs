@@ -8,7 +8,7 @@ namespace WebMapper.Cli.Service.Crawler.Controllers
         public required Uri Url { get; set; }
 
         [DefaultValue(1)]
-        public int GraphId { get; set; }
+        public Guid GraphId { get; set; }
 
         [DefaultValue(false)]
         public bool FollowExternalLinks { get; set; }

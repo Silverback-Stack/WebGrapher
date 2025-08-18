@@ -1,16 +1,12 @@
 
 export const GraphColors = {
-  Node: "#B0B0B0",                // default node
-  NodeHover: "#888888",            // hovered node
-  NodeHoverNeighbour: "#888888",   // hovered neighbor
-  NodeHoverNonNeighbour: "#E0E0E0",// faded non-neighbor
-
-  Edge: "#B0B0B0",                 // default edge
-  EdgeHoverNeighbour: "#888888",   // edge between hovered + neighbor
-  EdgeHoverNonNeighbour: "#E0E0E0" // other edges
+  Node: "#E0E0E0",
+  NodeSelected: "#888888",
+  Edge: "#E0E0E0",
+  EdgeSelected: "#888888"
 };
 
-export function getRandomPosition(maxRange = 5) {
+function getRandomPosition(maxRange = 5) {
   return {
     x: (Math.random() * 2 - 1) * maxRange,
     y: (Math.random() * 2 - 1) * maxRange
@@ -20,9 +16,10 @@ export function getRandomPosition(maxRange = 5) {
 export function addOrUpdateNode(graph, n) {
   if (graph.hasNode(n.id)) {
     graph.mergeNodeAttributes(n.id, {
+      _originalType: n.type, //used for reducer
       label: n.label,
       size: n.size,
-      color: "rgba(136,136,136,1)", // solid gray
+      color: GraphColors.Node, // solid gray
       image: n.image,
       type: n.type,
       summary: n.summary,
@@ -33,9 +30,10 @@ export function addOrUpdateNode(graph, n) {
   } else {
     const pos = getRandomPosition(5);
     graph.addNode(n.id, {
+      _originalType: n.type, //used for reducer
       label: n.label,
       size: n.size,
-      color: "rgba(136,136,136,1)", // solid gray
+      color: GraphColors.Node, // solid gray
       image: n.image,
       opacity: 1,
       type: n.type,
@@ -59,7 +57,6 @@ export function addEdge(graph, e) {
   }
 }
 
-
 export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
   const neighbors = new Set(graph.neighbors(hoveredNode));
   neighbors.add(hoveredNode);
@@ -71,7 +68,6 @@ export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
     graph.updateNodeAttributes(n, oldAttr => {
       // Ensure _originalSize exists
       const baseSize = oldAttr._originalSize ?? oldAttr.size;
-
       let newSize = baseSize;
 
       if (n === hoveredNode) {
@@ -85,9 +81,7 @@ export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
         _originalSize: baseSize, // keep base size for future updates
         size: newSize,
         type: isNeighbor ? "image" : "circle",
-        color: isNeighbor
-          ? (n === hoveredNode ? GraphColors.NodeHover : GraphColors.NodeHoverNeighbour)
-          : GraphColors.NodeHoverNonNeighbour
+        color: isNeighbor ? GraphColors.NodeSelected : GraphColors.Node
       };
     });
   });
@@ -97,16 +91,13 @@ export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
     const isConnected = neighbors.has(source) && neighbors.has(target);
     graph.updateEdgeAttributes(edge, oldAttr => ({
       ...oldAttr,
-      color: isConnected
-        ? GraphColors.EdgeHoverNeighbour
-        : GraphColors.EdgeHoverNonNeighbour,
+      color: isConnected ? GraphColors.EdgeSelected : GraphColors.Edge,
       size: isConnected ? 4 : 1
     }));
   });
 
   sigmaInstance.refresh();
 }
-
 
 export function resetHighlight(graph, sigmaInstance) {
   // Reset all nodes to default image type, color, and original size
@@ -134,3 +125,30 @@ export function resetHighlight(graph, sigmaInstance) {
   sigmaInstance.refresh();
 }
 
+
+// Remove or restore images from nodes as user zooms in or out to boost performance
+export function setupReducer(graph, sigmaInstance, highlightedNodeRef) {
+  const camera = sigmaInstance.getCamera();
+
+  camera.on('updated', () => {
+    const zoom = camera.ratio;
+
+    // Skip reducer if any node is highlighted
+    if (highlightedNodeRef.value) return;
+
+    graph.forEachNode((node, attr) => {
+      // Only apply to image nodes
+      if (attr._originalType === 'image') {
+        const screenSize = attr.size / zoom;
+        const newType = screenSize < 10 ? 'circle' : 'image';
+
+        if (attr.type !== newType) {
+          //console.log(`Node ${node} type changed from ${attr.type} → ${newType}`);
+          graph.updateNodeAttributes(node, oldAttr => ({ ...oldAttr, type: newType }));
+        }
+      }
+    });
+
+    sigmaInstance.refresh();
+  });
+}

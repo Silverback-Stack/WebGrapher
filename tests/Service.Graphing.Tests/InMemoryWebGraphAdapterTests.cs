@@ -22,7 +22,7 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task GetMostPopularNodesAsync_ReturnsTopNodesOrderedByIncomingLinkCountAndCreatedAt()
         {
-            int graphId = 1;
+            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
 
             // Helper to create a node with N incoming links
             Node CreateNode(string url, int incomingLinks, DateTimeOffset createdAt)
@@ -62,7 +62,7 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task TraverseGraphAsync_TraversesGraphUpToMaxDepth()
         {
-            int graphId = 1;
+            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
 
             var nodeA = new Node(graphId, "A");
             var nodeB = new Node(graphId, "B");
@@ -98,7 +98,7 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task TraverseGraphAsync_StopsAtMaxNodesLimit()
         {
-            int graphId = 1;
+            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
 
             //create a bunch of nodes:
             var nodeA = new Node(graphId, "A");
@@ -131,7 +131,7 @@ namespace Service.Graphing.Tests
         [Test]
         public async Task UpdatingNodeOutgoingLinks_UpdatesIncomingLinksOnTargetNodes()
         {
-            int graphId = 1;
+            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
 
             var webPageA = new WebPageItem
             {

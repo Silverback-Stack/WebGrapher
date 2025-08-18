@@ -90,7 +90,7 @@ namespace Graphing.Core.WebGraph
         }
 
         protected async Task<Node> GetOrCreateNodeAsync(
-            int graphId,
+            Guid graphId,
             string url,
             NodeState state = NodeState.Dummy)
         {
@@ -126,7 +126,7 @@ namespace Graphing.Core.WebGraph
         /// <summary>
         /// Returns target Node if a link was added.
         /// </summary>
-        protected async Task<Node?> AddLinkAsync(int graphId, string fromUrl, string toUrl)
+        protected async Task<Node?> AddLinkAsync(Guid graphId, string fromUrl, string toUrl)
         {
             if (fromUrl == toUrl)
                 return null; //ignore circular links to self
@@ -182,7 +182,7 @@ namespace Graphing.Core.WebGraph
             await SaveNodeAsync(node);
         }
 
-        protected async Task SetRedirectedAsync(int graphId, string fromUrl, string toUrl)
+        protected async Task SetRedirectedAsync(Guid graphId, string fromUrl, string toUrl)
         {
             if (string.IsNullOrEmpty(fromUrl)) throw new ArgumentNullException(nameof(fromUrl));
             if (string.IsNullOrEmpty(toUrl)) throw new ArgumentNullException(nameof(toUrl));
@@ -238,12 +238,41 @@ namespace Graphing.Core.WebGraph
             await SetNodeAsync(node);
         }
 
-        public abstract Task<Node?> GetNodeAsync(int graphId, string url);
+
+        public abstract Task<Node?> GetNodeAsync(Guid graphId, string url);
 
         public abstract Task<Node> SetNodeAsync(Node node);
 
-        public abstract Task CleanupOrphanedNodesAsync(int graphId);
+        public abstract Task<int> TotalPopulatedNodesAsync(Guid graphID);
 
-        public abstract Task<int> TotalPopulatedNodesAsync(int graphID);
+        public abstract Task CleanupOrphanedNodesAsync(Guid graphId);
+
+        public abstract Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
+
+
+
+        public abstract Task<Graph?> GetGraphAsync(Guid graphId);
+
+        public abstract Task<Graph> CreateGraphAsync(
+            string name, 
+            string description, 
+            Uri url, 
+            int maxDepth, 
+            int maxLinks, 
+            bool followExternalLinks, 
+            bool excludeQueryStrings, 
+            string urlMatchRegex, 
+            string titleElementXPath, 
+            string contentElementXPath, 
+            string summaryElementXPath, 
+            string imageElementXPath, 
+            string relatedLinksElementXPath);
+
+        public abstract Task<Graph> UpdateGraphAsync(Graph graph);
+
+        public abstract Task<Graph?> DeleteGraphAsync(Guid graphId);
+
+        public abstract Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize);
+
     }
 }

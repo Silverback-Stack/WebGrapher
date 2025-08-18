@@ -4,7 +4,7 @@ namespace Events.Core.Dtos
     public record CrawlPageRequestDto
     {
         public Uri Url { get; init; }
-        public int GraphId { get; init; }
+        public Guid GraphId { get; init; }
         public Guid CorrelationId { get; init; }
         public int Attempt { get; init; } = 1;
         public int Depth { get; init; } = 0;
@@ -26,6 +26,7 @@ namespace Events.Core.Dtos
             string.Join("|", new[]
             {
                 Url?.AbsoluteUri ?? string.Empty,
+                IncludeDepth(Depth),
                 MaxDepth.ToString(),
                 MaxLinks.ToString(),
                 FollowExternalLinks.ToString(),
@@ -39,5 +40,15 @@ namespace Events.Core.Dtos
                 UserAgent ?? string.Empty,
                 UserAccepts ?? string.Empty
             });
+
+
+        /// <summary>
+        /// Includes depth in the key only for user requests (depth = 0).
+        /// Ensures user-requested pages are cached separately while all robot-discovered pages share the same key.
+        /// </summary>
+        private string IncludeDepth(int depth)
+        {
+            return depth == 0 ? depth.ToString() : string.Empty;
+        }
     }
 }

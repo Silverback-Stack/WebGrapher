@@ -2,7 +2,7 @@
 {
     public class Node
     {
-        public int GraphId { get; set; }
+        public Guid GraphId { get; set; }
         public string Url { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
@@ -20,7 +20,7 @@
 
         public Node() { }
 
-        public Node(int graphId, string url, NodeState state = NodeState.Dummy)
+        public Node(Guid graphId, string url, NodeState state = NodeState.Dummy)
         {
             GraphId = graphId;
             Url = url;

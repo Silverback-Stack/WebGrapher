@@ -18,7 +18,7 @@ namespace Streaming.Core.Adapters.SignalR
             _hubContext = hubContext;
         }
 
-        public async override Task StreamNodeAsync(GraphNode node, int graphId)
+        public async override Task StreamNodeAsync(Guid graphId, GraphNode node)
         {
             _logger.LogInformation($"Streaming node {node.Nodes.FirstOrDefault()?.Id} to graph {graphId}");
             
@@ -27,7 +27,7 @@ namespace Streaming.Core.Adapters.SignalR
             await clients.SendAsync("ReceiveNode", node);
         }
 
-        public async override Task StreamGraphAsync(int graphId, int maxDepth, int maxNodes)
+        public async override Task StreamGraphAsync(Guid graphId, int maxDepth, int maxNodes)
         {
             //TODO: some kind of API call to graphing service to get data
             // GetMostPopularNodesAsync(int graphId, int limit)
@@ -36,13 +36,13 @@ namespace Streaming.Core.Adapters.SignalR
             // }
         }
 
-        public async override Task BroadcastMessageAsync(string message, int graphId)
+        public async override Task BroadcastMessageAsync(Guid graphId, string message)
         {
             var clients = _hubContext.Clients.Group(graphId.ToString());
             await clients.SendAsync("ReceiveMessage", message);
         }
 
-        public async override Task BroadcastMetricsAsync(int graphId)
+        public async override Task BroadcastMetricsAsync(Guid graphId)
         {
             //TODO: some kind of API call to graphing service to get data
             // TotalNodesAsync

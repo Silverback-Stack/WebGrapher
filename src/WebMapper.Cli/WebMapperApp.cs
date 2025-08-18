@@ -97,7 +97,7 @@ namespace WebMapper.Cli
 
             await _pageCrawler.EvaluatePageForCrawling(new CrawlPageEvent(
                 url: url, 
-                graphId: 1, 
+                graphId: Guid.Parse("00000000-0000-0000-0000-000000000001"), 
                 followExternalLinks: false,
                 excludeQueryStrings: true,
                 maxDepth: 3,

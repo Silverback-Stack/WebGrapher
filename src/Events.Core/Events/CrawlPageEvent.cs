@@ -12,7 +12,7 @@ namespace Events.Core.Events
 
         private CrawlPageEvent(
             Uri url,
-            int graphId,
+            Guid graphId,
             Guid correlationId,
             int attempt,
             int depth,
@@ -55,7 +55,7 @@ namespace Events.Core.Events
 
         public CrawlPageEvent(
             Uri url,
-            int graphId,
+            Guid graphId,
             bool followExternalLinks,
             bool excludeQueryStrings,
             int maxDepth,
