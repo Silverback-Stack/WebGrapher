@@ -98,7 +98,7 @@ namespace Normalisation.Core
 
             var htmlParser = new HtmlParser(htmlDocument);
             var extractedTitle = htmlParser.ExtractTitle(request.TitleElementXPath);
-            var extractedSummary = htmlParser.ExtractSummaryAsPlainText(request.SummaryElementXPath);
+            var extractedSummary = htmlParser.ExtractContentAsPlainText(request.SummaryElementXPath);
             var extractedContent = htmlParser.ExtractContentAsPlainText(request.ContentElementXPath);
             var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent);
             var extractedLinks = htmlParser.ExtractLinks(request.RelatedLinksElementXPath);

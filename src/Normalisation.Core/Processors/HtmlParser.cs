@@ -18,64 +18,63 @@ namespace Normalisation.Core.Processors
             _htmlDocument.LoadHtml(htmlDocument);
         }
 
+        /// <summary>
+        /// Extracts a title from nodes matching the XPath expression, 
+        /// or falls back to the document <title> element.
+        /// </summary>
         public string ExtractTitle(string xPathExpression = "")
         {
-            var node = GetNodeOrRoot(xPathExpression);
-            var result = node.InnerText?.Trim() ?? string.Empty;
-
-            // If empty, try extracting from page <title>
-            if (string.IsNullOrWhiteSpace(result) || node == _htmlDocument.DocumentNode)
+            if (!string.IsNullOrWhiteSpace(xPathExpression))
             {
-                var titleNode = _htmlDocument.DocumentNode.SelectSingleNode(TITLE_XPATH);
-                if (!string.IsNullOrWhiteSpace(titleNode?.InnerText))
-                    result = titleNode.InnerText.Trim();
+                var nodes = GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>();
+                var result = nodes
+                    .Select(n => n.InnerText?.Trim())
+                    .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
+                if (!string.IsNullOrWhiteSpace(result))
+                    return result;
             }
 
-            return result;
+            // Fallback to <title>
+            var titleNode = _htmlDocument.DocumentNode.SelectSingleNode(TITLE_XPATH);
+            return titleNode?.InnerText.Trim() ?? string.Empty;
         }
 
-        public string ExtractSummaryAsPlainText(string xPathExpression = "")
-        {
-            if (string.IsNullOrWhiteSpace(xPathExpression))
-                return string.Empty;
 
-            var node = GetNode(xPathExpression);
-
-            if (node == null)
-                return string.Empty;
-
-            return node.InnerText?.Trim() ?? string.Empty;
-        }
-
+        /// <summary>
+        /// Extracts plain text content from nodes matching the XPath expression. 
+        /// Falls back to the document root if no expression is provided.
+        /// Returns an empty string if expression is provided but nothing matches.
+        /// </summary>
         public string ExtractContentAsPlainText(string xPathExpression = "")
         {
-            var node = GetNodeOrRoot(xPathExpression);
-            var result = node.InnerText?.Trim() ?? string.Empty;
+            var nodes = string.IsNullOrWhiteSpace(xPathExpression)
+                ? GetRoot()
+                : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
 
-            // Fallback: entire document text if empty
-            if (string.IsNullOrWhiteSpace(result))
-                result = _htmlDocument.DocumentNode.InnerText?.Trim() ?? string.Empty;
+            var result = string.Join(" ",
+                nodes
+                    .Select(n => n.InnerText?.Trim())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+            ).Trim();
 
             return result;
         }
 
 
+
+        /// <summary>
+        /// Extracts links found in nodes matching the XPath expression.
+        /// Falls back to entire document if no expression is provided.
+        /// </summary>
         public IEnumerable<string> ExtractLinks(string xPathExpression = "")
         {
-            HtmlNode node;
+            // Normalize to IEnumerable<HtmlNode>
+            var nodes = string.IsNullOrWhiteSpace(xPathExpression)
+                ? GetRoot()
+                : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
 
-            if (!string.IsNullOrEmpty(xPathExpression))
-            {
-                node = GetNode(xPathExpression);
-                if (node == null)
-                    return Enumerable.Empty<string>(); // filter provided but container not found
-            }
-            else
-            {
-                node = _htmlDocument.DocumentNode; // no filter → whole document
-            }
-
-            var links = (node.SelectNodes(LINKS_XPATH) ?? Enumerable.Empty<HtmlNode>())
+            var links = nodes
+                .SelectMany(node => node.SelectNodes(LINKS_XPATH) ?? Enumerable.Empty<HtmlNode>())
                 .Select(tag => WebUtility.HtmlDecode(tag.GetAttributeValue("href", "")))
                 .Where(href => !string.IsNullOrEmpty(href))
                 .ToHashSet();
@@ -83,56 +82,55 @@ namespace Normalisation.Core.Processors
             return links;
         }
 
+
+        /// <summary>
+        /// Extracts the first valid image URL found in nodes matching the XPath expression.
+        /// </summary>
         public string ExtractImageUrl(string xPathExpression = "")
         {
             if (string.IsNullOrEmpty(xPathExpression))
                 return string.Empty;
 
-            var node = GetNode(xPathExpression);
-            if (node == null)
-                return string.Empty;
+            var nodes = GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>();
 
-            // Try src
-            var src = node.GetAttributeValue("src", null);
-            if (!string.IsNullOrEmpty(src))
-                return src;
-
-            // Try srcset — get first URL
-            var srcset = node.GetAttributeValue("srcset", null);
-            if (!string.IsNullOrEmpty(srcset))
+            foreach (var node in nodes)
             {
-                var firstUrl = srcset.Split(',')[0].Trim().Split(' ')[0];
-                return firstUrl;
+                // Try src
+                var src = node.GetAttributeValue("src", null);
+                if (!string.IsNullOrEmpty(src))
+                    return src;
+
+                // Try srcset — get first URL
+                var srcset = node.GetAttributeValue("srcset", null);
+                if (!string.IsNullOrEmpty(srcset))
+                {
+                    var firstUrl = srcset.Split(',')[0].Trim().Split(' ')[0];
+                    if (!string.IsNullOrEmpty(firstUrl))
+                        return firstUrl;
+                }
             }
 
             return string.Empty;
         }
 
         /// <summary>
-        /// Picks either a filtered node or the document root, and guarantees non-null.
+        /// Returns the document root node.
         /// </summary>
-        private HtmlNode GetNodeOrRoot(string xPathExpression)
+        private IEnumerable<HtmlNode> GetRoot()
         {
-            if (IsValidExpression(xPathExpression))
-            {
-                var node = _htmlDocument.DocumentNode.SelectSingleNode(xPathExpression);
-                if (node != null)
-                    return node;
-            }
-
-            // Default to entire document if no valid node found
-            return _htmlDocument.DocumentNode;
+            return new[] { _htmlDocument.DocumentNode };
         }
 
         /// <summary>
-        /// Picks a filtered node or null.
+        /// Picks filtered nodes or null.
         /// </summary>
-        private HtmlNode? GetNode(string xPathExpression)
+        private IEnumerable<HtmlNode>? GetNodes(string xPathExpression)
         {
             if (IsValidExpression(xPathExpression))
             {
-                var node = _htmlDocument.DocumentNode.SelectSingleNode(xPathExpression);
-                return node;
+                var nodes = _htmlDocument.DocumentNode.SelectNodes(xPathExpression);
+                if (nodes != null && nodes.Any())
+                    return nodes;
             }
 
             return null;

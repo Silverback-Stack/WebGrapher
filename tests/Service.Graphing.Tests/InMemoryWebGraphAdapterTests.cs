@@ -1,4 +1,5 @@
 ﻿using System;
+using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.InMemory;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
@@ -128,53 +129,99 @@ namespace Service.Graphing.Tests
             Assert.That(result, Has.Some.Matches<Node>(n => n.Url == "A"));
         }
 
+
         [Test]
-        public async Task UpdatingNodeOutgoingLinks_UpdatesIncomingLinksOnTargetNodes()
+        public async Task UpdatingNodeOutgoingLinks_AppendMode_DoesNotRemoveExistingIncomingLinks()
         {
             Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
+            var linkUpdateMode = LinkUpdateMode.Append;
 
             var webPageA = new WebPageItem
             {
                 GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
-                IsRedirect = false,
                 Links = new List<string> { "B" },
                 SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
             };
-
             var webPageB = new WebPageItem
             {
                 GraphId = graphId,
                 Url = "B",
                 OriginalUrl = "B",
-                IsRedirect = false,
-                Links = new List<string> { "C" },
+                Links = new List<string> { },
                 SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
             };
 
-            await _adapter.AddWebPageAsync(webPageA, null, null);
-            await _adapter.AddWebPageAsync(webPageB, null, null);
+            await _adapter.AddWebPageAsync(webPageA, null, null, linkUpdateMode);
+            await _adapter.AddWebPageAsync(webPageB, null, null, linkUpdateMode);
 
             var nodeB = await _adapter.GetNodeAsync(graphId, "B");
-
             Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
             Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.True);
 
+            // revisit A with no links in Append mode
             var webPageARevisited = new WebPageItem
             {
                 GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
-                IsRedirect = false,
-                Links = new List<string> { },
+                Links = new List<string>(),
                 SourceLastModified = DateTimeOffset.UtcNow
             };
 
-            await _adapter.AddWebPageAsync(webPageARevisited, null, null);
+            await _adapter.AddWebPageAsync(webPageARevisited, null, null, linkUpdateMode);
 
             nodeB = await _adapter.GetNodeAsync(graphId, "B");
+            // Append mode: old links are kept
+            Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
+            Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.True);
+        }
 
+        [Test]
+        public async Task UpdatingNodeOutgoingLinks_ReplaceMode_RemovesOldIncomingLinks()
+        {
+            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
+            var linkUpdateMode = LinkUpdateMode.Replace;
+
+            var webPageA = new WebPageItem
+            {
+                GraphId = graphId,
+                Url = "A",
+                OriginalUrl = "A",
+                Links = new List<string> { "B" },
+                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
+            };
+            var webPageB = new WebPageItem
+            {
+                GraphId = graphId,
+                Url = "B",
+                OriginalUrl = "B",
+                Links = new List<string> { },
+                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
+            };
+
+            await _adapter.AddWebPageAsync(webPageA, null, null, linkUpdateMode);
+            await _adapter.AddWebPageAsync(webPageB, null, null, linkUpdateMode);
+
+            var nodeB = await _adapter.GetNodeAsync(graphId, "B");
+            Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
+            Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.True);
+
+            // revisit A with no links in Replace mode
+            var webPageARevisited = new WebPageItem
+            {
+                GraphId = graphId,
+                Url = "A",
+                OriginalUrl = "A",
+                Links = new List<string>(),
+                SourceLastModified = DateTimeOffset.UtcNow
+            };
+
+            await _adapter.AddWebPageAsync(webPageARevisited, null, null, linkUpdateMode);
+
+            nodeB = await _adapter.GetNodeAsync(graphId, "B");
+            // Replace mode: old links removed
             Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(0));
             Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.False);
         }

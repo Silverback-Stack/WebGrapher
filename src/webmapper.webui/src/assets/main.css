@@ -1,9 +1,25 @@
 @import './base.css';
 
+html, body, #app, main {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+main {
+  height: calc(100vh - 52px); /* same as navbar height */
+}
+
+#graph-container {
+  width: 100%;
+  height: 100%; /* fill the parent <main> */
+}
+
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
   font-weight: normal;
 }
 
@@ -13,6 +29,10 @@ a,
   color: hsla(160, 100%, 37%, 1);
   transition: 0.4s;
   padding: 3px;
+}
+
+.navbar {
+  border-radius: 0 !important;
 }
 
 @media (hover: hover) {
@@ -28,8 +48,9 @@ a,
   }
 
   #app {
-    display: grid;
+/*    display: grid;
     grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+    padding: 0 2rem;*/
   }
 }
+
