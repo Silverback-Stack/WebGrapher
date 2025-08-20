@@ -1,6 +1,6 @@
 <script setup>
-  import { ref, computed, onMounted, onUnmounted } from "vue"
-  import { useRoute } from "vue-router"
+  import { ref, computed, onMounted, onUnmounted, watch } from "vue"
+  import { useRoute, useRouter } from "vue-router"
   import * as signalR from "@microsoft/signalr"
   import Graph from "graphology"
   import {
@@ -16,6 +16,7 @@
   } from "./graph-setup.js"
   import { setupSignalR } from "./signalr-setup.js"
   import GraphConnector from './components/GraphConnector.vue'
+  import GraphCreator from './components/GraphCreator.vue'
 
   // --- Refs / State ---
   const container = ref(null)
@@ -25,10 +26,35 @@
   let highlightedNode = ref(null)
   let signalrController = null
   const signalrStatus = ref("disconnected")
-  const showGraphConnector = ref(false)
+  const modalView = ref(null)
+  const graphId = ref(null)
 
   const route = useRoute()
-  const graphId = computed(() => route.params.id || '00000000-0000-0000-0000-000000000001') // /Graph/:id
+  const router = useRouter()
+
+  watch(
+    () => route.params.id,
+    async (newId) => {
+      if (newId) {
+        graphId.value = newId
+
+        if (!signalrController) {
+          signalrController = await setupSignalR(newId, {
+            graph,
+            fa2,
+            onStatus: (status) => (signalrStatus.value = status),
+          })
+        }
+
+        modalView.value = null // hide modal if connected
+      } else {
+        modalView.value = "connector" // show connector when no id
+      }
+    },
+    { immediate: true }
+  )
+
+
 
   onMounted(async () => {
     sigmaInstance = setupSigma(graph, container.value)
@@ -37,16 +63,6 @@
     setupReducer(graph, sigmaInstance, highlightedNode)
     setupHighlighting(graph, sigmaInstance, fa2, highlightedNode)
     setupNodeSizing(graph, sigmaInstance)
-
-    signalrController = await setupSignalR(graphId, {
-      graph,
-      fa2,
-      onStatus: (status, info) => {
-        console.log("SignalR status:", status, info)
-        signalrStatus.value = status
-      }
-    })
-
   })
 
   onUnmounted(() => {
@@ -62,18 +78,41 @@
 
   // example graph list
   const availableGraphs = ref([
-    { id: '1', name: 'IMDB Movies', description: 'Map of IMDB movies and related people.', url: 'https://www.imdb.com' },
-    { id: '2', name: 'Medical Conditions', description: 'Medical conditions from Mayo', url: 'https://www.mayoclinic.com' }
+    { id: '00000000-0000-0000-0000-000000000001', name: 'IMDB Movies', description: 'Map of IMDB movies and related people.', url: 'https://www.imdb.com' },
+    { id: '00000000-0000-0000-0000-000000000002', name: 'Medical Conditions', description: 'Medical conditions from Mayo', url: 'https://www.mayoclinic.com' }
   ])
 
-  function toggleGraphConnector() {
-    console.log("toggle clicked")
-    showGraphConnector.value = true
+  // Navbar / modal triggers
+  function openConnector() {
+    modalView.value = "connector"
   }
 
-  function connectToGraph(graph) {
-    console.log("Connecting to graph", graph)
-    showGraphConnector.value = false
+  function openCreator() {
+    modalView.value = "creator"
+  }
+
+  async function connectToGraph(selectedGraph) {
+    console.log("Connecting to graph", selectedGraph)
+    modalView.value = null
+
+    // update the URL
+    await router.push({ name: "Graph", params: { id: selectedGraph.id } })
+
+    // dispose old connection if exists
+    signalrController?.dispose()
+
+    // update local state
+    graphId.value = selectedGraph.id
+
+    // connect
+    signalrController = await setupSignalR(selectedGraph.id, {
+      graph,
+      fa2,
+      onStatus: (status, info) => {
+        console.log("SignalR status:", status, info)
+        signalrStatus.value = status
+      }
+    })
   }
 
 
@@ -82,38 +121,32 @@
 <template>
   <header>
     <b-navbar type="is-primary">
-      <!-- Brand -->
       <template #brand>
         <b-navbar-item>
-          <span class="has-text-weight-bold">
-            WebMapper
-          </span>
+          <span class="has-text-weight-bold">WebMapper</span>
         </b-navbar-item>
       </template>
 
       <template #end>
-        <!-- Left: New Graph (only when disconnected)-->
+        <!-- New Graph -->
         <b-navbar-item v-if="signalrStatus !== 'connected'">
-          <b-button type="is-light" outlined @click="toggleGraphCreator">
-            <span class="icon">
-              <i class="mdi mdi-plus-thick"></i>
-            </span>
+          <b-button type="is-light" outlined @click="openCreator">
+            <span class="icon"><i class="mdi mdi-plus-thick"></i></span>
             <span>New</span>
           </b-button>
         </b-navbar-item>
 
-        <!-- Connect to Graph -->
+        <!-- Connect -->
         <b-navbar-item>
-          <b-button type="is-light" outlined @click="toggleGraphConnector">
+          <b-button type="is-light" outlined @click="openConnector">
             <span class="icon">
               <i class="mdi mdi-circle"
                  :class="{
-                   'has-text-success': signalrStatus === 'connected',
-                   'has-text-danger': signalrStatus !== 'connected'
-                 }">
-              </i>
+                  'has-text-success': signalrStatus === 'connected',
+                  'has-text-danger': signalrStatus !== 'connected',
+                }"></i>
             </span>
-            <span>{{ signalrStatus === 'connected' ? 'Connected' : 'Connect' }}</span>
+            <span>{{ signalrStatus === 'connected' ? "Connected" : "Connect" }}</span>
           </b-button>
         </b-navbar-item>
 
@@ -138,18 +171,46 @@
         </b-navbar-item>
 
       </template>
-
     </b-navbar>
   </header>
 
   <main>
     <div id="graph-container" ref="container"></div>
 
-    <b-modal :model-value="showGraphConnector" @update:model-value="showGraphConnector = $event" custom-class="responsive-modal" trap-focus :width="'50%'">
-      <GraphConnector :graphs="availableGraphs" @select="connectToGraph" />
+    <!-- Single modal, swaps contents based on modalView -->
+    <b-modal v-if="modalView !== null"
+             :model-value="true"
+             @update:model-value="modalView = null"
+             custom-class="responsive-modal"
+             trap-focus
+             :has-modal-card="false">
+        <GraphConnector v-if="modalView === 'connector'"
+                        :graphs="availableGraphs"
+                        @select="connectToGraph"
+                        @createGraph="openCreator" />
+
+        <GraphCreator v-if="modalView === 'creator'" />
+
+        <!-- <GraphPreview v-if="modalView === 'preview'" /> -->
     </b-modal>
   </main>
 </template>
 
 <style scoped>
+  /* override the inline max-width */
+  .responsive-modal .modal-content {
+    max-width: 40% !important;
+  }
+
+  @media (max-width: 768px) {
+    .responsive-modal .modal-content {
+      max-width: 60% !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .responsive-modal .modal-content {
+      max-width: 90% !important;
+    }
+  }
 </style>

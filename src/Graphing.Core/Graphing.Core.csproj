@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Folder Include="WebGraph\Adapters\AzureCosmos\" />
+    <Folder Include="WebGraph\Dtos\" />
   </ItemGroup>
 
 </Project>

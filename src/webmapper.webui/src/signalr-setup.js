@@ -30,7 +30,7 @@ export async function setupSignalR(graphId, { graph, fa2, flushInterval = 2000, 
   async function startConnection() {
     try {
       await connection.start()
-      await connection.invoke("JoinGraphGroup", graphId.value)
+      await connection.invoke("JoinGraphGroup", graphId)
       console.log("SignalR connected")
       if (onStatus) onStatus("connected")
     } catch (err) {

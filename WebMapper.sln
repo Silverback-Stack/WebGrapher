@@ -44,7 +44,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C0E6-4178-9ABD-D2C5CEFE9045}"
 	ProjectSection(SolutionItems) = preProject
 		docs\Architecture.txt = docs\Architecture.txt
-		docs\Console_Setup.txt = docs\Console_Setup.txt
 		docs\Graphing-Concepts.txt = docs\Graphing-Concepts.txt
 		docs\Graphing-Streaming.txt = docs\Graphing-Streaming.txt
 		docs\Graph_Nodes_Redirects.txt = docs\Graph_Nodes_Redirects.txt
@@ -54,6 +53,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Priority_Queue_Concepts.txt = docs\Priority_Queue_Concepts.txt
 		docs\README.md = docs\README.md
 		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
+		docs\Setup-Console-Cli.txt = docs\Setup-Console-Cli.txt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Scraper.Tests", "tests\Service.Scraper.Tests\Service.Scraper.Tests.csproj", "{3BC7B8B4-70A9-4105-932A-B4B98BE39D47}"

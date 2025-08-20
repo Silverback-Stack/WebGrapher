@@ -250,16 +250,13 @@ namespace Graphing.Core.WebGraph
         public abstract Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
 
 
-
-        public abstract Task<Graph?> GetGraphAsync(Guid graphId);
-
         public abstract Task<Graph> CreateGraphAsync(
             string name, 
             string description, 
             Uri url, 
             int maxDepth, 
             int maxLinks, 
-            bool followExternalLinks, 
+            bool excludeExternalLinks, 
             bool excludeQueryStrings, 
             string urlMatchRegex, 
             string titleElementXPath, 
@@ -267,6 +264,8 @@ namespace Graphing.Core.WebGraph
             string summaryElementXPath, 
             string imageElementXPath, 
             string relatedLinksElementXPath);
+
+        public abstract Task<Graph?> GetGraphAsync(Guid graphId);
 
         public abstract Task<Graph> UpdateGraphAsync(Graph graph);
 

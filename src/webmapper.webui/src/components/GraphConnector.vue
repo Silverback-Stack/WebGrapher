@@ -1,18 +1,10 @@
 <template>
   <nav class="card">
     <header class="card-header">
-      <p class="card-header-title is-size-4">Connect to a WebMap</p>
-      <div class="card-header-icon">
-        <b-button type="is-primary" outlined @click="toggleGraphCreator">
-          <span class="icon">
-            <i class="mdi mdi-plus-thick"></i>
-          </span>
-          <span>New</span>
-        </b-button>
-      </div>
+      <p class="card-header-title is-size-4">Connect to WebMap</p>
     </header>
 
-    <div class="card-content">
+    <div class="card-content scrollable-content">
       <div v-for="graph in graphs" :key="graph.id">
         <a class="panel-block is-clickable subtle-hover mb-2 is-rounded" @click="selectGraph(graph)">
           <div class="is-fullwidth">
@@ -24,8 +16,14 @@
       </div>
     </div>
 
-    <!--<footer class="card-footer p-3 is-justify-content-center">
-    </footer>-->
+    <footer class="card-footer p-3 is-justify-content-center">
+      <b-button type="is-primary" outlined @click="toggleGraphCreator">
+        <span class="icon">
+          <i class="mdi mdi-plus-thick"></i>
+        </span>
+        <span>New WebMap</span>
+      </b-button>
+    </footer>
   </nav>
 </template>
 
@@ -36,10 +34,14 @@
     graphs: { type: Array, required: true }
   })
 
-  const emit = defineEmits(['select'])
+  const emit = defineEmits(['select', 'createGraph'])
 
   function selectGraph(graph) {
     emit('select', graph)
+  }
+
+  function toggleGraphCreator() {
+    emit('createGraph')
   }
 
   const currentPage = ref(1)

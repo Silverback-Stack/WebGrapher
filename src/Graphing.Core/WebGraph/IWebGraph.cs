@@ -18,7 +18,7 @@ namespace Graphing.Core.WebGraph
             Uri url,
             int maxDepth,
             int maxLinks,
-            bool followExternalLinks,
+            bool excludeExternalLinks,
             bool excludeQueryStrings,
             string urlMatchRegex,
             string titleElementXPath,

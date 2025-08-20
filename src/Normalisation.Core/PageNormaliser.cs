@@ -111,7 +111,7 @@ namespace Normalisation.Core
             var normalisedLinks = NormaliseLinks(
                 extractedLinks,
                 request.Url,
-                request.FollowExternalLinks,
+                request.ExcludeExternalLinks,
                 request.ExcludeQueryStrings,
                 request.MaxLinks,
                 request.UrlMatchRegex);
@@ -119,7 +119,7 @@ namespace Normalisation.Core
 
             await PublishGraphEvent(evt, normalisedTitle, normalisedSummary, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
 
-            var linkType = request.FollowExternalLinks ? "external" : "internal";
+            var linkType = request.ExcludeExternalLinks ? "internal" : "external";
             _logger.LogDebug($"Publishing GraphPageEvent for {result.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
         }
 
@@ -214,7 +214,7 @@ namespace Normalisation.Core
         public IEnumerable<Uri> NormaliseLinks(
             IEnumerable<string> links,
             Uri baseUrl,
-            bool allowExternal,
+            bool excludeExternalLinks,
             bool excludeQueryStrings,
             int maxLinks,
             string linkUrlFilterRegex)
@@ -227,7 +227,7 @@ namespace Normalisation.Core
 
             uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, ALLOWABLE_LINK_SCHEMAS);
 
-            if (!allowExternal)
+            if (excludeExternalLinks)
                 uniqueUrls = UrlNormaliser.RemoveExternalLinks(uniqueUrls, baseUrl);
 
             if (excludeQueryStrings)

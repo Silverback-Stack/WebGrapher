@@ -10,7 +10,7 @@ namespace Events.Core.Dtos
         public int Depth { get; init; } = 0;
         public int MaxDepth { get; init; }
         public int MaxLinks { get; init; }
-        public bool FollowExternalLinks { get; init; }
+        public bool ExcludeExternalLinks { get; init; }
         public bool ExcludeQueryStrings { get; init; }
         public string UrlMatchRegex { get; init; }
         public string TitleElementXPath { get; init; }
@@ -29,7 +29,7 @@ namespace Events.Core.Dtos
                 IncludeDepth(Depth),
                 MaxDepth.ToString(),
                 MaxLinks.ToString(),
-                FollowExternalLinks.ToString(),
+                ExcludeExternalLinks.ToString(),
                 ExcludeQueryStrings.ToString(),
                 UrlMatchRegex ?? string.Empty,
                 TitleElementXPath ?? string.Empty,

@@ -3,13 +3,13 @@ import App from './App.vue'
 
 const routes = [
   {
-    path: '/',
-    name: 'Home',
+    path: '/Graph/:id?',
+    name: 'Graph',
     component: App
   },
   {
-    path: '/Graph/:id',
-    name: 'Graph',
+    path: '/',
+    name: 'Home',
     component: App
   }
 ]

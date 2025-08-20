@@ -11,7 +11,7 @@ namespace WebMapper.Cli.Service.Crawler.Controllers
         public Guid GraphId { get; set; }
 
         [DefaultValue(false)]
-        public bool FollowExternalLinks { get; set; }
+        public bool ExcludeExternalLinks { get; set; }
 
         [DefaultValue(true)]
         public bool ExcludeQueryStrings { get; set; }
