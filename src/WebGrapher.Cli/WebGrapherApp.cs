@@ -2,21 +2,21 @@
 using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Events;
-using WebMapper.Cli.Service.Crawler;
-using WebMapper.Cli.Service.Events;
-using WebMapper.Cli.Service.Graphing;
-using WebMapper.Cli.Service.Normalisation;
-using WebMapper.Cli.Service.Scraper;
-using WebMapper.Cli.Service.Streaming;
+using WebGrapher.Cli.Service.Crawler;
+using WebGrapher.Cli.Service.Events;
+using WebGrapher.Cli.Service.Graphing;
+using WebGrapher.Cli.Service.Normalisation;
+using WebGrapher.Cli.Service.Scraper;
+using WebGrapher.Cli.Service.Streaming;
 
-namespace WebMapper.Cli
+namespace WebGrapher.Cli
 {
-    public class WebMapperApp
+    public class WebGrapherApp
     {
         private IEventBus? _eventBus;
         private IPageCrawler? _pageCrawler;
 
-        public WebMapperApp() { }
+        public WebGrapherApp() { }
 
         public async Task InitializeAsync()
         {

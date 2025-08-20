@@ -7,7 +7,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Extensions.Logging;
 
-namespace WebMapper.Cli.Service.Events
+namespace WebGrapher.Cli.Service.Events
 {
     internal class EventBusService
     {

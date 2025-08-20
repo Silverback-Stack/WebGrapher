@@ -39,7 +39,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Events.Core", "src\Events.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Requests.Core", "src\Requests.Core\Requests.Core.csproj", "{4E04F813-A78E-466A-A28E-CA8E3E55EDCA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebMapper.Cli", "src\WebMapper.Cli\WebMapper.Cli.csproj", "{5734677D-164A-47F0-89FA-3B2FD73B81C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebGrapher.Cli", "src\WebGrapher.Cli\WebGrapher.Cli.csproj", "{5734677D-164A-47F0-89FA-3B2FD73B81C1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C0E6-4178-9ABD-D2C5CEFE9045}"
 	ProjectSection(SolutionItems) = preProject
@@ -52,8 +52,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Node_Redirects.txt = docs\Node_Redirects.txt
 		docs\Priority_Queue_Concepts.txt = docs\Priority_Queue_Concepts.txt
 		docs\README.md = docs\README.md
-		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
 		docs\Setup-Console-Cli.txt = docs\Setup-Console-Cli.txt
+		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Scraper.Tests", "tests\Service.Scraper.Tests\Service.Scraper.Tests.csproj", "{3BC7B8B4-70A9-4105-932A-B4B98BE39D47}"
@@ -68,7 +68,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.Core", "src\Strea
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Graphing.Tests", "tests\Service.Graphing.Tests\Service.Graphing.Tests.csproj", "{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}"
 EndProject
-Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "webmapper.webui", "src\WebMapper.WebUI\webmapper.webui.esproj", "{9218FBE3-827A-7AB1-C971-72E94FA301A3}"
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "webgrapher.webui", "src\webgrapher.webui\webgrapher.webui.esproj", "{4039A1E4-C459-4290-3D75-68616CA9CBD3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -132,12 +132,12 @@ Global
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9218FBE3-827A-7AB1-C971-72E94FA301A3}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{4039A1E4-C459-4290-3D75-68616CA9CBD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4039A1E4-C459-4290-3D75-68616CA9CBD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4039A1E4-C459-4290-3D75-68616CA9CBD3}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{4039A1E4-C459-4290-3D75-68616CA9CBD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4039A1E4-C459-4290-3D75-68616CA9CBD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4039A1E4-C459-4290-3D75-68616CA9CBD3}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -165,7 +165,7 @@ Global
 		{F1557BF3-4839-4B5F-A520-43AB129E270C} = {918A18B5-B3A1-4EF9-8B23-3DCBB4E886B3}
 		{93FB7F25-0BC5-448F-A4CF-68BF880C5C49} = {F1557BF3-4839-4B5F-A520-43AB129E270C}
 		{4DC9AD9D-B5CD-49E5-9C57-4C1DE333F6C3} = {785AE35B-D59A-48BB-9CB5-2EBDA56F1248}
-		{9218FBE3-827A-7AB1-C971-72E94FA301A3} = {82C3C83E-1FAE-4950-9A5F-AEE5AB823C11}
+		{4039A1E4-C459-4290-3D75-68616CA9CBD3} = {82C3C83E-1FAE-4950-9A5F-AEE5AB823C11}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B99AE7C8-1566-45E6-8A0C-24230118B3F6}

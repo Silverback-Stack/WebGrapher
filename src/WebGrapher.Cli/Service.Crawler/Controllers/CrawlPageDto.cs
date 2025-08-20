@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace WebMapper.Cli.Service.Crawler.Controllers
+namespace WebGrapher.Cli.Service.Crawler.Controllers
 {
     public class CrawlPageDto
     {

@@ -1,7 +1,7 @@
 <template>
   <nav class="card">
     <header class="card-header">
-      <p class="card-header-title is-size-4">Connect to WebMap</p>
+      <p class="card-header-title is-size-3">Connect to a WebGraph</p>
     </header>
 
     <div class="card-content scrollable-content">
@@ -21,7 +21,7 @@
         <span class="icon">
           <i class="mdi mdi-plus-thick"></i>
         </span>
-        <span>New WebMap</span>
+        <span>New WebGraph</span>
       </b-button>
     </footer>
   </nav>

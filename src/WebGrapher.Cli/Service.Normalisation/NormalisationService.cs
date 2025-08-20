@@ -1,20 +1,19 @@
 ﻿using System;
+using Caching.Core;
 using Events.Core.Bus;
-using Graphing.Core;
-using Graphing.Core.WebGraph.Adapters.InMemory;
 using Microsoft.Extensions.Logging;
+using Normalisation.Core;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions.Logging;
 
-namespace WebMapper.Cli.Service.Graphing
+namespace WebGrapher.Cli.Service.Normalisation
 {
-    internal class GraphingService
+    internal class NormalisationService
     {
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            //SETUP LOGGING:
-            var serviceName = typeof(GraphingService).Name;
+            var serviceName = typeof(NormalisationService).Name;
             var logFilePath = $"logs/{serviceName}.log";
 
             var serilogLogger = new LoggerConfiguration()
@@ -23,15 +22,17 @@ namespace WebMapper.Cli.Service.Graphing
                 .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
-            var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
-            //SETUP WEBGRAPH:
-            var webGraph = new InMemoryWebGraphAdapter(logger);
+            var logger = loggerFactory.CreateLogger<IPageNormaliser>();
 
-            //CREATE SERVICE:
-            GraphingFactory.Create(logger, eventBus, webGraph);
+            var cache = CacheFactory.CreateCache(
+                serviceName,
+                CacheOptions.InStorage,
+                logger);
 
-            logger.LogInformation("Graphing service started.");
+            NormalisationFactory.CreateNormaliser(logger, cache, eventBus);
+
+            logger.LogInformation("Normalisation service started.");
         }
     }
 }

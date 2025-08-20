@@ -123,19 +123,11 @@
     <b-navbar type="is-primary">
       <template #brand>
         <b-navbar-item>
-          <span class="has-text-weight-bold">WebMapper</span>
+          <span class="has-text-weight-bold">WebGrapher</span>
         </b-navbar-item>
       </template>
 
       <template #end>
-        <!-- New Graph -->
-        <b-navbar-item v-if="signalrStatus !== 'connected'">
-          <b-button type="is-light" outlined @click="openCreator">
-            <span class="icon"><i class="mdi mdi-plus-thick"></i></span>
-            <span>New</span>
-          </b-button>
-        </b-navbar-item>
-
         <!-- Connect -->
         <b-navbar-item>
           <b-button type="is-light" outlined @click="openConnector">
@@ -147,6 +139,14 @@
                 }"></i>
             </span>
             <span>{{ signalrStatus === 'connected' ? "Connected" : "Connect" }}</span>
+          </b-button>
+        </b-navbar-item>
+
+        <!-- New Graph -->
+        <b-navbar-item v-if="signalrStatus !== 'connected'">
+          <b-button type="is-light" outlined @click="openCreator">
+            <span class="icon"><i class="mdi mdi-plus-thick"></i></span>
+            <span>New</span>
           </b-button>
         </b-navbar-item>
 

@@ -11,7 +11,7 @@ using Serilog.Extensions.Logging;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
 
-namespace WebMapper.Cli.Service.Streaming
+namespace WebGrapher.Cli.Service.Streaming
 
 //NOTE:
 // YOU WILL NEED TO ADD PACKAGES:
@@ -22,7 +22,7 @@ namespace WebMapper.Cli.Service.Streaming
 
 // NOTE:
 // Need to allow console app to support Web hosting
-// Close Visual Studio and edit WebMapper.Cli.csproj
+// Close Visual Studio and edit WebGrapher.Cli.csproj
 // CHANGE LINE: <Project Sdk="Microsoft.NET.Sdk">
 // TO: <Project Sdk="Microsoft.NET.Sdk.Web">
 // THIS MAKES THE Web.SDK avaiable and ConfigureWebHostDefaults option will now become available!

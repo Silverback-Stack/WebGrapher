@@ -13,9 +13,9 @@ using Requests.Core;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions.Logging;
-using WebMapper.Cli.Service.Crawler.Controllers;
+using WebGrapher.Cli.Service.Crawler.Controllers;
 
-namespace WebMapper.Cli.Service.Crawler
+namespace WebGrapher.Cli.Service.Crawler
 {
     internal class CrawlerService
     {
