@@ -202,7 +202,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return graph;
         }
 
-        public override async Task<Graph> CreateGraphAsync(string name, string description, Uri url, int maxDepth, int maxLinks, bool followExternalLinks, bool excludeQueryStrings, string urlMatchRegex, string titleElementXPath, string contentElementXPath, string summaryElementXPath, string imageElementXPath, string relatedLinksElementXPath)
+        public override async Task<Graph> CreateGraphAsync(string name, string description, Uri url, int maxDepth, int maxLinks, bool excludeExternalLinks, bool excludeQueryStrings, string urlMatchRegex, string titleElementXPath, string contentElementXPath, string summaryElementXPath, string imageElementXPath, string relatedLinksElementXPath)
         {
             var graph = new Graph
             {
@@ -212,7 +212,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
                 Url = url.ToString(),
                 MaxDepth = maxDepth,
                 MaxLinks = maxLinks,
-                FollowExternalLinks = followExternalLinks,
+                ExcludeExternalLinks = excludeExternalLinks,
                 ExcludeQueryStrings = excludeQueryStrings,
                 UrlMatchRegex = urlMatchRegex,
                 TitleElementXPath = titleElementXPath,
@@ -228,6 +228,9 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
 
             // Initialise node storage for this graph
             _nodeTable[graph.Id] = new Dictionary<string, Node>();
+
+            // Publish Crawl Event
+            //TODO: Publish Crawl Event
 
             return graph;
         }

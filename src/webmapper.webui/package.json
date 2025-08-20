@@ -13,8 +13,11 @@
     "lint": "eslint . --fix"
   },
   "dependencies": {
+    "@mdi/font": "^7.4.47",
     "@microsoft/signalr": "^9.0.6",
     "@sigma/node-image": "^3.0.0",
+    "buefy": "^3.0.1",
+    "bulmaswatch": "^0.8.1",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "sigma": "^3.0.2",

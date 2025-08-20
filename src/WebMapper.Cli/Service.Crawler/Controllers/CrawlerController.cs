@@ -22,7 +22,7 @@ namespace WebMapper.Cli.Service.Crawler.Controllers
             var crawlPageEvent = new CrawlPageEvent(
             crawlPageDto.Url,
             crawlPageDto.GraphId,
-            crawlPageDto.FollowExternalLinks,
+            crawlPageDto.ExcludeExternalLinks,
             crawlPageDto.ExcludeQueryStrings,
             crawlPageDto.MaxDepth,
             crawlPageDto.MaxLinks,

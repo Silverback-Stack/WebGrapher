@@ -38,8 +38,9 @@ You can keep this running while developing.
 Install Componenets:
 
 npm install vue-router
-
-
+npm install buefy
+npm install @mdi/font
+npm install bulmaswatch
 
 
 Install Sigma.js and Graphology:

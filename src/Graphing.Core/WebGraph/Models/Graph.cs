@@ -11,7 +11,7 @@ namespace Graphing.Core.WebGraph.Models
         public string Url { get; set; } = string.Empty;
         public int MaxDepth { get; init; } = 3;
         public int MaxLinks { get; init; } = 10;
-        public bool FollowExternalLinks { get; init; } = false;
+        public bool ExcludeExternalLinks { get; init; } = false;
         public bool ExcludeQueryStrings { get; init; } = true;
         public string UrlMatchRegex { get; init; } = string.Empty;
         public string TitleElementXPath { get; init; } = string.Empty;

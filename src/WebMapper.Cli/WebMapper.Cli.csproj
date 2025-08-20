@@ -28,4 +28,8 @@
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Service.Graphing\Controllers\" />
+  </ItemGroup>
+
 </Project>

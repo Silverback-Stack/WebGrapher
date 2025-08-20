@@ -92,7 +92,7 @@ export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
     graph.updateEdgeAttributes(edge, oldAttr => ({
       ...oldAttr,
       color: isConnected ? GraphColors.EdgeSelected : GraphColors.Edge,
-      size: isConnected ? 4 : 1
+      size: isConnected ? 2 : 1
     }));
   });
 
