@@ -1,5 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using WebMapper.Cli;
+using WebGrapher.Cli;
 using System.Text;
 
 internal class Program
@@ -12,8 +12,8 @@ internal class Program
 
         try
         {
-            var webMapper = new WebMapperApp();
-            await webMapper.InitializeAsync();
+            var webGrapher = new WebGrapherApp();
+            await webGrapher.InitializeAsync();
         }
         catch (Exception ex) //global exception handler
         {

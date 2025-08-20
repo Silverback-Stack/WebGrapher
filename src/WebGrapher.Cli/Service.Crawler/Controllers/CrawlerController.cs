@@ -3,7 +3,7 @@ using Events.Core.Events;
 using System;
 using Microsoft.AspNetCore.Mvc;
 
-namespace WebMapper.Cli.Service.Crawler.Controllers
+namespace WebGrapher.Cli.Service.Crawler.Controllers
 {
     [ApiController]
     [Route("api")]

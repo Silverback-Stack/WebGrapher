@@ -1,19 +1,19 @@
 <template>
   <nav class="card">
     <header class="card-header">
-      <p class="card-header-title is-size-4">New WebMap</p>
+      <p class="card-header-title is-size-3">New WebGraph</p>
     </header>
 
     <div class="card-content scrollable-content">
       <section>
         <b-field label="Name">
-          <b-input model-value=""></b-input>
+          <b-input model-value="" required></b-input>
         </b-field>
         <b-field label="Description">
-          <b-input model-value=""></b-input>
+          <b-input model-value="" required></b-input>
         </b-field>
         <b-field label="Seed Url">
-          <b-input type="url" model-value="https://"></b-input>
+          <b-input type="url" model-value="https://" required></b-input>
         </b-field>
         <b-field label="Max Depth">
           <b-slider size="is-large" :model-value="3" :min="1" :max="10"> </b-slider>
@@ -37,7 +37,7 @@
             <b-input></b-input>
           </p>
         </b-field>
-        <b-field label="Title">
+        <b-field label="Title Container">
           <p class="control">
             <span class="button is-static">XPath</span>
           </p>
@@ -45,7 +45,7 @@
             <b-input></b-input>
           </p>
         </b-field>
-        <b-field label="Image">
+        <b-field label="Image Container">
           <p class="control">
             <span class="button is-static">XPath</span>
           </p>
@@ -53,7 +53,7 @@
             <b-input></b-input>
           </p>
         </b-field>
-        <b-field label="Content">
+        <b-field label="Content Container">
           <p class="control">
             <span class="button is-static">XPath</span>
           </p>
@@ -61,7 +61,7 @@
             <b-input></b-input>
           </p>
         </b-field>
-        <b-field label="Summary">
+        <b-field label="Summary Container">
           <p class="control">
             <span class="button is-static">XPath</span>
           </p>
@@ -69,7 +69,7 @@
             <b-input></b-input>
           </p>
         </b-field>
-        <b-field label="Related Links">
+        <b-field label="Related Links Container">
           <p class="control">
             <span class="button is-static">XPath</span>
           </p>
@@ -83,7 +83,7 @@
     <footer class="card-footer p-3 is-justify-content-center">
       <b-button type="is-primary" outlined @click="previewCrawl" class="mr-2">
         <span class="icon">
-          <i class="mdi mdi-plus-thick"></i>
+          <i class="mdi mdi-bullseye"></i>
         </span>
         <span>Preview</span>
       </b-button>
