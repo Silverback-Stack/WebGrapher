@@ -13,6 +13,7 @@
         public string RedirectedToUrl { get; set; }
         public HashSet<Node> OutgoingLinks { get; set; } = new();
         public HashSet<Node> IncomingLinks { get; set; } = new();
+        public int PopularityScore { get; set; }
         public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
         public DateTimeOffset ModifiedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset? LastScheduledAt { get; set; }

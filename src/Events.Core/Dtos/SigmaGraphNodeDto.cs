@@ -11,6 +11,9 @@ namespace Events.Core.Dtos
         [JsonPropertyName("label")]
         public string Label { get; init; } = string.Empty; //Title
 
+        [JsonPropertyName("popularityScore")]
+        public double PopularityScore { get; init; } = 0;
+
         [JsonPropertyName("size")]
         public double Size { get; init; } = 1;
 

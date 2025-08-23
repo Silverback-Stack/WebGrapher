@@ -143,6 +143,10 @@ namespace Graphing.Core.WebGraph
 
                 toNode.IncomingLinks.Add(fromNode);
 
+                // Update popularity scores
+                UpdatePopularityScore(fromNode);
+                UpdatePopularityScore(toNode);
+
                 await SaveNodeAsync(fromNode);
                 await SaveNodeAsync(toNode);
 
@@ -151,6 +155,12 @@ namespace Graphing.Core.WebGraph
 
             //no link added
             return null;
+        }
+
+        private void UpdatePopularityScore(Node node)
+        {
+            // Simple metric: sum of incoming + outgoing links
+            node.PopularityScore = node.IncomingLinks.Count + node.OutgoingLinks.Count;
         }
 
         /// <summary>
@@ -206,6 +216,10 @@ namespace Graphing.Core.WebGraph
             
             _logger.LogDebug($"Marked node {fromUrl} as redirected to {toUrl} and updated links.");
 
+            // Update popularity
+            UpdatePopularityScore(fromNode);
+            UpdatePopularityScore(toNode);
+
             await SaveNodeAsync(toNode);
             await SaveNodeAsync(fromNode);
         }
@@ -247,31 +261,19 @@ namespace Graphing.Core.WebGraph
 
         public abstract Task CleanupOrphanedNodesAsync(Guid graphId);
 
-        public abstract Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
+        public abstract Task<Graph> CreateGraphAsync(GraphOptions options);
 
-
-        public abstract Task<Graph> CreateGraphAsync(
-            string name, 
-            string description, 
-            Uri url, 
-            int maxDepth, 
-            int maxLinks, 
-            bool excludeExternalLinks, 
-            bool excludeQueryStrings, 
-            string urlMatchRegex, 
-            string titleElementXPath, 
-            string contentElementXPath, 
-            string summaryElementXPath, 
-            string imageElementXPath, 
-            string relatedLinksElementXPath);
-
-        public abstract Task<Graph?> GetGraphAsync(Guid graphId);
+        public abstract Task<Graph?> GetGraphByIdAsync(Guid graphId);
 
         public abstract Task<Graph> UpdateGraphAsync(Graph graph);
 
         public abstract Task<Graph?> DeleteGraphAsync(Guid graphId);
 
         public abstract Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize);
+
+        public abstract Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
+
+        public abstract Task<IEnumerable<Node>> GetMostPopularNodes(Guid graphId, int topN);
 
     }
 }

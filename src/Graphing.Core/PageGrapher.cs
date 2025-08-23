@@ -1,5 +1,6 @@
 ﻿using System;
 using Events.Core.Bus;
+using Events.Core.Dtos;
 using Events.Core.Events;
 using Events.Core.Helpers;
 using Graphing.Core.WebGraph;
@@ -39,20 +40,17 @@ namespace Graphing.Core
             //Delegate : Called when Node is populated with data
             Func<Node, Task> onNodePopulated = async (node) =>
             {
-                // Get the new nodes/edges for this populated node
-                var (nodesToSend, edgesToSend) = SigmaJsGraphSerializer.GetPopulationDelta(node);
+                var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node);
 
-                if (nodesToSend.Count == 0 && edgesToSend.Count == 0)
+                if (!payload.Nodes.Any() && !payload.Edges.Any())
                     return;
 
                 _logger.LogDebug($"Publishing node populated event for {node.Url} " +
-                     $"(nodes: {nodesToSend.Count}, edges: {edgesToSend.Count})");
+                     $"(nodes: {payload.NodeCount}, edges: {payload.EdgeCount})");
 
                 await _eventBus.PublishAsync(new GraphNodeAddedEvent
                 {
-                    GraphId = node.GraphId,
-                    Nodes = nodesToSend,
-                    Edges = edgesToSend
+                    SigmaGraphPayload = payload
                 });
             };
 
@@ -61,17 +59,27 @@ namespace Graphing.Core
             {
                 var depth = request.Depth + 1;
 
-                var crawlPageEvent = new CrawlPageEvent(
-                    new Uri(node.Url),
-                    attempt: 1,
-                    depth,
-                    request);
+                var crawlPageRequest = request with
+                {
+                    Url = new Uri(node.Url),
+                    Attempt = 1,
+                    Depth = depth
+                };
+
+                var crawlPageEvent = new CrawlPageEvent
+                {
+                    CrawlPageRequest = crawlPageRequest,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
 
                 var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
 
                 _logger.LogDebug($"Scheduling crawl for link {node.Url} at depth {depth}");
 
-                await _eventBus.PublishAsync(crawlPageEvent, priority: depth, scheduledOffset);
+                await _eventBus.PublishAsync(
+                    crawlPageEvent, 
+                    priority: depth, 
+                    scheduledOffset);
             };
 
             await _webGraph.AddWebPageAsync(webPage, onNodePopulated, onLinkDiscovered);
@@ -99,5 +107,137 @@ namespace Graphing.Core
             };
         }
 
+        public async Task<Graph?> GetGraphByIdAsync(Guid graphId)
+        {
+            return await _webGraph.GetGraphByIdAsync(graphId);
+        }
+
+        public async Task<Graph?> CreateGraphAsync(GraphOptions options)
+        {
+            var newGraph = await _webGraph.CreateGraphAsync(options);
+
+            if (newGraph != null) {
+
+                //create a crawl page request
+                var crawlPageRequest = new CrawlPageRequestDto
+                {
+                    Url = options.Url,
+                    GraphId = newGraph.Id,
+                    CorrelationId = Guid.NewGuid(),
+                    Attempt = 1,
+                    Depth = 0,
+                    Options = new CrawlPageRequestOptionsDto
+                    {
+                        MaxDepth = options.MaxDepth,
+                        MaxLinks = options.MaxLinks,
+                        ExcludeExternalLinks = options.ExcludeExternalLinks,
+                        ExcludeQueryStrings = options.ExcludeQueryStrings,
+                        UrlMatchRegex = options.UrlMatchRegex,
+                        TitleElementXPath = options.TitleElementXPath,
+                        ContentElementXPath = options.ContentElementXPath,
+                        SummaryElementXPath = options.SummaryElementXPath,
+                        ImageElementXPath = options.ImageElementXPath,
+                        RelatedLinksElementXPath = options.RelatedLinksElementXPath,
+                        UserAgent = options.UserAgent,
+                        UserAccepts = options.UserAccepts
+                    },
+                    RequestedAt = DateTimeOffset.UtcNow
+                };
+
+                await PublishCrawlPageEvent(crawlPageRequest);
+            }
+
+            return newGraph;
+        }
+
+        public async Task<Graph> UpdateGraphAsync(Graph graph)
+        {
+            return await _webGraph.UpdateGraphAsync(graph);
+        }
+
+        public async Task<Graph?> DeleteGraphAsync(Guid graphId)
+        {
+            return await _webGraph.DeleteGraphAsync(graphId);
+        }
+
+        public async Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize)
+        {
+            return await _webGraph.ListGraphsAsync(page, pageSize);
+        }
+
+        public async Task CrawlPageAsync(Guid graphId, GraphOptions options)
+        {
+            //create a crawl page request
+            var crawlPageRequest = new CrawlPageRequestDto
+            {
+                Url = options.Url,
+                GraphId = graphId,
+                CorrelationId = Guid.NewGuid(),
+                Attempt = 1,
+                Depth = 0,
+                Options = new CrawlPageRequestOptionsDto
+                {
+                    MaxDepth = options.MaxDepth,
+                    MaxLinks = options.MaxLinks,
+                    ExcludeExternalLinks = options.ExcludeExternalLinks,
+                    ExcludeQueryStrings = options.ExcludeQueryStrings,
+                    UrlMatchRegex = options.UrlMatchRegex,
+                    TitleElementXPath = options.TitleElementXPath,
+                    ContentElementXPath = options.ContentElementXPath,
+                    SummaryElementXPath = options.SummaryElementXPath,
+                    ImageElementXPath = options.ImageElementXPath,
+                    RelatedLinksElementXPath = options.RelatedLinksElementXPath,
+                    UserAgent = options.UserAgent,
+                    UserAccepts = options.UserAccepts
+                },
+                RequestedAt = DateTimeOffset.UtcNow
+            };
+
+            await PublishCrawlPageEvent(crawlPageRequest);
+        }
+
+        public async Task<SigmaGraphPayloadDto> TraverseGraphAsync(Guid graphId, Uri startUrl, int maxDepth, int? maxNodes = null)
+        {
+            var nodes = await _webGraph.TraverseGraphAsync(graphId, startUrl.AbsoluteUri, maxDepth, maxNodes);
+            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId);
+        }
+
+        public async Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
+        {
+            var popularNodes = await _webGraph.GetMostPopularNodes(graphId, 1);
+            var startNode = popularNodes.FirstOrDefault();
+
+            // 2. Traverse the graph if a start node exists
+            var nodes = startNode != null
+                ? await _webGraph.TraverseGraphAsync(graphId, startNode.Url, maxDepth, maxNodes)
+                : Enumerable.Empty<Node>();
+
+            // 3. If no nodes found, return empty payload
+            if (!nodes.Any())
+            {
+                return new SigmaGraphPayloadDto
+                {
+                    GraphId = graphId,
+                    Nodes = Array.Empty<SigmaGraphNodeDto>(),
+                    Edges = Array.Empty<SigmaGraphEdgeDto>()
+                };
+            }
+
+            // 4. Build and return payload
+            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId);
+        }
+
+        private async Task PublishCrawlPageEvent(CrawlPageRequestDto crawlPageRequest)
+        {
+            //create a crawl page event
+            var crawlPageEvent = new CrawlPageEvent
+            {
+                CrawlPageRequest = crawlPageRequest,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            // Publish Crawl Event
+            await _eventBus.PublishAsync(crawlPageEvent);
+        }
     }
 }

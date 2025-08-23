@@ -59,17 +59,17 @@ namespace Crawler.Core
                 return;
             }
 
-            if (HasReachedMaxDepth(request.Depth, request.MaxDepth))
+            if (HasReachedMaxDepth(request.Depth, request.Options.MaxDepth))
             {
                 _logger.LogDebug($"Stopped crawl: {request.Url} max depth reached: {request.Depth})");
                 return;
             }
 
-            var sitePolicy = await _sitePolicyResolver.GetOrCreateSitePolicyAsync(request.Url, request.UserAgent);
+            var sitePolicy = await _sitePolicyResolver.GetOrCreateSitePolicyAsync(request.Url, request.Options.UserAgent);
 
-            if (!_sitePolicyResolver.IsPermittedByRobotsTxt(request.Url, request.UserAgent, sitePolicy))
+            if (!_sitePolicyResolver.IsPermittedByRobotsTxt(request.Url, request.Options.UserAgent, sitePolicy))
             {
-                _logger.LogDebug($"Robots.txt denied: {request.Url} for user agent '{request.UserAgent}'");
+                _logger.LogDebug($"Robots.txt denied: {request.Url} for user agent '{request.Options.UserAgent}'");
                 return;
             }
 
@@ -94,7 +94,7 @@ namespace Crawler.Core
 
             var sitePolicy = await _sitePolicyResolver.GetOrCreateSitePolicyAsync(
                 request.Url,
-                request.UserAgent,
+                request.Options.UserAgent,
                 evt.RetryAfter); //assigns RetryAfter interval
 
             _logger.LogDebug($"Scheduling retry: {request.Url} after {sitePolicy.RetryAfter?.ToString("o")}. Next attempt: {request.Attempt + 1}");
@@ -128,12 +128,19 @@ namespace Crawler.Core
 
             _logger.LogInformation($"Scheduled CrawlPageEvent: {request.Url} at depth {request.Depth}, attempt {attempt}, scheduled for {scheduledOffset?.ToString("o")}");
 
+            var crawlPageRequest = request with
+            {
+                Attempt = attempt
+            };
+
+            var crawlPageEvent = new CrawlPageEvent
+            {
+                CrawlPageRequest = crawlPageRequest,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
             await _eventBus.PublishAsync(
-                new CrawlPageEvent(
-                    request.Url, 
-                    attempt, 
-                    request.Depth, 
-                    request), 
+                crawlPageEvent, 
                 priority: request.Depth, 
                 scheduledOffset);
         }

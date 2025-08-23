@@ -16,6 +16,7 @@
     "@mdi/font": "^7.4.47",
     "@microsoft/signalr": "^9.0.6",
     "@sigma/node-image": "^3.0.0",
+    "axios": "^1.11.0",
     "buefy": "^3.0.1",
     "bulmaswatch": "^0.8.1",
     "graphology": "^0.26.0",

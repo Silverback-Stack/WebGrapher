@@ -1,7 +1,9 @@
 ﻿using System;
 using Crawler.Core;
 using Events.Core.Bus;
+using Events.Core.Dtos;
 using Events.Core.Events;
+using Microsoft.Extensions.Options;
 using WebGrapher.Cli.Service.Crawler;
 using WebGrapher.Cli.Service.Events;
 using WebGrapher.Cli.Service.Graphing;
@@ -68,7 +70,7 @@ namespace WebGrapher.Cli
             }
 
             //cleanup
-            await CrawlerService.StopWebApiServerAsync();
+            await GraphingService.StopWebApiServerAsync();
             await StreamingService.StopHubServerAsync();
         }
 
@@ -95,21 +97,40 @@ namespace WebGrapher.Cli
         {
             if (_pageCrawler is null) return;
 
-            await _pageCrawler.EvaluatePageForCrawling(new CrawlPageEvent(
-                url: url, 
-                graphId: Guid.Parse("00000000-0000-0000-0000-000000000001"), 
-                excludeExternalLinks: false,
-                excludeQueryStrings: true,
-                maxDepth: 3,
-                maxLinks: 10,
-                urlMatchRegex: "",
-                titleElementXPath: "",
-                contentElementXPath: "",
-                summaryElementXPath: "",
-                imageElementXPath: "",
-                relatedLinksElementXPath: "",
-                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-                userAccepts: "text/html,text/plain"));
+            //create a crawl page request
+            var crawlPageRequest = new CrawlPageRequestDto
+            {
+                Url = url,
+                GraphId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                CorrelationId = Guid.NewGuid(),
+                Attempt = 1,
+                Depth = 0,
+                Options = new CrawlPageRequestOptionsDto
+                {
+                    MaxDepth = 3,
+                    MaxLinks = 25,
+                    ExcludeExternalLinks = true,
+                    ExcludeQueryStrings = true,
+                    UrlMatchRegex = "",
+                    TitleElementXPath = "",
+                    ContentElementXPath = "",
+                    SummaryElementXPath = "",
+                    ImageElementXPath = "",
+                    RelatedLinksElementXPath = "",
+                    UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+                    UserAccepts = "text/html,text/plain"
+                },
+                RequestedAt = DateTimeOffset.UtcNow
+            };
+
+            //create a crawl page event
+            var crawlPageEvent = new CrawlPageEvent
+            {
+                CrawlPageRequest = crawlPageRequest,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            await _pageCrawler.EvaluatePageForCrawling(crawlPageEvent);
         }
 
 

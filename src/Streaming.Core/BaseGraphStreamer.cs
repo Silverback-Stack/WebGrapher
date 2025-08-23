@@ -1,8 +1,8 @@
 ﻿using System;
 using Events.Core.Bus;
+using Events.Core.Dtos;
 using Events.Core.Events;
 using Microsoft.Extensions.Logging;
-using Streaming.Core.Models;
 
 namespace Streaming.Core
 {
@@ -29,9 +29,7 @@ namespace Streaming.Core
             _eventBus.Unsubscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEvent);
         }
 
-        public abstract Task StreamNodeAsync(Guid graphId, GraphNode node);
-
-        public abstract Task StreamGraphAsync(Guid graphId, int maxDepth, int maxNodes);
+        public abstract Task StreamGraphPayloadAsync(SigmaGraphPayloadDto payload);
 
         public abstract Task BroadcastMessageAsync(Guid graphId, string message);
 
@@ -41,18 +39,14 @@ namespace Streaming.Core
         {
             try
             {
-                var node = new GraphNode
-                {
-                    Nodes = evt.Nodes,
-                    Edges = evt.Edges
-                };
+                var payload = evt.SigmaGraphPayload;
 
-                await BroadcastMessageAsync(evt.GraphId, "Sending node...");
-                await StreamNodeAsync(evt.GraphId, node);
+                await BroadcastMessageAsync(payload.GraphId, "Sending node(s)...");
+                await StreamGraphPayloadAsync(payload);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to process GraphNodeAddedEvent for graph {evt.GraphId}");
+                _logger.LogError(ex, $"Failed to process GraphNodeAddedEvent for graph {evt.SigmaGraphPayload.GraphId}");
             }
         }
     }

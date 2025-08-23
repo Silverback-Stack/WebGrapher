@@ -1,8 +1,8 @@
 ﻿using System;
 using Events.Core.Bus;
-using Microsoft.Extensions.Logging;
+using Events.Core.Dtos;
 using Microsoft.AspNetCore.SignalR;
-using Streaming.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Streaming.Core.Adapters.SignalR
 {
@@ -18,22 +18,13 @@ namespace Streaming.Core.Adapters.SignalR
             _hubContext = hubContext;
         }
 
-        public async override Task StreamNodeAsync(Guid graphId, GraphNode node)
+        public async override Task StreamGraphPayloadAsync(SigmaGraphPayloadDto payload)
         {
-            _logger.LogInformation($"Streaming node {node.Nodes.FirstOrDefault()?.Id} to graph {graphId}");
-            
-            var clients = _hubContext.Clients.Group(graphId.ToString());
+            var firstNodeId = payload.Nodes.FirstOrDefault()?.Id ?? "N/A";
+            _logger.LogInformation($"Streaming payload starting with node {firstNodeId} to graph {payload.GraphId}");
 
-            await clients.SendAsync("ReceiveNode", node);
-        }
-
-        public async override Task StreamGraphAsync(Guid graphId, int maxDepth, int maxNodes)
-        {
-            //TODO: some kind of API call to graphing service to get data
-            // GetMostPopularNodesAsync(int graphId, int limit)
-            // With each popular node {
-            //  TraverseGraphAsync(int graphId, string startUrl, int maxDepth, int? maxNodes = null)
-            // }
+            var clients = _hubContext.Clients.Group(payload.GraphId.ToString());
+            await clients.SendAsync("ReceiveGraphPayload", payload);
         }
 
         public async override Task BroadcastMessageAsync(Guid graphId, string message)

@@ -4,18 +4,18 @@ export const GraphColors = {
   NodeSelected: "#888888",
   Edge: "#E0E0E0",
   EdgeSelected: "#888888"
-};
+}
 
-function getRandomPosition(maxRange = 5) {
+function getRandomPosition(maxRange = 100) {
   return {
     x: (Math.random() * 2 - 1) * maxRange,
     y: (Math.random() * 2 - 1) * maxRange
-  };
+  }
 }
 
-export function addOrUpdateNode(graph, n) {
-  if (graph.hasNode(n.id)) {
-    graph.mergeNodeAttributes(n.id, {
+export function addOrUpdateNode(sigmaGraph, n) {
+  if (sigmaGraph.hasNode(n.id)) {
+    sigmaGraph.mergeNodeAttributes(n.id, {
       _originalType: n.type, //used for reducer
       label: n.label,
       size: n.size,
@@ -26,10 +26,11 @@ export function addOrUpdateNode(graph, n) {
       tags: n.tags,
       sourceLastModified: n.sourceLastModified,
       createdAt: n.createdAt
-    });
+    })
   } else {
-    const pos = getRandomPosition(5);
-    graph.addNode(n.id, {
+    const pos = getRandomPosition(100);
+
+    sigmaGraph.addNode(n.id, {
       _originalType: n.type, //used for reducer
       label: n.label,
       size: n.size,
@@ -43,29 +44,29 @@ export function addOrUpdateNode(graph, n) {
       createdAt: n.createdAt,
       x: pos.x,
       y: pos.y
-    });
+    })
   }
 }
 
-export function addEdge(graph, e) {
-  const sourceId = graph.hasNode(e.source) ? e.source : null;
-  const targetId = graph.hasNode(e.target) ? e.target : null;
+export function addEdge(sigmaGraph, e) {
+  const sourceId = sigmaGraph.hasNode(e.source) ? e.source : null;
+  const targetId = sigmaGraph.hasNode(e.target) ? e.target : null;
   if (!sourceId || !targetId) return;
 
-  if (!graph.hasEdge(e.id)) {
-    graph.addEdgeWithKey(e.id, sourceId, targetId);
+  if (!sigmaGraph.hasEdge(e.id)) {
+    sigmaGraph.addEdgeWithKey(e.id, sourceId, targetId);
   }
 }
 
-export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
-  const neighbors = new Set(graph.neighbors(hoveredNode));
+export function highlightNeighbors(sigmaGraph, sigmaInstance, hoveredNode) {
+  const neighbors = new Set(sigmaGraph.neighbors(hoveredNode));
   neighbors.add(hoveredNode);
 
   // Update nodes
-  graph.forEachNode(n => {
+  sigmaGraph.forEachNode(n => {
     const isNeighbor = neighbors.has(n);
 
-    graph.updateNodeAttributes(n, oldAttr => {
+    sigmaGraph.updateNodeAttributes(n, oldAttr => {
       // Ensure _originalSize exists
       const baseSize = oldAttr._originalSize ?? oldAttr.size;
       let newSize = baseSize;
@@ -87,9 +88,9 @@ export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
   });
 
   // Update edges
-  graph.forEachEdge((edge, attr, source, target) => {
+  sigmaGraph.forEachEdge((edge, attr, source, target) => {
     const isConnected = neighbors.has(source) && neighbors.has(target);
-    graph.updateEdgeAttributes(edge, oldAttr => ({
+    sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
       ...oldAttr,
       color: isConnected ? GraphColors.EdgeSelected : GraphColors.Edge,
       size: isConnected ? 2 : 1
@@ -99,10 +100,10 @@ export function highlightNeighbors(graph, sigmaInstance, hoveredNode) {
   sigmaInstance.refresh();
 }
 
-export function resetHighlight(graph, sigmaInstance) {
+export function resetHighlight(sigmaGraph, sigmaInstance) {
   // Reset all nodes to default image type, color, and original size
-  graph.forEachNode(n => {
-    graph.updateNodeAttributes(n, oldAttr => {
+  sigmaGraph.forEachNode(n => {
+    sigmaGraph.updateNodeAttributes(n, oldAttr => {
       const baseSize = oldAttr._originalSize ?? oldAttr.size; // fallback if _originalSize missing
       return {
         ...oldAttr,
@@ -114,8 +115,8 @@ export function resetHighlight(graph, sigmaInstance) {
   });
 
   // Reset all edges to default color and size
-  graph.forEachEdge((edge, attr) => {
-    graph.updateEdgeAttributes(edge, oldAttr => ({
+  sigmaGraph.forEachEdge((edge, attr) => {
+    sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
       ...oldAttr,
       color: GraphColors.Edge,
       size: 1
@@ -127,7 +128,7 @@ export function resetHighlight(graph, sigmaInstance) {
 
 
 // Remove or restore images from nodes as user zooms in or out to boost performance
-export function setupReducer(graph, sigmaInstance, highlightedNodeRef) {
+export function setupReducer(sigmaGraph, sigmaInstance, highlightedNodeRef) {
   const camera = sigmaInstance.getCamera();
 
   camera.on('updated', () => {
@@ -136,7 +137,7 @@ export function setupReducer(graph, sigmaInstance, highlightedNodeRef) {
     // Skip reducer if any node is highlighted
     if (highlightedNodeRef.value) return;
 
-    graph.forEachNode((node, attr) => {
+    sigmaGraph.forEachNode((node, attr) => {
       // Only apply to image nodes
       if (attr._originalType === 'image') {
         const screenSize = attr.size / zoom;
@@ -144,7 +145,7 @@ export function setupReducer(graph, sigmaInstance, highlightedNodeRef) {
 
         if (attr.type !== newType) {
           //console.log(`Node ${node} type changed from ${attr.type} → ${newType}`);
-          graph.updateNodeAttributes(node, oldAttr => ({ ...oldAttr, type: newType }));
+          sigmaGraph.updateNodeAttributes(node, oldAttr => ({ ...oldAttr, type: newType }));
         }
       }
     });

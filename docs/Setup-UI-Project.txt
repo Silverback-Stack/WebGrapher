@@ -38,6 +38,7 @@ You can keep this running while developing.
 Install Componenets:
 
 npm install vue-router
+npm install axios
 npm install buefy
 npm install @mdi/font
 npm install bulmaswatch
