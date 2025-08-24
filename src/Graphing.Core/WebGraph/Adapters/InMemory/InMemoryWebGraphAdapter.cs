@@ -196,31 +196,33 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return sb.ToString();
         }
 
-        public override async Task<Graph?> GetGraphAsync(Guid graphId)
+        public override async Task<Graph?> GetGraphByIdAsync(Guid graphId)
         {
             _graphTable.TryGetValue(graphId, out var graph);
             return graph;
         }
 
-        public override async Task<Graph> CreateGraphAsync(string name, string description, Uri url, int maxDepth, int maxLinks, bool excludeExternalLinks, bool excludeQueryStrings, string urlMatchRegex, string titleElementXPath, string contentElementXPath, string summaryElementXPath, string imageElementXPath, string relatedLinksElementXPath)
+        public override async Task<Graph?> CreateGraphAsync(GraphOptions options)
         {
             var graph = new Graph
             {
                 Id = Guid.NewGuid(),
-                Name = name,
-                Description = description,
-                Url = url.ToString(),
-                MaxDepth = maxDepth,
-                MaxLinks = maxLinks,
-                ExcludeExternalLinks = excludeExternalLinks,
-                ExcludeQueryStrings = excludeQueryStrings,
-                UrlMatchRegex = urlMatchRegex,
-                TitleElementXPath = titleElementXPath,
-                ContentElementXPath = contentElementXPath,
-                SummaryElementXPath = summaryElementXPath,
-                ImageElementXPath = imageElementXPath,
-                RelatedLinksElementXPath = relatedLinksElementXPath,
-                CreatedAt = DateTimeOffset.UtcNow
+                Name = options.Name,
+                Description = options.Description,
+                Url = options.Url.AbsoluteUri,
+                MaxDepth = options.MaxDepth,
+                MaxLinks = options.MaxLinks,
+                ExcludeExternalLinks = options.ExcludeExternalLinks,
+                ExcludeQueryStrings = options.ExcludeQueryStrings,
+                UrlMatchRegex = options.UrlMatchRegex,
+                TitleElementXPath = options.TitleElementXPath,
+                ContentElementXPath = options.ContentElementXPath,
+                SummaryElementXPath = options.SummaryElementXPath,
+                ImageElementXPath = options.ImageElementXPath,
+                RelatedLinksElementXPath = options.RelatedLinksElementXPath,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UserAgent = options.UserAgent,
+                UserAccepts = options.UserAccepts
             };
 
             // Save into Graph “table”
@@ -228,9 +230,6 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
 
             // Initialise node storage for this graph
             _nodeTable[graph.Id] = new Dictionary<string, Node>();
-
-            // Publish Crawl Event
-            //TODO: Publish Crawl Event
 
             return graph;
         }
@@ -278,6 +277,21 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
                 pageSize);
 
             return result;
+        }
+
+        public override Task<IEnumerable<Node>> GetMostPopularNodes(Guid graphId, int topN)
+        {
+            if (!_nodeTable.TryGetValue(graphId, out var nodes))
+                return Task.FromResult(Enumerable.Empty<Node>());
+
+            var popularNodes = nodes.Values
+                .Where(n => n.State == NodeState.Populated)  // only populated nodes
+                .OrderByDescending(n => n.PopularityScore)   // sort by popularity
+                .ThenByDescending(n => n.ModifiedAt)         // then by latest modified
+                .Take(topN)                                  // take top N
+                .ToList();
+
+            return Task.FromResult<IEnumerable<Node>>(popularNodes);
         }
 
     }

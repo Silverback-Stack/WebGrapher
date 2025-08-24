@@ -39,8 +39,8 @@ namespace Scraper.Core
 
             var response = await FetchAsync(
                 request.Url,
-                request.UserAgent,
-                request.UserAccepts,
+                request.Options.UserAgent,
+                request.Options.UserAccepts,
                 request.ToCompositeKey);
 
             if (response is null)

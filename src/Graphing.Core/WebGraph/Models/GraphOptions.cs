@@ -1,16 +1,16 @@
 ﻿
 namespace Graphing.Core.WebGraph.Models
 {
-    public record Graph
+    public record GraphOptions
     {
-        public Guid Id { get; init; }
+        public const string DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
+        public const string DEFAULT_USER_ACCEPTS = "text/html,text/plain";
+
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
-
-        public string Url { get; set; } = string.Empty;
+        public required Uri Url { get; set; }
         public int MaxDepth { get; set; } = 3;
-        public int MaxLinks { get; set; } = 10;
+        public int MaxLinks { get; set; } = 25;
         public bool ExcludeExternalLinks { get; set; } = true;
         public bool ExcludeQueryStrings { get; set; } = true;
         public string UrlMatchRegex { get; set; } = string.Empty;
@@ -19,7 +19,7 @@ namespace Graphing.Core.WebGraph.Models
         public string SummaryElementXPath { get; set; } = string.Empty;
         public string ImageElementXPath { get; set; } = string.Empty;
         public string RelatedLinksElementXPath { get; set; } = string.Empty;
-        public string UserAgent {  get; set; } = string.Empty;
-        public string UserAccepts { get; set; } = string.Empty;
+        public string UserAgent { get; set; } = DEFAULT_USER_AGENT;
+        public string UserAccepts { get; set; } = DEFAULT_USER_ACCEPTS;
     }
 }

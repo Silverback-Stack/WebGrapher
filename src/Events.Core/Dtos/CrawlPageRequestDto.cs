@@ -1,25 +1,13 @@
-﻿
-namespace Events.Core.Dtos
+﻿namespace Events.Core.Dtos
 {
     public record CrawlPageRequestDto
     {
         public Uri Url { get; init; }
         public Guid GraphId { get; init; }
-        public Guid CorrelationId { get; init; }
+        public Guid CorrelationId { get; init; } = Guid.NewGuid();
         public int Attempt { get; init; } = 1;
         public int Depth { get; init; } = 0;
-        public int MaxDepth { get; init; }
-        public int MaxLinks { get; init; }
-        public bool ExcludeExternalLinks { get; init; }
-        public bool ExcludeQueryStrings { get; init; }
-        public string UrlMatchRegex { get; init; }
-        public string TitleElementXPath { get; init; }
-        public string ContentElementXPath { get; init; }
-        public string SummaryElementXPath { get; init; }
-        public string ImageElementXPath { get; init; }
-        public string RelatedLinksElementXPath { get; init; }
-        public string UserAgent { get; init; }
-        public string UserAccepts { get; init; }
+        public CrawlPageRequestOptionsDto Options { get; init; }
         public DateTimeOffset RequestedAt { get; init; }
 
         public string ToCompositeKey =>
@@ -27,18 +15,18 @@ namespace Events.Core.Dtos
             {
                 Url?.AbsoluteUri ?? string.Empty,
                 IncludeDepth(Depth),
-                MaxDepth.ToString(),
-                MaxLinks.ToString(),
-                ExcludeExternalLinks.ToString(),
-                ExcludeQueryStrings.ToString(),
-                UrlMatchRegex ?? string.Empty,
-                TitleElementXPath ?? string.Empty,
-                ContentElementXPath ?? string.Empty,
-                SummaryElementXPath ?? string.Empty,
-                ImageElementXPath ?? string.Empty,
-                RelatedLinksElementXPath ?? string.Empty,
-                UserAgent ?? string.Empty,
-                UserAccepts ?? string.Empty
+                Options.MaxDepth.ToString(),
+                Options.MaxLinks.ToString(),
+                Options.ExcludeExternalLinks.ToString(),
+                Options.ExcludeQueryStrings.ToString(),
+                Options.UrlMatchRegex ?? string.Empty,
+                Options.TitleElementXPath ?? string.Empty,
+                Options.ContentElementXPath ?? string.Empty,
+                Options.SummaryElementXPath ?? string.Empty,
+                Options.ImageElementXPath ?? string.Empty,
+                Options.RelatedLinksElementXPath ?? string.Empty,
+                Options.UserAgent ?? string.Empty,
+                Options.UserAccepts ?? string.Empty
             });
 
 

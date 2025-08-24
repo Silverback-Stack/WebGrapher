@@ -1,13 +1,11 @@
 ﻿using System;
-using Streaming.Core.Models;
+using Events.Core.Dtos;
 
 namespace Streaming.Core
 {
     public interface IGraphStreamer
     {
-        Task StreamNodeAsync(Guid graphId, GraphNode node);
-
-        Task StreamGraphAsync(Guid graphId, int maxDepth, int maxNodes);
+        Task StreamGraphPayloadAsync(SigmaGraphPayloadDto payload);
 
         Task BroadcastMessageAsync(Guid graphId, string message);
 

@@ -13,6 +13,7 @@ namespace WebGrapher.Cli.Service.Normalisation
     {
         public static async Task InitializeAsync(IEventBus eventBus)
         {
+            //SETUP LOGGING:
             var serviceName = typeof(NormalisationService).Name;
             var logFilePath = $"logs/{serviceName}.log";
 
@@ -22,7 +23,6 @@ namespace WebGrapher.Cli.Service.Normalisation
                 .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
-
             var logger = loggerFactory.CreateLogger<IPageNormaliser>();
 
             var cache = CacheFactory.CreateCache(

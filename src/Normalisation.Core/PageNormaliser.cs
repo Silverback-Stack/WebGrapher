@@ -97,12 +97,12 @@ namespace Normalisation.Core
             }
 
             var htmlParser = new HtmlParser(htmlDocument);
-            var extractedTitle = htmlParser.ExtractTitle(request.TitleElementXPath);
-            var extractedSummary = htmlParser.ExtractContentAsPlainText(request.SummaryElementXPath);
-            var extractedContent = htmlParser.ExtractContentAsPlainText(request.ContentElementXPath);
+            var extractedTitle = htmlParser.ExtractTitle(request.Options.TitleElementXPath);
+            var extractedSummary = htmlParser.ExtractContentAsPlainText(request.Options.SummaryElementXPath);
+            var extractedContent = htmlParser.ExtractContentAsPlainText(request.Options.ContentElementXPath);
             var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent);
-            var extractedLinks = htmlParser.ExtractLinks(request.RelatedLinksElementXPath);
-            var extractedImageUrl = htmlParser.ExtractImageUrl(request.ImageElementXPath);   
+            var extractedLinks = htmlParser.ExtractLinks(request.Options.RelatedLinksElementXPath);
+            var extractedImageUrl = htmlParser.ExtractImageUrl(request.Options.ImageElementXPath);   
 
             var normalisedTitle = NormaliseTitle(extractedTitle);
             var normalisedSummary = NormaliseSummary(extractedSummary);
@@ -111,15 +111,15 @@ namespace Normalisation.Core
             var normalisedLinks = NormaliseLinks(
                 extractedLinks,
                 request.Url,
-                request.ExcludeExternalLinks,
-                request.ExcludeQueryStrings,
-                request.MaxLinks,
-                request.UrlMatchRegex);
+                request.Options.ExcludeExternalLinks,
+                request.Options.ExcludeQueryStrings,
+                request.Options.MaxLinks,
+                request.Options.UrlMatchRegex);
             var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
 
             await PublishGraphEvent(evt, normalisedTitle, normalisedSummary, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
 
-            var linkType = request.ExcludeExternalLinks ? "internal" : "external";
+            var linkType = request.Options.ExcludeExternalLinks ? "internal" : "external";
             _logger.LogDebug($"Publishing GraphPageEvent for {result.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
         }
 

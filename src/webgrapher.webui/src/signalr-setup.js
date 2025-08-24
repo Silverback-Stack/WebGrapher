@@ -1,10 +1,10 @@
 import * as signalR from "@microsoft/signalr"
-import { addOrUpdateNode, addEdge } from "./graph-utils.js"
+import { addOrUpdateNode, addEdge } from "./sigma-graph-utils.js"
 
-export async function setupSignalR(graphId, { graph, fa2, flushInterval = 2000, onStatus }) {
+export async function setupSignalR(graphId, { sigmaGraph, fa2, hubUrl, flushInterval = 2000, onStatus }) {
   // Build connection
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl("http://localhost:5001/graphstreamerhub") // 👈 adjust your hub URL
+    .withUrl(hubUrl)
     .withServerTimeout(120000)
     .withAutomaticReconnect([0, 2000, 5000, 10000]) // exponential backoff (ms)
     .configureLogging(signalR.LogLevel.Information)
@@ -48,7 +48,8 @@ export async function setupSignalR(graphId, { graph, fa2, flushInterval = 2000, 
   let edgeBuffer = []
   let flushTimer = null
 
-  connection.on("ReceiveNode", payload => {
+  connection.on("ReceiveGraphPayload", payload => {
+    if (!payload) return
     payload.nodes.forEach(n => nodeBuffer.push(n))
     payload.edges.forEach(e => edgeBuffer.push(e))
   })
@@ -61,8 +62,8 @@ export async function setupSignalR(graphId, { graph, fa2, flushInterval = 2000, 
   flushTimer = setInterval(() => {
     if (nodeBuffer.length > 0 || edgeBuffer.length > 0) {
       console.log(`Flushing ${nodeBuffer.length} nodes and ${edgeBuffer.length} edges`)
-      nodeBuffer.forEach(n => addOrUpdateNode(graph, n))
-      edgeBuffer.forEach(e => addEdge(graph, e))
+      nodeBuffer.forEach(n => addOrUpdateNode(sigmaGraph, n))
+      edgeBuffer.forEach(e => addEdge(sigmaGraph, e))
       nodeBuffer = []
       edgeBuffer = []
 
