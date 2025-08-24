@@ -10,7 +10,9 @@
   import {
     addOrUpdateNode,
     addEdge,
-    setupReducer
+    setupReducer,
+    resetHighlight,
+    highlightNeighbors
   } from "./sigma-graph-utils.js"
   import {
     setupSigma,
@@ -104,44 +106,62 @@
       sidebarOpen.value = false
       return
     }
-
-    sidebarData.value = {
-      title: nodeData.label,
-      summary: nodeData.summary,
-      url: nodeData.url,
-      imageUrl: nodeData.image,
-      keywords: nodeData.tags,
-      outgoingLinks: nodeData.outgoingLinks || []
-    }
-
+    sidebarData.value = nodeData
     sidebarOpen.value = true
   }
 
-  function handleCrawl(node) {
-    console.log("Crawl triggered for:", node)
+  function handleCrawlNode(nodeId) {
+    if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
+
+    console.log("Crawl triggered for:", nodeId)
   }
 
-  function handleFocus(node) {
-    console.log("Focus triggered for:", node)
+  function handleFocusNode(nodeId) {
+    console.log("focus triggered for:", nodeId)
+    if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
+
+    const nodeAttr = sigmaGraph.getNodeAttributes(nodeId);
+
+    if (highlightedNode.value) resetHighlight(sigmaGraph, sigmaInstance)
+
+    // Highlight this node
+    highlightedNode.value = nodeId;
+    highlightNeighbors(sigmaGraph, sigmaInstance, nodeId);
+
+    if (!fa2.isRunning()) {
+      fa2.start()
+      setTimeout(() => fa2.stop(), 250)
+    }
+
+    //pan camera to node
+    const camera = sigmaInstance.getCamera();
+    // Get graph bounding box
+    const bbox = sigmaGraph.nodes().reduce(
+      (acc, n) => {
+        const a = sigmaGraph.getNodeAttributes(n);
+        return {
+          minX: Math.min(acc.minX, a.x),
+          maxX: Math.max(acc.maxX, a.x),
+          minY: Math.min(acc.minY, a.y),
+          maxY: Math.max(acc.maxY, a.y)
+        };
+      },
+      { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
+    );
+
+    // Convert node coordinates to normalized camera coordinates
+    const normX = (nodeAttr.x - bbox.minX) / (bbox.maxX - bbox.minX);
+    const normY = (nodeAttr.y - bbox.minY) / (bbox.maxY - bbox.minY);
+
+    console.log("Node coords:", nodeAttr.x, nodeAttr.y);
+    console.log("Camera BEFORE:", camera.x, camera.y, camera.ratio);
+    console.log("Normalized target:", normX, normY);
+
+    camera.animate(
+      { x: normX, y: normY, ratio: camera.ratio },
+      { duration: 250 }
+    );
   }
-
-
-  //function openSidebar(data) {
-  //  if (data) {
-  //    sidebarData.value = {
-  //      title: data.title,
-  //      summary: data.summary,
-  //      url: data.url,
-  //      imageUrl: data.imageUrl,
-  //      keywords: data.keywords,
-  //      outgoingLinks: data.outgoingLinks
-  //    }
-  //    sidebarOpen.value = true
-  //  } else {
-  //    sidebarOpen.value = false
-  //    sidebarData.value = null
-  //  }
-  //}
 
   function onConfirmAction(response) {
     modalView.value = null;
@@ -210,7 +230,7 @@
     highlightedNode.value = null
 
     // --- populate with initial data ---
-    await populateGraph(graph.id, sigmaGraph, fa2, { maxDepth: 1, maxNodes: 100 })
+    await populateGraph(graph.id, sigmaGraph, fa2, { maxDepth: 1, maxNodes: 250 })
 
     // --- signalR ---
     signalrController?.dispose();
@@ -320,17 +340,17 @@
     </b-navbar>
   </header>
 
-  <main>
-    <!-- Expanding Sidebar -->
+  <main class="graph-layout">
+    <!-- Container for Sigma Graph -->
+    <div id="graph-container"
+         ref="container"
+         class="graph-container"></div>
+
+    <!-- Sidebar -->
     <GraphSidebar v-model="sidebarOpen"
                   :node="sidebarData"
-                  :fullheight="true"
-                  :right="true"
-                  @crawl="handleCrawl"
-                  @focus="handleFocus" />
-
-    <!-- Container for Sigma Graph -->
-    <div id="graph-container" ref="container"></div>
+                  @crawl-node="handleCrawlNode"
+                  @focus-node="handleFocusNode"/>
 
     <!-- Modal windows -->
     <b-modal v-if="modalView !== null"
@@ -360,6 +380,15 @@
 </template>
 
 <style scoped>
+  .graph-layout {
+    height: calc(100vh - 60px); /* full viewport minus navbar */
+    overflow: hidden;
+  }
+
+  .modal.is-active {
+    z-index: 3000 !important; /* overrides default */
+  }
+
   /* override the inline max-width */
   .responsive-modal .modal-content {
     max-width: 40% !important;

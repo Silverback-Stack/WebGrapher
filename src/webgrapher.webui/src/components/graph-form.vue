@@ -2,7 +2,7 @@
   <nav class="card">
     <header class="card-header">
       <p class="card-header-title is-size-4">
-        {{ mode === "create" ? "New Graph" : mode === "update" ? "Crawl Defaults" : "Crawl Page" }}
+        {{ mode === "create" ? "New Graph" : mode === "update" ? "Graph Defaults" : "Crawl Page" }}
       </p>
     </header>
 
@@ -116,7 +116,7 @@
     </div>
 
     <footer class="card-footer p-3 is-justify-content-center">
-      <b-button type="is-primary"
+      <b-button v-if="mode !== 'update'" type="is-primary"
                 outlined @click="preview"
                 class="mr-2"
                 :disabled="isSubmitting">

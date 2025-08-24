@@ -31,6 +31,41 @@ export function setupFA2(sigmaGraph) {
 // --- Node/Stage highlighting ---
 export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNode, handleSidebar) {
   sigmaInstance.on("clickNode", ({ node }) => {
+
+    // Trigger sidebar
+    if (typeof handleSidebar === "function") {
+      const nodeAttributes = sigmaGraph.getNodeAttributes(node)
+
+      // Outgoing edges
+      const outgoingIds = sigmaGraph.outNeighbors(node)
+      const outgoingEdges = outgoingIds.map(id => {
+        const targetNode = sigmaGraph.getNodeAttributes(id);
+        return {
+          id: id,
+          title: targetNode?.label || id // fallback to URL if no label
+        };
+      });
+
+      // Incoming edges
+      const incomingIds = sigmaGraph.inNeighbors(node);
+      const incomingEdges = incomingIds.map(id => {
+        const sourceNode = sigmaGraph.getNodeAttributes(id);
+        return {
+          id: id,
+          title: sourceNode?.label || id
+        };
+      });
+
+      const nodeData = {
+        ...nodeAttributes,
+        id: node,
+        outgoingEdges,
+        incomingEdges
+      }
+
+      handleSidebar(nodeData)
+    }
+
     if (highlightedNode.value === node) return
 
     if (highlightedNode.value) resetHighlight(sigmaGraph, sigmaInstance)
@@ -42,15 +77,6 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNod
       fa2.start()
       setTimeout(() => fa2.stop(), 250)
     }
-
-    // Trigger sidebar
-    if (typeof handleSidebar === "function") {
-      const nodeData = sigmaGraph.getNodeAttributes(node)
-      console.log("Clicked node:", node)
-      console.log("Node data:", nodeData)
-      handleSidebar(nodeData)
-    }
-
   })
 
   sigmaInstance.on("clickStage", () => {
@@ -60,6 +86,11 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNod
     }
   })
 }
+
+
+//Edge selection
+
+
 
 // --- Node sizing ---
 export function setupNodeSizing(sigmaGraph, sigmaInstance) {
