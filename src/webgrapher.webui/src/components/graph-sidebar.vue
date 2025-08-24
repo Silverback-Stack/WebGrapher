@@ -13,7 +13,8 @@
       <h1 class="sidebar-title title is-3">{{ node.label }}</h1>
 
       <!-- Image -->
-      <a :href="node?.id" target="_blank" class="sidebar-image is-block">
+      <a v-if="node?.image"
+         :href="node?.id" target="_blank" class="sidebar-image is-block">
         <b-image v-if="node.image"
                  :src="node.image"
                  alt="Preview"

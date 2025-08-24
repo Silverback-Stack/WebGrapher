@@ -2,50 +2,55 @@
   import { ref, onMounted, onUnmounted, watch } from "vue"
   import { useRoute, useRouter } from "vue-router"
   import axios from "axios"
-  import * as signalR from "@microsoft/signalr"
-  import { setupSignalR } from "./signalr-setup.js"
   import Graph from "graphology"
-
+  import * as signalR from "@microsoft/signalr"
   import apiConfig from "./config/api-config.js"
   import {
-    addOrUpdateNode,
-    addEdge,
-    setupReducer,
-    resetHighlight,
-    highlightNeighbors
-  } from "./sigma-graph-utils.js"
+    initSignalRController,
+    disposeSignalR } from "./signalr.js"
   import {
     setupSigma,
     setupFA2,
     setupHighlighting,
-    setupNodeSizing
-  } from "./sigma-graph-setup.js"
+    setupReducer,
+    setupNodeSizing,
+    addOrUpdateNode,
+    addEdge,
+    resetHighlight,
+    highlightNeighbors,
+    focusNode } from "./sigma.js"
   import GraphConnect from './components/graph-connect.vue'
   import GraphForm from './components/graph-form.vue'
   import GraphSidebar from './components/graph-sidebar.vue'
 
   // --- Refs / State ---
+  // Sigma / Graph
   const container = ref(null)
   const sigmaGraph = new Graph()
   let sigmaInstance = null
   let fa2 = null
   let highlightedNode = ref(null)
 
+  // SignalR
   let signalrController = null
-  const signalrStatus = ref("disconnected")
+  let signalrStatus = ref("disconnected")
 
+  // Modal / Page
   const modalView = ref(null)
   const graphId = ref(null)
   const connectingGraphId = ref(null)
 
+  // Pagination / Graph list
   const availableGraphs = ref([])
   const page = ref(1)
   const pageSize = ref(10)
   const totalCount = ref(0)
 
+  // Routing
   const route = useRoute()
   const router = useRouter()
 
+  // Sidebar
   const sidebarOpen = ref(false)
   const sidebarData = ref(null)
 
@@ -62,10 +67,11 @@
   })
 
   onUnmounted(() => {
-    signalrController?.dispose()
+    disposeSignalR(signalrController)
   })
 
-  // --- Watch route for graphId changes ---
+  // --- Watchers ---
+  // Watch route for graphId changes
   watch(() => route.params.id, async (id) => {
     if (!id) {
       graphId.value = null
@@ -78,7 +84,7 @@
   }, { immediate: true })
 
 
-  // --- Functions ---
+  // --- UI Event Handlers ---
   function openConnect() {
     modalView.value = "connect"
     loadGraphs()
@@ -96,10 +102,6 @@
     modalView.value = "crawl"
   }
 
-
-
-
-
   function handleSidebar(nodeData) {
     if (!nodeData) {
       sidebarData.value = null
@@ -113,18 +115,17 @@
   function handleCrawlNode(nodeId) {
     if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
 
-    console.log("Crawl triggered for:", nodeId)
+    console.log("TODO: Crawl triggered for:", nodeId)
   }
 
   function handleFocusNode(nodeId) {
-    console.log("focus triggered for:", nodeId)
     if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
 
     const nodeAttr = sigmaGraph.getNodeAttributes(nodeId);
 
     if (highlightedNode.value) resetHighlight(sigmaGraph, sigmaInstance)
 
-    // Highlight this node
+    // Highlight node
     highlightedNode.value = nodeId;
     highlightNeighbors(sigmaGraph, sigmaInstance, nodeId);
 
@@ -133,40 +134,16 @@
       setTimeout(() => fa2.stop(), 250)
     }
 
-    //pan camera to node
-    const camera = sigmaInstance.getCamera();
-    // Get graph bounding box
-    const bbox = sigmaGraph.nodes().reduce(
-      (acc, n) => {
-        const a = sigmaGraph.getNodeAttributes(n);
-        return {
-          minX: Math.min(acc.minX, a.x),
-          maxX: Math.max(acc.maxX, a.x),
-          minY: Math.min(acc.minY, a.y),
-          maxY: Math.max(acc.maxY, a.y)
-        };
-      },
-      { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
-    );
-
-    // Convert node coordinates to normalized camera coordinates
-    const normX = (nodeAttr.x - bbox.minX) / (bbox.maxX - bbox.minX);
-    const normY = (nodeAttr.y - bbox.minY) / (bbox.maxY - bbox.minY);
-
-    console.log("Node coords:", nodeAttr.x, nodeAttr.y);
-    console.log("Camera BEFORE:", camera.x, camera.y, camera.ratio);
-    console.log("Normalized target:", normX, normY);
-
-    camera.animate(
-      { x: normX, y: normY, ratio: camera.ratio },
-      { duration: 250 }
-    );
+    //focus on selected node
+    focusNode(sigmaGraph, sigmaInstance, nodeAttr)
   }
 
   function onConfirmAction(response) {
     modalView.value = null;
   }
 
+
+  // --- Graph / Data Functions ---
   async function loadGraphs(newPage = page.value, newPageSize = pageSize.value) {
     page.value = newPage
     pageSize.value = newPageSize
@@ -211,39 +188,46 @@
     }
   }
 
+  function resetGraphState() {
+    sigmaGraph.clear()
+    fa2.stop()
+    fa2 = setupFA2(sigmaGraph)
+    highlightedNode.value = null
+  }
+
+
+  // --- Graph Connection / SignalR Functions ---
   async function connectToGraph(graph) {
     if (connectingGraphId.value === graph.id) return;
-    connectingGraphId.value = graph.id;
 
+    //update valid graphId
+    connectingGraphId.value = graph.id;
     modalView.value = null;
     graphId.value = graph.id;
-
     await router.push({
       name: "Graph",
       params: { id: graph.id }
     });
 
-    // --- reset state ---
-    sigmaGraph.clear()
-    fa2.stop()
-    fa2 = setupFA2(sigmaGraph)
-    highlightedNode.value = null
+    resetGraphState()
 
     // --- populate with initial data ---
     await populateGraph(graph.id, sigmaGraph, fa2, { maxDepth: 1, maxNodes: 250 })
 
-    // --- signalR ---
-    signalrController?.dispose();
-    signalrController = await setupSignalR(graph.id, {
-      sigmaGraph,
-      fa2,
-      onStatus: (status) => (signalrStatus.value = status),
-      hubUrl: apiConfig.SIGNALR_HUB
+    // --- Connect SignalR ---
+    disposeSignalR(signalrController)
+    signalrController = await initSignalRController(graph.id, {
+      sigmaGraph, fa2, hubUrl: apiConfig.SIGNALR_HUB
     })
-    signalrController.graphId = graph.id
-    connectingGraphId.value = null
+
+    // Watch signalR status changes
+    signalrStatus.value = signalrController.status.value
+    watch(signalrController.status, val => {
+      signalrStatus.value = val
+    })
   }
 
+  //Connect to Graph by Id (from route)
   async function connectGraphById(id) {
     if (!id) {
       graphId.value = null
@@ -263,12 +247,11 @@
 
     } catch (err) {
       console.error("Failed to connect graph:", err)
-      signalrController?.dispose()
-      sigmaGraph.clear()
-      fa2.stop()
-      fa2 = setupFA2(sigmaGraph)
 
-      highlightedNode.value = null
+      disposeSignalR(signalrController)
+      resetGraphState()
+
+      //reset invalid graphId
       graphId.value = null
       modalView.value = "connect"
       await router.replace({ path: "/" })
@@ -305,16 +288,6 @@
           </b-button>
         </b-navbar-item>
 
-        <!-- Graph Activity (only show if connected) -->
-        <b-navbar-item v-if="signalrStatus === 'connected'">
-          <b-button type="is-light" outlined>
-            <span class="icon">
-              <i class="mdi mdi-list-box"></i>
-            </span>
-            <span>Activity</span>
-          </b-button>
-        </b-navbar-item>
-
         <!-- Connect -->
         <b-navbar-item>
           <b-button type="is-light" outlined @click="openConnect">
@@ -326,6 +299,16 @@
                 }"></i>
             </span>
             <span>{{ signalrStatus === 'connected' ? "Connected" : "Connect" }}</span>
+          </b-button>
+        </b-navbar-item>
+
+        <!-- Graph Activity (only show if connected) -->
+        <b-navbar-item v-if="signalrStatus === 'connected'">
+          <b-button type="is-light" outlined>
+            <span class="icon">
+              <i class="mdi mdi-list-box"></i>
+            </span>
+            <span>Activity</span>
           </b-button>
         </b-navbar-item>
 
