@@ -18,9 +18,9 @@ namespace Graphing.Core
 
         Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize);
 
-        Task<SigmaGraphPayloadDto> TraverseGraphAsync(Guid graphId, Uri startUrl, int maxDepth, int? maxNodes = null);
-
         Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null);
+
+        Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl);
 
         Task CrawlPageAsync(Guid graphId, GraphOptions options);
     }

@@ -14,7 +14,7 @@ namespace Scraper.Core
         protected readonly IEventBus _eventBus;
         protected readonly IRequestSender _requestSender;
 
-        private const int DEFAULT_CONTENT_MAX_BYTES = 4_194_304; //4 Mb
+        private const int CONTENT_MAX_BYTES = 4_194_304; //4 Mb
 
         public PageScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender)
         {
@@ -41,7 +41,7 @@ namespace Scraper.Core
                 request.Url,
                 request.Options.UserAgent,
                 request.Options.UserAccepts,
-                request.ToCompositeKey);
+                request.RequestCompositeKey);
 
             if (response is null)
             {
@@ -58,11 +58,12 @@ namespace Scraper.Core
 
             if (response.IsFromCache)
             {
-                _logger.LogDebug($"Skipped re-scrape for {request.Url} - found in cache.");
-                return;
+                _logger.LogDebug($"Scrape cached page {request.Url} Attempt {request.Attempt} Status: {response.Metadata.StatusCode}");
+            } 
+            else
+            {
+                _logger.LogDebug($"Scraped live page {request.Url} Attempt {request.Attempt} Status: {response.Metadata.StatusCode}");
             }
-
-            _logger.LogDebug($"Scraped page {request.Url} Attempt {request.Attempt} Status: {response.Metadata.StatusCode}");
 
             await PublishNormalisePageEvent(request, response);
         }
@@ -119,7 +120,7 @@ namespace Scraper.Core
                 url,
                 userAgent,
                 clientAccept,
-                DEFAULT_CONTENT_MAX_BYTES,
+                CONTENT_MAX_BYTES,
                 compositeKey,
                 cancellationToken);
         }

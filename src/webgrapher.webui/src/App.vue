@@ -39,6 +39,7 @@
   const modalView = ref(null)
   const graphId = ref(null)
   const connectingGraphId = ref(null)
+  const crawlUrl = ref(null)
 
   // Pagination / Graph list
   const availableGraphs = ref([])
@@ -60,7 +61,7 @@
     fa2 = setupFA2(sigmaGraph)
 
     setupReducer(sigmaGraph, sigmaInstance, highlightedNode)
-    setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNode, handleSidebar)
+    setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNode, handleSidebar, nodeSubGraph, graphId.value)
     setupNodeSizing(sigmaGraph, sigmaInstance)
 
     loadGraphs()
@@ -115,10 +116,12 @@
   function handleCrawlNode(nodeId) {
     if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
 
-    console.log("TODO: Crawl triggered for:", nodeId)
+    crawlUrl.value = nodeId;
+    modalView.value = "crawl";
   }
 
-  function handleFocusNode(nodeId) {
+  async function handleFocusNode(nodeId) {
+    console.log("node focused " + graphId.value + " : " + nodeId)
     if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
 
     const nodeAttr = sigmaGraph.getNodeAttributes(nodeId);
@@ -181,10 +184,69 @@
 
       if (fa2 && !fa2.isRunning()) {
         fa2.start()
-        setTimeout(() => fa2.stop(), 2000)
+        setTimeout(() => fa2.stop(), 3000)
       }
     } catch (err) {
       console.error("Failed to populate graph:", err)
+    }
+  }
+
+
+
+
+  const requestCache = new Map() // nodeId => last request timestamp
+  const THROTTLE_MS = 30_000
+  let currentRequest = { nodeId: null, controller: null }
+
+  async function nodeSubGraph(graphId, nodeId, sigmaGraph, fa2) {
+    const now = Date.now()
+
+    // Skip if recently requested
+    const last = requestCache.get(nodeId) || 0
+    if (now - last < THROTTLE_MS) return
+
+    // Abort previous request
+    currentRequest.controller?.abort()
+
+    // Create new controller for this request
+    const controller = new AbortController()
+    currentRequest = { nodeId, controller }
+    requestCache.set(nodeId, now)
+
+    try {
+      const { data: payload } = await axios.post(
+        apiConfig.GRAPH_NODESUBGRAPH(graphId.value),
+        { nodeUrl: nodeId },
+        { signal: controller.signal }
+      )
+
+      if (!payload?.nodes) return
+
+      // Merge into graph
+      payload.nodes.forEach(n => addOrUpdateNode(sigmaGraph, n))
+      payload.edges.forEach(e => addEdge(sigmaGraph, e))
+
+      // kick FA2 a bit so layout adapts
+      if (!fa2.isRunning()) {
+        fa2.start()
+        setTimeout(() => fa2.stop(), 250)
+      }
+    } catch (err) {
+      if (axios.isCancel(err)) console.debug(`Request for node ${nodeId} cancelled`)
+      else console.error(`Failed to load subgraph for node ${nodeId}:`, err)
+    } finally {
+      //clear request once complete
+      if (currentRequest.nodeId === nodeId) currentRequest = { nodeId: null, controller: null }
+      pruneOldRequests(requestCache, THROTTLE_MS)
+    }
+  }
+
+  function pruneOldRequests(requestMap, thresholdMs) {
+    const now = Date.now()
+    for (const [nodeId, timestamp] of requestMap.entries()) {
+      if (now - timestamp > thresholdMs) {
+        requestMap.delete(nodeId)
+      }
     }
   }
 
@@ -212,7 +274,7 @@
     resetGraphState()
 
     // --- populate with initial data ---
-    await populateGraph(graph.id, sigmaGraph, fa2, { maxDepth: 1, maxNodes: 250 })
+    await populateGraph(graph.id, sigmaGraph, fa2, { maxDepth: 3, maxNodes: 1000 })
 
     // --- Connect SignalR ---
     disposeSignalR(signalrController)
@@ -236,6 +298,10 @@
     }
 
     if (signalrController?.graphId === id) return;
+
+    // Close sidebar
+    sidebarOpen.value = false
+    sidebarData.value = null
 
     try {
       // Get graph metadata from API
@@ -355,6 +421,7 @@
       <GraphForm v-if="['create', 'update', 'crawl'].includes(modalView)"
                  :graphId="graphId"
                  :mode="modalView"
+                 :crawlUrl="crawlUrl"
                  @confirmAction="onConfirmAction" />
 
       <!-- <GraphPreview v-if="modalView === 'preview'" /> -->

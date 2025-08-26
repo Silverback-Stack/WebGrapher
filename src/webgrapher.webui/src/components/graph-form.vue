@@ -2,7 +2,7 @@
   <nav class="card">
     <header class="card-header">
       <p class="card-header-title is-size-4">
-        {{ mode === "create" ? "New Graph" : mode === "update" ? "Graph Defaults" : "Crawl Page" }}
+        {{ mode === "create" ? "New Graph" : mode === "update" ? "Default Settings" : "Crawl Page" }}
       </p>
     </header>
 
@@ -28,24 +28,19 @@
 
         <hr v-if="mode !== 'crawl'" />
 
-        <!-- Always show Url, Url Filter, Max Links & Max Depth -->
+        <!-- Always show Url, Max Links & Max Depth -->
         <b-field :label="mode === 'crawl' ? 'Url' : 'Seed Url'">
           <b-input v-model="form.url" type="url" required></b-input>
         </b-field>
-        <b-field label="Url Filter">
-          <p class="control">
-            <span class="button is-static">RegEx</span>
-          </p>
-          <p class="control is-expanded">
-            <b-input v-model="form.urlMatchRegex"></b-input>
-          </p>
-        </b-field>
         <b-field label="Max Links">
-          <b-slider v-model="form.maxLinks" size="is-large" :min="1" :max="100"> </b-slider>
+          <b-slider v-model="form.maxLinks" size="is-large" :min="1" :max="50"></b-slider>
         </b-field>
         <b-field label="Max Depth">
-          <b-slider v-model="form.maxDepth" size="is-large" :min="1" :max="10"> </b-slider>
+          <b-slider v-model="form.maxDepth" ticks size="is-large" :min="1" :max="3"></b-slider>
         </b-field>
+        <p class="has-text-grey">
+          <span>Potentially {{ potentialRequests.toLocaleString() }} crawl page requests.</span>
+        </p>
 
         <hr v-if="mode !== 'crawl'" />
 
@@ -60,6 +55,14 @@
 
         <!-- Advanced controls -->
         <div v-show="showAdvancedOptions">
+          <b-field label="Url Filter">
+            <p class="control">
+              <span class="button is-static">RegEx</span>
+            </p>
+            <p class="control is-expanded">
+              <b-input v-model="form.urlMatchRegex"></b-input>
+            </p>
+          </b-field>
           <b-field label="Title Container">
             <p class="control">
               <span class="button is-static">XPath</span>
@@ -111,7 +114,16 @@
               Exclude external links
             </b-checkbox>
           </b-field>
+
+          <hr v-if="mode === 'crawl'" />
+
+          <b-field v-if="mode === 'crawl'">
+            <b-checkbox v-model="form.overwriteDefaults">
+              Overwrite default settings
+            </b-checkbox>
+          </b-field>
         </div>
+
       </section>
     </div>
 
@@ -128,7 +140,7 @@
 
       <b-button type="is-primary"
                 outlined
-                @click="saveGraph"
+                @click="submitForm"
                 :disabled="isSubmitting">
         <span class="icon"><i class="mdi mdi-check-outline"></i></span>
         <span>
@@ -140,7 +152,7 @@
 </template>
 
 <script setup>
-  import { ref, reactive, watch, watchEffect, onMounted } from "vue"
+  import { ref, reactive, watch, watchEffect, onMounted, computed } from "vue"
   import { useRouter } from "vue-router"
   import axios from "axios"
   import apiConfig from "../config/api-config.js"
@@ -149,7 +161,8 @@
 
   const props = defineProps({
     graphId: { type: String, default: null },
-    mode: { type: String, default: "create" } // "create" | "update" | "crawl"
+    mode: { type: String, default: "create" }, // "create" | "update" | "crawl"
+    crawlUrl: { type: String, default: "" } 
   });
   const { mode, graphId } = props;
   const showAdvancedOptions = ref(mode !== 'crawl');
@@ -165,8 +178,8 @@
     name: "",
     description: "",
     url: "https://",
-    maxDepth: 3,
-    maxLinks: 50,
+    maxLinks: 10,
+    maxDepth: 1,
     excludeExternalLinks: true,
     excludeQueryStrings: true,
     urlMatchRegex: "",
@@ -174,8 +187,22 @@
     contentElementXPath: "",
     summaryElementXPath: "",
     imageElementXPath: "",
-    relatedLinksElementXPath: ""
+    relatedLinksElementXPath: "",
+    overwriteDefaults: false
   })
+
+
+  // Compute the potential requests as a geometric sum
+  const potentialMaxRequests = 127550
+  const potentialRequests = computed(() => {
+    let total = 0
+    for (let d = 1; d <= form.maxDepth; d++) {
+      total += Math.pow(form.maxLinks, d)
+    }
+    return total
+  })
+
+
 
 
   // Scroll to top on errors
@@ -200,14 +227,20 @@
         apiConfig.GRAPH_GET(props.graphId)
       );
       Object.assign(form, response.data);
+
+      // If we're crawling, override just the URL after properties load
+      if (mode === "crawl" && props.crawlUrl) {
+        form.url = props.crawlUrl;
+      }
+
     } catch (err) {
       errorMessages.value = ["Failed to load graph data."];
       console.error(err);
     }
   });
 
-  // Save (Create or Update)
-  async function saveGraph() {
+  // Sumbit (Create | Update | Crawl)
+  async function submitForm() {
     if (isSubmitting.value) return;
 
     errorMessages.value = [];

@@ -1,7 +1,6 @@
 ﻿using System;
 using Events.Core.Bus;
 using Graphing.Core;
-using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.InMemory;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -33,7 +32,7 @@ namespace WebGrapher.Cli.Service.Graphing
             var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .WriteTo.Console(LogEventLevel.Debug)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();

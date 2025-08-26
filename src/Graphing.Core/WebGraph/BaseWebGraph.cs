@@ -8,7 +8,7 @@ namespace Graphing.Core.WebGraph
     {
         protected readonly ILogger _logger;
 
-        private const int SCHEDULE_THROTTLE_MINUTES = 15;
+        private const int SCHEDULE_THROTTLE_SECONDS = 60;
 
         protected BaseWebGraph(ILogger logger)
         {
@@ -17,8 +17,9 @@ namespace Graphing.Core.WebGraph
 
         public async Task AddWebPageAsync(
             WebPageItem webPage, 
-            Func<Node, Task> onNodePopulated, 
-            Func<Node, Task> onLinkDiscovered,
+            bool forceRefresh,
+            Func<Node, Task> nodePopulatedCallback, 
+            Func<Node, Task> linkDiscoveredCallback,
             LinkUpdateMode linkUpdateMode = LinkUpdateMode.Append)
         {
             _logger.LogDebug($"AddWebPageAsync started for {webPage.Url}");
@@ -26,7 +27,7 @@ namespace Graphing.Core.WebGraph
             // Mark or promote URL as Populated
             var node = await GetOrCreateNodeAsync(webPage.GraphId, webPage.Url, NodeState.Populated);
 
-            if (!HasPageChanged(webPage, node))
+            if (!HasPageChanged(webPage, node, forceRefresh))
             {
                 _logger.LogDebug($"No updated required for {webPage.Url} - content has not changed.");
                 return;
@@ -45,27 +46,27 @@ namespace Graphing.Core.WebGraph
                 await SetRedirectedAsync(webPage.GraphId, webPage.OriginalUrl, webPage.Url);
             }
 
-            var addedLinks = await AddLinksAsync(webPage);
+            var addedLinks = await AddLinksAsync(webPage, forceRefresh);
 
-            if (onNodePopulated != null)
+            if (nodePopulatedCallback != null)
             {
-                await onNodePopulated(node);
+                await nodePopulatedCallback(node);
             }
 
-            if (onLinkDiscovered != null)
+            if (linkDiscoveredCallback != null)
             {
-                await ScheduleAddedLinksAsync(addedLinks, onLinkDiscovered);
+                await ScheduleAddedLinksAsync(addedLinks, linkDiscoveredCallback, forceRefresh);
             }
         }
 
-        private async Task<IEnumerable<Node>> AddLinksAsync(WebPageItem webPage)
+        private async Task<IEnumerable<Node>> AddLinksAsync(WebPageItem webPage, bool forceRefresh)
         {
             var addedLinks = new HashSet<Node>();
 
             // Add new outgoing links (if any)
             foreach (var link in webPage.Links)
             {
-                var linkedNode = await AddLinkAsync(webPage.GraphId, webPage.Url, link);
+                var linkedNode = await AddLinkAsync(webPage.GraphId, webPage.Url, link, forceRefresh);
                 if (linkedNode != null)
                 {
                     addedLinks.Add(linkedNode);
@@ -75,11 +76,14 @@ namespace Graphing.Core.WebGraph
             return addedLinks;
         }
 
-        private async Task ScheduleAddedLinksAsync(IEnumerable<Node> addedLinks, Func<Node, Task> onLinkDiscovered)
+        private async Task ScheduleAddedLinksAsync(IEnumerable<Node> addedLinks, Func<Node, Task> onLinkDiscovered, bool forceRefresh)
         {
             foreach (var link in addedLinks)
             {
-                if (CanScheduleCrawl(link))
+                //override CanScheduleCrawl if it's a user-initiated request
+                var canScheduleCrawl = forceRefresh || CanScheduleCrawl(link);
+
+                if (canScheduleCrawl)
                 {
                     link.LastScheduledAt = DateTimeOffset.UtcNow;
                     await SaveNodeAsync(link);
@@ -120,13 +124,14 @@ namespace Graphing.Core.WebGraph
             node.Keywords = webPage.Keywords ?? string.Empty;
             node.Tags = webPage.Tags ?? Enumerable.Empty<string>();
             node.SourceLastModified = webPage.SourceLastModified;
+            node.ContentFingerprint = webPage.ContentFingerprint;
             await SaveNodeAsync(node);
         }
 
         /// <summary>
         /// Returns target Node if a link was added.
         /// </summary>
-        protected async Task<Node?> AddLinkAsync(Guid graphId, string fromUrl, string toUrl)
+        protected async Task<Node?> AddLinkAsync(Guid graphId, string fromUrl, string toUrl, bool forceRefresh)
         {
             if (fromUrl == toUrl)
                 return null; //ignore circular links to self
@@ -137,7 +142,11 @@ namespace Graphing.Core.WebGraph
             var fromNode = await GetOrCreateNodeAsync(graphId, fromUrl, NodeState.Populated);
             var toNode = await GetOrCreateNodeAsync(graphId, toUrl, NodeState.Dummy);
 
-            if (fromNode.OutgoingLinks.Add(toNode))
+            var added = fromNode.OutgoingLinks.Add(toNode);
+
+            //if the link was added (didnt already exist)
+            //or link exists but this is a user-initiated request (forces refresh of data)
+            if (added || forceRefresh)
             {
                 _logger.LogDebug($"Adding outgoing/incoming links from {fromNode.Url} to {toNode.Url}.");
 
@@ -153,7 +162,7 @@ namespace Graphing.Core.WebGraph
                 return toNode;
             }
 
-            //no link added
+            //link already exists
             return null;
         }
 
@@ -169,7 +178,7 @@ namespace Graphing.Core.WebGraph
         protected bool CanScheduleCrawl(Node node)
         {
             var now = DateTimeOffset.UtcNow;
-            var backoff = TimeSpan.FromMinutes(SCHEDULE_THROTTLE_MINUTES);
+            var backoff = TimeSpan.FromSeconds(SCHEDULE_THROTTLE_SECONDS);
 
             if (node.LastScheduledAt == null ||
                 now >= node.LastScheduledAt.Value + backoff)
@@ -178,7 +187,7 @@ namespace Graphing.Core.WebGraph
             }
 
             //Discard policy: node recently crawled - dont crawl again during the throttle period
-            var nextTime = node.LastScheduledAt?.AddMinutes(SCHEDULE_THROTTLE_MINUTES);
+            var nextTime = node.LastScheduledAt?.AddSeconds(SCHEDULE_THROTTLE_SECONDS);
             _logger.LogDebug($"Scheduled crawl for {node.Url} throttled. Next eligible time: {nextTime}");
             return false;
         }
@@ -238,12 +247,21 @@ namespace Graphing.Core.WebGraph
             await SaveNodeAsync(node);
         }
 
-        private bool HasPageChanged(WebPageItem webPage, Node node)
+        /// <summary>
+        /// Determines whether a node needs to be updated based on the current state of the associated web page.
+        /// </summary>
+        /// <param name="forceRefresh">
+        /// A flag indicating whether the check was triggered by an explicit user action,
+        /// which should force a refresh regardless of other conditions.
+        /// </param>
+        private bool HasPageChanged(WebPageItem webPage, Node node, bool forceRefresh)
         {
             if (node == null) return true;
 
             return node.State != NodeState.Populated ||
-                node.SourceLastModified != webPage.SourceLastModified;
+               forceRefresh ||
+               node.ContentFingerprint != webPage.ContentFingerprint ||
+               node.SourceLastModified != webPage.SourceLastModified;
         }
 
         private async Task SaveNodeAsync(Node node)

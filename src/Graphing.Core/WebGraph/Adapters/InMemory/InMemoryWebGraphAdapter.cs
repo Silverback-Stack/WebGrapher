@@ -99,22 +99,6 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return await Task.FromResult(0);
         }
 
-        public async Task<IEnumerable<Node>?> GetMostPopularNodesAsync(Guid graphId, int limit)
-        {
-            if (!_nodeTable.TryGetValue(graphId, out var nodes) || nodes.Count == 0)
-            {
-                _logger.LogDebug($"Graph {graphId} is empty. Cannot determine most popular node.");
-                return await Task.FromResult<IEnumerable<Node>?>(null);
-            }
-
-            var mostPopular = nodes.Values
-                .OrderByDescending(n => n.IncomingLinkCount)
-                .ThenByDescending(n => n.CreatedAt) // Tie-breaker: newest first
-                .Take(limit);
-
-            return await Task.FromResult(mostPopular);
-        }
-
         public override async Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null)
         {
             if (!_nodeTable.TryGetValue(graphId, out var nodes) || !nodes.TryGetValue(startUrl, out var startNode))

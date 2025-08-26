@@ -54,7 +54,7 @@ namespace Requests.Core
             try
             {
                 //fetch cached data:
-                string key = CacheKeyHelper.GetHashCode(compositeKey);
+                string key = CacheKeyHelper.ComputeCacheKey(compositeKey);
 
                 var metaData = await _metaCache.GetAsync<HttpResponseMetadata>(key);
 

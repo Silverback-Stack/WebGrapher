@@ -16,8 +16,8 @@ namespace Crawler.Core
         protected readonly IRequestSender _requestSender;
         protected readonly ISitePolicyResolver _sitePolicyResolver;
 
-        protected const int DEFAULT_MAX_CRAWL_ATTEMPTS = 3;
-        protected const int DEFAULT_MAX_CRAWL_DEPTH = 3;
+        protected const int MAX_CRAWL_ATTEMPTS = 3;
+        protected const int MAX_CRAWL_DEPTH = 3;
 
         public PageCrawler(
             ILogger logger,
@@ -103,10 +103,10 @@ namespace Crawler.Core
         }
 
         private static bool HasExhaustedRetries(int currentAttempt) =>
-            currentAttempt >= DEFAULT_MAX_CRAWL_ATTEMPTS;
+            currentAttempt >= MAX_CRAWL_ATTEMPTS;
 
         private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
-            currentDepth >= Math.Min(maxDepth, DEFAULT_MAX_CRAWL_DEPTH);
+            currentDepth > Math.Min(maxDepth, MAX_CRAWL_DEPTH);
 
         private async Task PublishScrapePageEvent(CrawlPageEvent evt)
         {

@@ -36,13 +36,16 @@ export function setupFA2(sigmaGraph) {
 }
 
 // --- Node/Stage highlighting ---
-export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNode, handleSidebar) {
-  sigmaInstance.on("clickNode", ({ node }) => {
+export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNode, handleSidebar, nodeSubGraph, graphId) {
+  sigmaInstance.on("clickNode", async ({ node }) => {
+
+    console.log("hello")
 
     // Trigger sidebar
     if (typeof handleSidebar === "function") {
       const nodeAttributes = sigmaGraph.getNodeAttributes(node)
 
+      //highlight neighbourhood
       // Outgoing edges
       const outgoingIds = sigmaGraph.outNeighbors(node)
       const outgoingEdges = outgoingIds.map(id => {
@@ -52,7 +55,6 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNod
           title: targetNode?.label || id // fallback to URL if no label
         };
       });
-
       // Incoming edges
       const incomingIds = sigmaGraph.inNeighbors(node);
       const incomingEdges = incomingIds.map(id => {
@@ -83,6 +85,15 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNod
     if (!fa2.isRunning()) {
       fa2.start()
       setTimeout(() => fa2.stop(), 250)
+    }
+
+    // --- fetch subgraph for clicked node ---
+    if (typeof nodeSubGraph === "function" && graphId) {
+      try {
+        await nodeSubGraph(graphId, node, sigmaGraph, fa2)
+      } catch (err) {
+        console.error(`Failed to fetch subgraph for node ${node}:`, err)
+      }
     }
   })
 

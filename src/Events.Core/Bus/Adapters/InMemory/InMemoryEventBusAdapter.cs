@@ -69,36 +69,28 @@ namespace Events.Core.Bus.Adapters.InMemory
                     : TimeSpan.Zero;
 
 
-            // Scheduled event:
-            // In-memory bus doesnt support scheduled events so we simulate it using Task.Delay
-            if (delay > TimeSpan.Zero)
+            //Use a background thread to prevent main thread being blocked
+            _ = Task.Run(async () =>
             {
-                //Use a background thread to prevent main thread being blocked
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Task.Delay(delay, cancellationToken);
-                        await PublishInternalAsync(@event, priority, delay, cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error publishing event.");
-                    }
-                });
-            }
-            else
-            {
-                // Non-scheduled event:
                 try
                 {
+                    // Scheduled event:
+                    // In-memory bus doesnt support scheduled events so we simulate it using Task.Delay
+                    if (delay > TimeSpan.Zero)
+                    {
+                        await Task.Delay(delay, cancellationToken);
+                    }
+
                     await PublishInternalAsync(@event, priority, delay, cancellationToken);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error publishing event.");
                 }
-            }  
+            });
+
+            // return immediately
+            return;
         }
 
         private async Task PublishInternalAsync<TEvent>(

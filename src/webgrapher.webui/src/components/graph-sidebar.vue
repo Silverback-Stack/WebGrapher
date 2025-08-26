@@ -36,6 +36,7 @@
         </a>
       </div>
 
+      <!-- Actions -->
       <div class="my-4">
         <b-button class="mr-2"
                   type="is-primary"
@@ -43,7 +44,7 @@
                   @click="$emit('focus-node', node.id)">Focus</b-button>
         <b-button type="is-primary"
                   outlined
-                  @click="$emit('crawl-node', node.id)">Re-crawl</b-button>
+                  @click="$emit('crawl-node', node.id)">Crawl</b-button>
       </div>
 
       <!-- Outgoing Edges -->

@@ -16,6 +16,9 @@ namespace Graphing.Core
         private readonly IEventBus _eventBus;
         private readonly IWebGraph _webGraph;
 
+        private const int MAX_REQUEST_DEPTH = 6;
+        private const int MAX_REQUEST_NODES = 5000;
+
         public PageGrapher(ILogger logger, IEventBus eventBus, IWebGraph webGraph)
         {
             _logger = logger;
@@ -38,7 +41,7 @@ namespace Graphing.Core
             var webPage = MapToWebPage(evt);
 
             //Delegate : Called when Node is populated with data
-            Func<Node, Task> onNodePopulated = async (node) =>
+            Func<Node, Task> nodePopulatedCallback = async (node) =>
             {
                 var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node);
 
@@ -55,7 +58,7 @@ namespace Graphing.Core
             };
 
             //Delegate : Called when Link is discovered
-            Func<Node, Task> onLinkDiscovered = async (node) =>
+            Func<Node, Task> linkDiscoveredCallback = async (node) =>
             {
                 var depth = request.Depth + 1;
 
@@ -82,7 +85,11 @@ namespace Graphing.Core
                     scheduledOffset);
             };
 
-            await _webGraph.AddWebPageAsync(webPage, onNodePopulated, onLinkDiscovered);
+            // when Depth is 0 the request was initiated by the user
+            // user initiated requests should force update of any previously stored information
+            var forceRefresh = request.Depth == 0;
+
+            await _webGraph.AddWebPageAsync(webPage, forceRefresh, nodePopulatedCallback, linkDiscoveredCallback);
         }
 
         private WebPageItem MapToWebPage(GraphPageEvent evt)
@@ -104,6 +111,7 @@ namespace Graphing.Core
                 Tags = result.Tags,
                 Links = result.Links?.Select(l => l.AbsoluteUri) ?? Enumerable.Empty<string>(),
                 DetectedLanguageIso3 = result.DetectedLanguageIso3,
+                ContentFingerprint = result.ContentFingerprint
             };
         }
 
@@ -196,14 +204,11 @@ namespace Graphing.Core
             await PublishCrawlPageEvent(crawlPageRequest);
         }
 
-        public async Task<SigmaGraphPayloadDto> TraverseGraphAsync(Guid graphId, Uri startUrl, int maxDepth, int? maxNodes = null)
-        {
-            var nodes = await _webGraph.TraverseGraphAsync(graphId, startUrl.AbsoluteUri, maxDepth, maxNodes);
-            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId);
-        }
-
         public async Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
         {
+            maxDepth = Math.Clamp(maxDepth, 1, MAX_REQUEST_DEPTH);
+            maxNodes = Math.Clamp(maxDepth, 1, MAX_REQUEST_NODES);
+
             var popularNodes = await _webGraph.GetMostPopularNodes(graphId, 1);
             var startNode = popularNodes.FirstOrDefault();
 
@@ -224,6 +229,25 @@ namespace Graphing.Core
             }
 
             // 4. Build and return payload
+            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId);
+        }
+
+        public async Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl)
+        {
+            var nodes = nodeUrl != null
+                ? await _webGraph.TraverseGraphAsync(graphId, nodeUrl.AbsoluteUri, 1)
+                : Enumerable.Empty<Node>();
+
+            if (!nodes.Any())
+            {
+                return new SigmaGraphPayloadDto
+                {
+                    GraphId = graphId,
+                    Nodes = Array.Empty<SigmaGraphNodeDto>(),
+                    Edges = Array.Empty<SigmaGraphEdgeDto>()
+                };
+            }
+
             return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId);
         }
 

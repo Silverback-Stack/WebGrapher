@@ -1,12 +1,15 @@
 ﻿using System;
-using System.Security.Cryptography;
 using System.Text;
+using System.Security.Cryptography;
 
-namespace Caching.Core.Helpers
+namespace Events.Core.Helpers
 {
-    public static class CacheKeyHelper
+    public class FingerprintHelper
     {
-        public static string ComputeCacheKey(string compositeKey)
+        /// <summary>
+        /// Generate a fingerprint for determining unique signature of content.
+        /// </summary>
+        public static string ComputeFingerprint(string compositeKey)
             => ComputeHash(compositeKey);
 
         /// <summary>
@@ -26,6 +29,5 @@ namespace Caching.Core.Helpers
 
             return Convert.ToHexString(hashBytes).ToLowerInvariant(); // 64-char string
         }
-
     }
 }

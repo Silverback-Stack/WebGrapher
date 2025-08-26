@@ -12,52 +12,64 @@ namespace Service.Graphing.Tests
     {
         private InMemoryWebGraphAdapter _adapter;
         private Mock<ILogger> _logger;
+        private bool _includeImmediateNeighborhood;
 
         [SetUp]
         public void Setup()
         {
             _logger = new Mock<ILogger>();
             _adapter = new InMemoryWebGraphAdapter(_logger.Object);
+            _includeImmediateNeighborhood = true; //true when current link depth < 2
         }
 
         [Test]
-        public async Task GetMostPopularNodesAsync_ReturnsTopNodesOrderedByIncomingLinkCountAndCreatedAt()
+        public async Task GetMostPopularNodesAsync_ReturnsTopNodesOrderedByPopularityScoreAndCreatedAt()
         {
             Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
 
-            // Helper to create a node with N incoming links
-            Node CreateNode(string url, int incomingLinks, DateTimeOffset createdAt)
+            // Helper to create a node with N incoming and optional outgoing links
+            Node CreateNode(string url, int incomingLinks, int outgoingLinks, DateTimeOffset createdAt)
             {
                 var node = new Node(graphId, url)
                 {
-                    CreatedAt = createdAt
+                    State = NodeState.Populated,
+                    CreatedAt = createdAt,
+                    ModifiedAt = createdAt
                 };
 
-                // Populate incoming links with dummy nodes to match the desired count
+                // Populate incoming links
                 for (int i = 0; i < incomingLinks; i++)
-                {
                     node.IncomingLinks.Add(new Node(graphId, $"{url}_incoming_{i}"));
-                }
+
+                // Populate outgoing links
+                for (int i = 0; i < outgoingLinks; i++)
+                    node.OutgoingLinks.Add(new Node(graphId, $"{url}_outgoing_{i}"));
+
+                // Update popularity score explicitly
+                node.PopularityScore = node.IncomingLinks.Count + node.OutgoingLinks.Count;
 
                 return node;
             }
 
-            var node1 = CreateNode("url1", 5, DateTimeOffset.UtcNow.AddHours(-2));
-            var node2 = CreateNode("url2", 10, DateTimeOffset.UtcNow.AddHours(-3));
-            var node3 = CreateNode("url3", 10, DateTimeOffset.UtcNow.AddHours(-1));
-            var node4 = CreateNode("url4", 1, DateTimeOffset.UtcNow);
+            var node1 = CreateNode("url1", 5, 0, DateTimeOffset.UtcNow.AddHours(-2));  // score = 5
+            var node2 = CreateNode("url2", 10, 0, DateTimeOffset.UtcNow.AddHours(-3)); // score = 10
+            var node3 = CreateNode("url3", 10, 0, DateTimeOffset.UtcNow.AddHours(-1)); // score = 10
+            var node4 = CreateNode("url4", 1, 0, DateTimeOffset.UtcNow);  // score = 1
 
             await _adapter.SetNodeAsync(node1);
             await _adapter.SetNodeAsync(node2);
             await _adapter.SetNodeAsync(node3);
             await _adapter.SetNodeAsync(node4);
 
-            var result = await _adapter.GetMostPopularNodesAsync(graphId, 2);
+            var result = await _adapter.GetMostPopularNodes(graphId, 2);
 
             Assert.That(result.Count(), Is.EqualTo(2));
-            Assert.That(result.ElementAt(0).Url, Is.EqualTo("url3")); // same IncomingLinkCount but newer CreatedAt wins
+
+            // Tie on popularity score, newer ModifiedAt wins
+            Assert.That(result.ElementAt(0).Url, Is.EqualTo("url3"));
             Assert.That(result.ElementAt(1).Url, Is.EqualTo("url2"));
         }
+
 
 
         [Test]
@@ -142,7 +154,8 @@ namespace Service.Graphing.Tests
                 Url = "A",
                 OriginalUrl = "A",
                 Links = new List<string> { "B" },
-                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
+                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1),
+                ContentFingerprint = "HASH-A"
             };
             var webPageB = new WebPageItem
             {
@@ -150,11 +163,12 @@ namespace Service.Graphing.Tests
                 Url = "B",
                 OriginalUrl = "B",
                 Links = new List<string> { },
-                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
+                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1),
+                ContentFingerprint = "HASH-B"
             };
 
-            await _adapter.AddWebPageAsync(webPageA, null, null, linkUpdateMode);
-            await _adapter.AddWebPageAsync(webPageB, null, null, linkUpdateMode);
+            await _adapter.AddWebPageAsync(webPageA, _includeImmediateNeighborhood, null, null, linkUpdateMode);
+            await _adapter.AddWebPageAsync(webPageB, _includeImmediateNeighborhood, null, null, linkUpdateMode);
 
             var nodeB = await _adapter.GetNodeAsync(graphId, "B");
             Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
@@ -167,10 +181,11 @@ namespace Service.Graphing.Tests
                 Url = "A",
                 OriginalUrl = "A",
                 Links = new List<string>(),
-                SourceLastModified = DateTimeOffset.UtcNow
+                SourceLastModified = DateTimeOffset.UtcNow,
+                ContentFingerprint = "HASH-A-REVISITED"
             };
 
-            await _adapter.AddWebPageAsync(webPageARevisited, null, null, linkUpdateMode);
+            await _adapter.AddWebPageAsync(webPageARevisited, _includeImmediateNeighborhood,  null, null, linkUpdateMode);
 
             nodeB = await _adapter.GetNodeAsync(graphId, "B");
             // Append mode: old links are kept
@@ -190,7 +205,8 @@ namespace Service.Graphing.Tests
                 Url = "A",
                 OriginalUrl = "A",
                 Links = new List<string> { "B" },
-                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
+                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1),
+                ContentFingerprint = "HASH-A"
             };
             var webPageB = new WebPageItem
             {
@@ -198,11 +214,12 @@ namespace Service.Graphing.Tests
                 Url = "B",
                 OriginalUrl = "B",
                 Links = new List<string> { },
-                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1)
+                SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1),
+                ContentFingerprint = "HASH-B"
             };
 
-            await _adapter.AddWebPageAsync(webPageA, null, null, linkUpdateMode);
-            await _adapter.AddWebPageAsync(webPageB, null, null, linkUpdateMode);
+            await _adapter.AddWebPageAsync(webPageA, _includeImmediateNeighborhood, null, null, linkUpdateMode);
+            await _adapter.AddWebPageAsync(webPageB, _includeImmediateNeighborhood, null, null, linkUpdateMode);
 
             var nodeB = await _adapter.GetNodeAsync(graphId, "B");
             Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
@@ -215,10 +232,11 @@ namespace Service.Graphing.Tests
                 Url = "A",
                 OriginalUrl = "A",
                 Links = new List<string>(),
-                SourceLastModified = DateTimeOffset.UtcNow
+                SourceLastModified = DateTimeOffset.UtcNow,
+                ContentFingerprint = "HASH-A-REVISITED"
             };
 
-            await _adapter.AddWebPageAsync(webPageARevisited, null, null, linkUpdateMode);
+            await _adapter.AddWebPageAsync(webPageARevisited, _includeImmediateNeighborhood, null, null, linkUpdateMode);
 
             nodeB = await _adapter.GetNodeAsync(graphId, "B");
             // Replace mode: old links removed

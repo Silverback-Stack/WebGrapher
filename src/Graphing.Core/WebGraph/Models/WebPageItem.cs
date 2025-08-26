@@ -15,5 +15,6 @@
         public IEnumerable<string>? Tags { get; set; }
         public IEnumerable<string> Links { get; set; }
         public string? DetectedLanguageIso3 { get; set; }
+        public required string ContentFingerprint { get; set; }
     }
 }

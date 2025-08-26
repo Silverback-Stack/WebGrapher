@@ -3,8 +3,8 @@ namespace Caching.Core.Helpers
 {
     public static class CacheDurationHelper
     {
-        private const int DEFAULT_MIN_ABSOLUTE_EXPIRY_MINUTES = 5;
-        private const int DEFAULT_MAX_ABSOLUTE_EXPIRY_MINUTES = 20;
+        private const int MIN_ABSOLUTE_EXPIRY_MINUTES = 5;
+        private const int MAX_ABSOLUTE_EXPIRY_MINUTES = 20;
 
         /// <summary>
         /// Returns a clamped duration between now and the provided expiry,
@@ -12,8 +12,8 @@ namespace Caching.Core.Helpers
         /// </summary>
         public static TimeSpan? Clamp(
             DateTimeOffset? expires, 
-            int minDurationInMinutes = DEFAULT_MIN_ABSOLUTE_EXPIRY_MINUTES, 
-            int maxDurationInMinutes = DEFAULT_MAX_ABSOLUTE_EXPIRY_MINUTES)
+            int minDurationInMinutes = MIN_ABSOLUTE_EXPIRY_MINUTES, 
+            int maxDurationInMinutes = MAX_ABSOLUTE_EXPIRY_MINUTES)
         {
             if (minDurationInMinutes > maxDurationInMinutes)
                 throw new ArgumentException("minDuration cannot be greater than maxDuration");

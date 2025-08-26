@@ -6,8 +6,9 @@ namespace Graphing.Core.WebGraph
     {
         Task AddWebPageAsync(
             WebPageItem webPage, 
-            Func<Node, Task> onNodePopulated, 
-            Func<Node, Task> onLinkDiscovered,
+            bool forceRefresh,
+            Func<Node, Task> nodePopulatedCallback, 
+            Func<Node, Task> linkDiscoveredCallback,
             LinkUpdateMode linkUpdateMode = LinkUpdateMode.Append);
 
         Task<Graph?> GetGraphByIdAsync(Guid graphId);
