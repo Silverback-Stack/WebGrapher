@@ -3,9 +3,9 @@ import * as signalR from "@microsoft/signalr"
 import { addOrUpdateNode, addEdge } from "./sigma.js"
 
 // Create Controller
-export async function initSignalRController(graphId, { sigmaGraph, fa2, hubUrl }) {
+export async function initSignalRController(graphId, { sigmaGraph, runFA2, hubUrl }) {
   const status = ref("disconnected")
-  const controller = await setupSignalR(graphId, { sigmaGraph, fa2, hubUrl, onStatus: (s) => (status.value = s) })
+  const controller = await setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, onStatus: (s) => (status.value = s) })
   controller.graphId = graphId
   controller.status = status
   return controller
@@ -15,7 +15,7 @@ export function disposeSignalR(controller) {
   controller?.dispose()
 }
 
-async function setupSignalR(graphId, { sigmaGraph, fa2, hubUrl, flushInterval = 2000, onStatus }) {
+async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval = 2000, onStatus }) {
   // Build connection
   const connection = new signalR.HubConnectionBuilder()
     .withUrl(hubUrl)
@@ -83,10 +83,7 @@ async function setupSignalR(graphId, { sigmaGraph, fa2, hubUrl, flushInterval = 
       nodeBuffer = []
       edgeBuffer = []
 
-      if (fa2 && !fa2.isRunning()) {
-        fa2.start()
-        setTimeout(() => fa2.stop(), 1950)
-      }
+      runFA2(500)
     }
   }, flushInterval)
 

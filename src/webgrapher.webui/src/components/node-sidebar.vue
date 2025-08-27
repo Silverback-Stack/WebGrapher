@@ -1,20 +1,20 @@
 <template>
-  <aside class="graph-sidebar" v-if="modelValue">
+  <aside class="node-sidebar" v-if="modelValue">
     <!-- Close -->
-    <b-button class="sidebar-close"
+    <b-button class="node-sidebar-close"
               type="is-light"
               size="is-small"
               icon-left="close"
-              @click="handleClose" />
+              @click="handleNodeSidebarClose" />
 
-    <div class="sidebar-content" v-if="node">
+    <div class="node-sidebar-content" v-if="node">
 
       <!-- Title -->
-      <h1 class="sidebar-title title is-3">{{ node.label }}</h1>
+      <h1 class="node-sidebar-title title is-3">{{ node.label }}</h1>
 
       <!-- Image -->
       <a v-if="node?.image"
-         :href="node?.id" target="_blank" class="sidebar-image is-block">
+         :href="node?.id" target="_blank" class="node-sidebar-image is-block">
         <b-image v-if="node.image"
                  :src="node.image"
                  alt="Preview"
@@ -24,7 +24,7 @@
       <!-- Summary -->
       <div>
         <p v-if="node?.summary"
-           class="sidebar-summary is-size-5"
+           class="node-sidebar-summary is-size-5"
            :class="{ 'is-truncated': !isSummaryExpanded }">
           {{ node.summary }}
         </p>
@@ -48,7 +48,7 @@
       </div>
 
       <!-- Outgoing Edges -->
-      <div v-if="node?.outgoingEdges?.length" class="sidebar-connections my-3">
+      <div v-if="node?.outgoingEdges?.length" class="node-sidebar-connections my-3">
         <p>Outgoing Links</p>
         <ul>
           <li v-for="(edge, index) in node.outgoingEdges" :key="edge.id" v-show="isOutgoingExpanded || index < 6">
@@ -66,7 +66,7 @@
       </div>
 
       <!-- Incoming Edges -->
-      <div v-if="node?.incomingEdges?.length" class="sidebar-connections my-3">
+      <div v-if="node?.incomingEdges?.length" class="node-sidebar-connections my-3">
         <p>Incoming Links</p>
         <ul>
           <li v-for="(edge, index) in node.incomingEdges" :key="edge.id" v-show="isIncomingExpanded || index < 6">
@@ -84,7 +84,7 @@
       </div>
 
       <!-- Page Url -->
-      <div class="sidebar-source my-3">
+      <div class="node-sidebar-source my-3">
         <p>Source</p>
         <a :href="node?.id" target="_blank" class="is-size-6 is-block has-text-break">
           {{ node.id }}
@@ -92,7 +92,7 @@
       </div>
 
       <!-- Tags -->
-      <div v-if="node?.tags" class="sidebar-tags">
+      <div v-if="node?.tags" class="node-sidebar-tags">
         <b-taglist>
           <b-tag v-for="(tag, index) in node.tags"
                  :key="index"
@@ -121,13 +121,13 @@
     node: Object
   })
 
-  function handleClose() {
+  function handleNodeSidebarClose() {
     emit("update:modelValue", false)
   }
 </script>
 
 <style scoped>
-  .graph-sidebar {
+  .node-sidebar {
     position: fixed;
     top: 60px; /* offset for navbar */
     left: 0; /* appear on the left side */
@@ -143,23 +143,23 @@
     -webkit-backdrop-filter: blur(8px);*/ /* Safari support */
   }
 
-  .sidebar-close {
+  .node-sidebar-close {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
   }
 
-  .sidebar-title {
+  .node-sidebar-title {
     padding-right: 2.5rem; /* leaves space for close button */
     margin-top: 0.4rem !important;
     margin-bottom: 1rem !important;
   }
 
-  .sidebar-image span {
+  .node-sidebar-image span {
     word-break: break-all;
   }
 
-  .sidebar-content {
+  .node-sidebar-content {
     padding: 1rem;
   }
 
@@ -174,17 +174,17 @@
     overflow: hidden;
   }
 
-  .sidebar-tags {
+  .node-sidebar-tags {
     margin-top: 1rem;
     margin-bottom: 1rem;
   }
 
-  .sidebar-tags .tags .tag {
-    margin-right: 0;
-    margin-bottom: 0;
+  .node-sidebar-tags .tags .tag {
+      margin-right: 0;
+      margin-bottom: 0;
   }
 
-  .sidebar-connections a {
+  .node-sidebar-connections a {
     display: block; /* allow width to apply */
     max-width: 100%; /* don’t exceed container */
     white-space: nowrap; /* prevent wrapping */
@@ -192,7 +192,7 @@
     text-overflow: ellipsis; /* show "..." at the end */
   }
 
-  .sidebar-source a {
+  .node-sidebar-source a {
     word-break: break-all; /* or break-word */
     overflow-wrap: anywhere;
   }

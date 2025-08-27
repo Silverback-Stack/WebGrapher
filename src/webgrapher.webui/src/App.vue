@@ -21,7 +21,7 @@
     focusNode } from "./sigma.js"
   import GraphConnect from './components/graph-connect.vue'
   import GraphForm from './components/graph-form.vue'
-  import GraphSidebar from './components/graph-sidebar.vue'
+  import NodeSidebar from './components/node-sidebar.vue'
 
   // --- Refs / State ---
   // Sigma / Graph
@@ -29,6 +29,7 @@
   const sigmaGraph = new Graph()
   let sigmaInstance = null
   let fa2 = null
+  let fa2Timer = null
   let highlightedNode = ref(null)
 
   // SignalR
@@ -51,9 +52,9 @@
   const route = useRoute()
   const router = useRouter()
 
-  // Sidebar
-  const sidebarOpen = ref(false)
-  const sidebarData = ref(null)
+  // Node Sidebar
+  const nodeSidebarOpen = ref(false)
+  const nodeSidebarData = ref(null)
 
   // --- Lifecycle ---
   onMounted(async () => {
@@ -61,7 +62,7 @@
     fa2 = setupFA2(sigmaGraph)
 
     setupReducer(sigmaGraph, sigmaInstance, highlightedNode)
-    setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNode, handleSidebar, nodeSubGraph, graphId.value)
+    setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlightedNode, handleNodeSidebar, nodeSubGraph, graphId)
     setupNodeSizing(sigmaGraph, sigmaInstance)
 
     loadGraphs()
@@ -85,6 +86,22 @@
   }, { immediate: true })
 
 
+  // --- Centralized FA2 ---
+  function runFA2(duration = 1000) {
+    // If already running, just extend the timer
+    if (fa2.isRunning()) {
+      clearTimeout(fa2Timer)
+    } else {
+      fa2.start()
+    }
+
+    // Always extend/renew the stop timer
+    fa2Timer = setTimeout(() => {
+      fa2.stop()
+    }, duration)
+  }
+
+
   // --- UI Event Handlers ---
   function openConnect() {
     modalView.value = "connect"
@@ -103,14 +120,14 @@
     modalView.value = "crawl"
   }
 
-  function handleSidebar(nodeData) {
+  function handleNodeSidebar(nodeData) {
     if (!nodeData) {
-      sidebarData.value = null
-      sidebarOpen.value = false
+      nodeSidebarData.value = null
+      nodeSidebarOpen.value = false
       return
     }
-    sidebarData.value = nodeData
-    sidebarOpen.value = true
+    nodeSidebarData.value = nodeData
+    nodeSidebarOpen.value = true
   }
 
   function handleCrawlNode(nodeId) {
@@ -121,7 +138,6 @@
   }
 
   async function handleFocusNode(nodeId) {
-    console.log("node focused " + graphId.value + " : " + nodeId)
     if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
 
     const nodeAttr = sigmaGraph.getNodeAttributes(nodeId);
@@ -132,10 +148,7 @@
     highlightedNode.value = nodeId;
     highlightNeighbors(sigmaGraph, sigmaInstance, nodeId);
 
-    if (!fa2.isRunning()) {
-      fa2.start()
-      setTimeout(() => fa2.stop(), 250)
-    }
+    runFA2(500)
 
     //focus on selected node
     focusNode(sigmaGraph, sigmaInstance, nodeAttr)
@@ -167,7 +180,7 @@
     }
   }
 
-  async function populateGraph(graphId, sigmaGraph, fa2, { maxDepth, maxNodes }) {
+  async function populateGraph(graphId, sigmaGraph, runFA2, { maxDepth, maxNodes }) {
     try {
       const response = await axios.get(apiConfig.GRAPH_POPULATE(graphId), {
         params: { maxDepth, maxNodes }
@@ -182,10 +195,8 @@
       payload.nodes.forEach(n => addOrUpdateNode(sigmaGraph, n))
       payload.edges.forEach(e => addEdge(sigmaGraph, e))
 
-      if (fa2 && !fa2.isRunning()) {
-        fa2.start()
-        setTimeout(() => fa2.stop(), 3000)
-      }
+      runFA2(1500)
+
     } catch (err) {
       console.error("Failed to populate graph:", err)
     }
@@ -195,10 +206,10 @@
 
 
   const requestCache = new Map() // nodeId => last request timestamp
-  const THROTTLE_MS = 30_000
+  const THROTTLE_MS = 30_000 //30 seconds
   let currentRequest = { nodeId: null, controller: null }
 
-  async function nodeSubGraph(graphId, nodeId, sigmaGraph, fa2) {
+  async function nodeSubGraph(graphId, nodeId, sigmaGraph, runFA2) {
     const now = Date.now()
 
     // Skip if recently requested
@@ -223,14 +234,25 @@
       if (!payload?.nodes) return
 
       // Merge into graph
-      payload.nodes.forEach(n => addOrUpdateNode(sigmaGraph, n))
+      payload.nodes.forEach(n => {
+        const exists = sigmaGraph.hasNode(n.id)
+
+        addOrUpdateNode(sigmaGraph, n)
+
+        if (!exists) {
+          // seed position near selected node
+          const { x: cx, y: cy } = sigmaGraph.getNodeAttributes(nodeId)
+          const angle = Math.random() * 2 * Math.PI
+          const radius = 20
+          sigmaGraph.setNodeAttribute(n.id, "x", cx + Math.cos(angle) * radius)
+          sigmaGraph.setNodeAttribute(n.id, "y", cy + Math.sin(angle) * radius)
+        }
+      })
+
       payload.edges.forEach(e => addEdge(sigmaGraph, e))
 
-      // kick FA2 a bit so layout adapts
-      if (!fa2.isRunning()) {
-        fa2.start()
-        setTimeout(() => fa2.stop(), 250)
-      }
+      runFA2(1000)
+
     } catch (err) {
       if (axios.isCancel(err)) console.debug(`Request for node ${nodeId} cancelled`)
       else console.error(`Failed to load subgraph for node ${nodeId}:`, err)
@@ -251,8 +273,14 @@
   }
 
   function resetGraphState() {
+    if (fa2Timer) {
+      clearTimeout(fa2Timer)
+      fa2Timer = null
+    }
+
+    if (fa2) fa2.stop()
+
     sigmaGraph.clear()
-    fa2.stop()
     fa2 = setupFA2(sigmaGraph)
     highlightedNode.value = null
   }
@@ -274,12 +302,12 @@
     resetGraphState()
 
     // --- populate with initial data ---
-    await populateGraph(graph.id, sigmaGraph, fa2, { maxDepth: 3, maxNodes: 1000 })
+    await populateGraph(graph.id, sigmaGraph, runFA2, { maxDepth: 6, maxNodes: 5000 })
 
     // --- Connect SignalR ---
     disposeSignalR(signalrController)
     signalrController = await initSignalRController(graph.id, {
-      sigmaGraph, fa2, hubUrl: apiConfig.SIGNALR_HUB
+      sigmaGraph, runFA2, hubUrl: apiConfig.SIGNALR_HUB
     })
 
     // Watch signalR status changes
@@ -299,9 +327,9 @@
 
     if (signalrController?.graphId === id) return;
 
-    // Close sidebar
-    sidebarOpen.value = false
-    sidebarData.value = null
+    // Close Node Sidebar
+    nodeSidebarOpen.value = false
+    nodeSidebarData.value = null
 
     try {
       // Get graph metadata from API
@@ -395,9 +423,9 @@
          ref="container"
          class="graph-container"></div>
 
-    <!-- Sidebar -->
-    <GraphSidebar v-model="sidebarOpen"
-                  :node="sidebarData"
+    <!-- Node Sidebar -->
+    <NodeSidebar v-model="nodeSidebarOpen"
+                  :node="nodeSidebarData"
                   @crawl-node="handleCrawlNode"
                   @focus-node="handleFocusNode"/>
 

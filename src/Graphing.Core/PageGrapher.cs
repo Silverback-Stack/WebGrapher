@@ -16,8 +16,8 @@ namespace Graphing.Core
         private readonly IEventBus _eventBus;
         private readonly IWebGraph _webGraph;
 
-        private const int MAX_REQUEST_DEPTH = 6;
-        private const int MAX_REQUEST_NODES = 5000;
+        private const int MAX_REQUEST_DEPTH = 3;
+        private const int MAX_REQUEST_NODES = 300;
 
         public PageGrapher(ILogger logger, IEventBus eventBus, IWebGraph webGraph)
         {
@@ -207,7 +207,8 @@ namespace Graphing.Core
         public async Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
         {
             maxDepth = Math.Clamp(maxDepth, 1, MAX_REQUEST_DEPTH);
-            maxNodes = Math.Clamp(maxDepth, 1, MAX_REQUEST_NODES);
+            if (maxNodes.HasValue)
+                maxNodes = Math.Clamp(maxNodes.Value, 1, MAX_REQUEST_NODES);
 
             var popularNodes = await _webGraph.GetMostPopularNodes(graphId, 1);
             var startNode = popularNodes.FirstOrDefault();

@@ -27,7 +27,7 @@ export function setupFA2(sigmaGraph) {
     iterations: 100,
     settings: {
       slowDown: 20,
-      gravity: 0.1,
+      gravity: 0.001,
       scalingRatio: 5,
       strongGravityMode: false,
       adjustSizes: true
@@ -36,13 +36,11 @@ export function setupFA2(sigmaGraph) {
 }
 
 // --- Node/Stage highlighting ---
-export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNode, handleSidebar, nodeSubGraph, graphId) {
+export function setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlightedNode, handleNodeSidebar, nodeSubGraph, graphId) {
   sigmaInstance.on("clickNode", async ({ node }) => {
 
-    console.log("hello")
-
-    // Trigger sidebar
-    if (typeof handleSidebar === "function") {
+    // Trigger Node Sidebar
+    if (typeof handleNodeSidebar === "function") {
       const nodeAttributes = sigmaGraph.getNodeAttributes(node)
 
       //highlight neighbourhood
@@ -72,7 +70,7 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNod
         incomingEdges
       }
 
-      handleSidebar(nodeData)
+      handleNodeSidebar(nodeData)
     }
 
     if (highlightedNode.value === node) return
@@ -82,15 +80,12 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, fa2, highlightedNod
     highlightedNode.value = node
     highlightNeighbors(sigmaGraph, sigmaInstance, node)
 
-    if (!fa2.isRunning()) {
-      fa2.start()
-      setTimeout(() => fa2.stop(), 250)
-    }
+    runFA2(250)
 
     // --- fetch subgraph for clicked node ---
-    if (typeof nodeSubGraph === "function" && graphId) {
+    if (typeof nodeSubGraph === "function" && graphId.value) {
       try {
-        await nodeSubGraph(graphId, node, sigmaGraph, fa2)
+        await nodeSubGraph(graphId, node, sigmaGraph, runFA2)
       } catch (err) {
         console.error(`Failed to fetch subgraph for node ${node}:`, err)
       }
