@@ -12,7 +12,7 @@ namespace Caching.Core.Adapters.InStorage
         private readonly ILogger _logger;
 
         private const string CACHE_CONTAINER = "storage.cache";
-        private const int DEFAULT_ABSOLUTE_EXPIRATION_HOURS = 0; //clears all on startup
+        private const int ABSOLUTE_EXPIRATION_HOURS = 0; //clears all on startup
 
         /// <summary>
         /// In-storage cache adapter for local development.
@@ -134,7 +134,7 @@ namespace Caching.Core.Adapters.InStorage
 
         private void ClearCacheAsync()
         {
-            var cutoff = DateTime.UtcNow.AddHours(-DEFAULT_ABSOLUTE_EXPIRATION_HOURS);
+            var cutoff = DateTime.UtcNow.AddHours(-ABSOLUTE_EXPIRATION_HOURS);
             var filePath = GetFilePath(string.Empty);
 
             foreach (var file in Directory.GetFiles(filePath))

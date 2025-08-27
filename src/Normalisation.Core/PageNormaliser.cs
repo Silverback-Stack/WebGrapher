@@ -4,6 +4,7 @@ using Caching.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
+using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core.Processors;
 
@@ -53,6 +54,8 @@ namespace Normalisation.Core
             var request = evt.CrawlPageRequest;
             var result = evt.ScrapePageResult;
 
+            var contentFingerprint = FingerprintHelper.ComputeFingerprint(request.FingerprintCompositeKey);
+
             var normalisedPageResult = new NormalisePageResultDto
             {
                 OriginalUrl = result.OriginalUrl,
@@ -67,6 +70,7 @@ namespace Normalisation.Core
                 Links = links,
                 ImageUrl = imageUrl,
                 DetectedLanguageIso3 = languageIso3,
+                ContentFingerprint = contentFingerprint,
                 CreatedAt = DateTimeOffset.UtcNow
             };
 

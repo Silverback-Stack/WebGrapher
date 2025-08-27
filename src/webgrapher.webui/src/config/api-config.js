@@ -18,7 +18,7 @@ export default {
   GRAPH_UPDATE: (graphId) => `${env.graphUrl}/Graph/${graphId}/update`,
   GRAPH_DELETE: (graphId) => `${env.graphUrl}/Graph/${graphId}/delete`,
   GRAPH_POPULATE: (graphId) => `${env.graphUrl}/Graph/${graphId}/populate`,
-  GRAPH_TRAVERSE: (graphId) => `${env.graphUrl}/Graph/${graphId}/traverse`,
+  GRAPH_NODESUBGRAPH: (graphId) => `${env.graphUrl}/Graph/${graphId}/node-subgraph`,
   GRAPH_CRAWL: (graphId) => `${env.graphUrl}/Graph/${graphId}/crawl`,
   SIGNALR_HUB: env.hubUrl
 };

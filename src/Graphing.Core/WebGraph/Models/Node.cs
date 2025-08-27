@@ -18,6 +18,7 @@
         public DateTimeOffset ModifiedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset? LastScheduledAt { get; set; }
         public DateTimeOffset? SourceLastModified { get; set; }
+        public string ContentFingerprint { get; set; } = string.Empty;
 
         public Node() { }
 

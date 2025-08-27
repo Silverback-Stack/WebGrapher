@@ -117,6 +117,71 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
             return Ok(MapToDto(updatedGraph));
         }
 
+        
+
+        [HttpPost("{graphId}/crawl", Name = "Crawl")]
+        public async Task<IActionResult> CrawlPageAsync([FromRoute] Guid graphId, [FromBody] CrawlPageDto crawlPage)
+        {
+            if (crawlPage == null)
+                return BadRequest("Request body cannot be empty.");
+
+            if (!Uri.TryCreate(crawlPage.Url, UriKind.Absolute, out var validatedUrl))
+            {
+                ModelState.AddModelError(nameof(crawlPage.Url), "Invalid URL. Use format https://www.example.com");
+                return ValidationProblem();
+            }
+
+            if (crawlPage.OverwriteDefaults)
+            {
+                //overwrite graph defaults with new values from crawl page request
+                var existingGraph = await _pageGrapher.GetGraphByIdAsync(graphId);
+                if (existingGraph == null)
+                    return NotFound();
+
+                existingGraph.Url = validatedUrl.AbsoluteUri;
+                existingGraph.MaxDepth = Math.Max(1, crawlPage.MaxDepth);
+                existingGraph.MaxLinks = Math.Max(1, crawlPage.MaxLinks);
+                existingGraph.ExcludeExternalLinks = crawlPage.ExcludeExternalLinks;
+                existingGraph.ExcludeQueryStrings = crawlPage.ExcludeQueryStrings;
+                existingGraph.UrlMatchRegex = crawlPage.UrlMatchRegex;
+                existingGraph.TitleElementXPath = crawlPage.TitleElementXPath;
+                existingGraph.ContentElementXPath = crawlPage.ContentElementXPath;
+                existingGraph.SummaryElementXPath = crawlPage.SummaryElementXPath;
+                existingGraph.ImageElementXPath = crawlPage.ImageElementXPath;
+                existingGraph.RelatedLinksElementXPath = crawlPage.RelatedLinksElementXPath;
+
+                var updatedGraph = await _pageGrapher.UpdateGraphAsync(existingGraph);
+
+                if (updatedGraph == null)
+                {
+                    return StatusCode(500, "Failed to update graph.");
+                }
+            }
+
+            //submit a crawl page request:
+            var userAgent = Request.Headers["User-Agent"].FirstOrDefault();
+
+            await _pageGrapher.CrawlPageAsync(graphId, new GraphOptions
+            {
+                Url = validatedUrl,
+                MaxDepth = Math.Max(1, crawlPage.MaxDepth),
+                MaxLinks = Math.Max(1, crawlPage.MaxLinks),
+                ExcludeExternalLinks = crawlPage.ExcludeExternalLinks,
+                ExcludeQueryStrings = crawlPage.ExcludeQueryStrings,
+                UrlMatchRegex = crawlPage.UrlMatchRegex,
+                TitleElementXPath = crawlPage.TitleElementXPath,
+                ContentElementXPath = crawlPage.ContentElementXPath,
+                SummaryElementXPath = crawlPage.SummaryElementXPath,
+                ImageElementXPath = crawlPage.ImageElementXPath,
+                RelatedLinksElementXPath = crawlPage.RelatedLinksElementXPath,
+                UserAgent = string.IsNullOrEmpty(userAgent) ? GraphOptions.DEFAULT_USER_AGENT : userAgent,
+                UserAccepts = GraphOptions.DEFAULT_USER_ACCEPTS //always use default as crawler currently only supports text & html
+            });
+
+            return Ok();
+        }
+
+
         [HttpDelete("{graphId}/delete", Name = "Delete")]
         public async Task<IActionResult> DeleteGraphAsync([FromRoute] Guid graphId)
         {
@@ -166,13 +231,13 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
             return Ok(data);
         }
 
-        [HttpPost("{graphId}/traverse", Name = "Traverse")]
-        public async Task<IActionResult> TraverseGraphAsync([FromRoute] Guid graphId, [FromBody] TraverseGraphDto traverseGraph)
+        [HttpPost("{graphId}/node-subgraph", Name = "NodeSubgraph")]
+        public async Task<IActionResult> GetNodeSubgraphAsync([FromRoute] Guid graphId, [FromBody] SubGraphRequestDto subGraphRequest)
         {
-            if (traverseGraph == null)
+            if (subGraphRequest == null)
                 return BadRequest("Request body cannot be empty.");
 
-            var data = await _pageGrapher.TraverseGraphAsync(graphId, traverseGraph.StartUrl, traverseGraph.MaxDepth, traverseGraph.MaxNodes);
+            var data = await _pageGrapher.GetNodeSubgraphAsync(graphId, subGraphRequest.NodeUrl);
 
             if (data == null || !data.Nodes.Any())
             {
@@ -180,40 +245,6 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
             }
 
             return Ok(data);
-        }
-
-        [HttpPost("{graphId}/crawl", Name = "Crawl")]
-        public async Task<IActionResult> CrawlPageAsync([FromRoute] Guid graphId, [FromBody] CrawlPageDto crawlPage)
-        {
-            if (crawlPage == null)
-                return BadRequest("Request body cannot be empty.");
-
-            if (!Uri.TryCreate(crawlPage.Url, UriKind.Absolute, out var validatedUrl))
-            {
-                ModelState.AddModelError(nameof(crawlPage.Url), "Invalid URL. Use format https://www.example.com");
-                return ValidationProblem();
-            }
-
-            var userAgent = Request.Headers["User-Agent"].FirstOrDefault();
-
-            await _pageGrapher.CrawlPageAsync(graphId, new GraphOptions
-            {
-                Url = validatedUrl,
-                MaxDepth = Math.Max(1, crawlPage.MaxDepth),
-                MaxLinks = Math.Max(1, crawlPage.MaxLinks),
-                ExcludeExternalLinks = crawlPage.ExcludeExternalLinks,
-                ExcludeQueryStrings = crawlPage.ExcludeQueryStrings,
-                UrlMatchRegex = crawlPage.UrlMatchRegex,
-                TitleElementXPath = crawlPage.TitleElementXPath,
-                ContentElementXPath = crawlPage.ContentElementXPath,
-                SummaryElementXPath = crawlPage.SummaryElementXPath,
-                ImageElementXPath = crawlPage.ImageElementXPath,
-                RelatedLinksElementXPath = crawlPage.RelatedLinksElementXPath,
-                UserAgent = string.IsNullOrEmpty(userAgent) ? GraphOptions.DEFAULT_USER_AGENT : userAgent,
-                UserAccepts = GraphOptions.DEFAULT_USER_ACCEPTS //always use default as crawler currently only supports text & html
-            });
-
-            return Ok();
         }
 
         private GraphDto MapToDto(Graph graph) => new GraphDto

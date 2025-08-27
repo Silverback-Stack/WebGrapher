@@ -7,9 +7,9 @@ namespace Requests.Core
 {
     public class RequestTransformer : IRequestTransformer
     {
-        private const int DEFAULT_RETRY_AFTER_MINUTES = 1;
-        private static readonly ContentType DEFAULT_CONTENT_TYPE = new ContentType("text/html");
-        private static readonly Encoding DEFAULT_ENCODING = Encoding.UTF8;
+        private const int RETRY_AFTER_MINUTES = 1;
+        private static readonly ContentType CONTENT_TYPE = new ContentType("text/html");
+        private static readonly Encoding CONTENT_ENCODING = Encoding.UTF8;
 
         /// <summary>
         /// Transforms HttpResponseMessage into RequestResponseItem dto.
@@ -79,17 +79,17 @@ namespace Requests.Core
                 var rawContentType = content?.Headers?.ContentType?.ToString();
                 var contentType = !string.IsNullOrWhiteSpace(rawContentType)
                     ? new ContentType(rawContentType)
-                    : DEFAULT_CONTENT_TYPE;
+                    : CONTENT_TYPE;
 
                 return contentType.MediaType;
             }
             catch (FormatException)
             {
-                return DEFAULT_CONTENT_TYPE.MediaType;
+                return CONTENT_TYPE.MediaType;
             }
             catch (ArgumentNullException)
             {
-                return DEFAULT_CONTENT_TYPE.MediaType;
+                return CONTENT_TYPE.MediaType;
             }
         }
 
@@ -101,13 +101,13 @@ namespace Requests.Core
             {
                 var encoding = !string.IsNullOrWhiteSpace(charset)
                     ? Encoding.GetEncoding(charset)
-                    : DEFAULT_ENCODING;
+                    : CONTENT_ENCODING;
 
                 return encoding.WebName;
             }
             catch (ArgumentException)
             {
-                return DEFAULT_ENCODING.WebName;
+                return CONTENT_ENCODING.WebName;
             }
         }
 
@@ -122,7 +122,7 @@ namespace Requests.Core
                     or HttpStatusCode.ServiceUnavailable)
                 {
                     return DateTimeOffset.UtcNow.Add(
-                        TimeSpan.FromMinutes(DEFAULT_RETRY_AFTER_MINUTES));
+                        TimeSpan.FromMinutes(RETRY_AFTER_MINUTES));
                 }
                 return null;
             }

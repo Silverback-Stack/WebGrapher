@@ -26,7 +26,7 @@ namespace Crawler.Core.SitePolicy
         public async Task<SitePolicyItem> GetOrCreateSitePolicyAsync(Uri url, string userAgent, DateTimeOffset? retryAfter = null)
         {
             var compositeKey = $"{url.Authority}|{userAgent}|{OVERRIDE_USER_ACCEPTS}";
-            var cacheKey = CacheKeyHelper.GetHashCode(compositeKey);
+            var cacheKey = CacheKeyHelper.ComputeCacheKey(compositeKey);
 
             var sitePolicy = await _policyCache.GetAsync<SitePolicyItem>(cacheKey);
 
@@ -82,7 +82,7 @@ namespace Crawler.Core.SitePolicy
             if (sitePolicy is null) return;
 
             var compositeKey = $"{url.Authority}|{userAgent}|{OVERRIDE_USER_ACCEPTS}";
-            var cacheKey = CacheKeyHelper.GetHashCode(compositeKey);
+            var cacheKey = CacheKeyHelper.ComputeCacheKey(compositeKey);
             var expiryDuration = TimeSpan.FromMinutes(SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES);
 
             var existingSitePolicy = await _policyCache.GetAsync<SitePolicyItem>(cacheKey);

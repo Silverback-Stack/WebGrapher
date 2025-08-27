@@ -20,6 +20,8 @@ namespace Events.Core.Dtos
         public Uri? ImageUrl { get; init; }
         public string? DetectedLanguageIso3 { get; init; }
 
+        public required string ContentFingerprint { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
+
     }
 }

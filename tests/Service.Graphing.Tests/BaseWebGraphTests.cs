@@ -11,8 +11,8 @@ namespace Service.Graphing.Tests
     {
         private Mock<ILogger> _logger;
         private IWebGraph _webGraph;
-        private static readonly Func<Node, Task> OnNodePopulatedNoAction = _ => Task.CompletedTask;
-        private static readonly Func<Node, Task> OnLinkDiscoveredNoAction = _ => Task.CompletedTask;
+        private static readonly Func<Node, Task> NodePopulatedCallbackNoAction = _ => Task.CompletedTask;
+        private static readonly Func<Node, Task> LinkDiscoveredCallbackNoAction = _ => Task.CompletedTask;
 
         [SetUp]
         public void Setup()
@@ -33,10 +33,11 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = DateTime.UtcNow.AddMonths(-1),
-                Links = new List<string>()
+                Links = new List<string>(),
+                ContentFingerprint = ""
             };
 
-            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
             var total = await _webGraph.TotalPopulatedNodesAsync(page.GraphId);
 
             Assert.That(total, Is.EqualTo(1));
@@ -55,7 +56,8 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = DateTimeOffset.UtcNow.AddMonths(-1),
-                Links = new List<string>()
+                Links = new List<string>(),
+                ContentFingerprint = ""
             };
 
             var page2 = new WebPageItem()
@@ -65,11 +67,12 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = DateTimeOffset.UtcNow.AddMonths(-1),
-                Links = new List<string> { "B" }
+                Links = new List<string> { "B" },
+                ContentFingerprint = ""
             };
 
-            await _webGraph.AddWebPageAsync(page1, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
-            await _webGraph.AddWebPageAsync(page2, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(page1, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
+            await _webGraph.AddWebPageAsync(page2, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
 
             var total1 = await _webGraph.TotalPopulatedNodesAsync(graphId: graphId1);
             var total2 = await _webGraph.TotalPopulatedNodesAsync(graphId: graphId2);
@@ -90,10 +93,11 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = DateTimeOffset.UtcNow,
-                Links = new List<string> { "A" } // Self-link
+                Links = new List<string> { "A" }, // Self-link
+                ContentFingerprint = ""
             };
 
-            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
 
             var node = await _webGraph.GetNodeAsync(page.GraphId, "A");
 
@@ -117,11 +121,12 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = now,
-                Links = new List<string>()
+                Links = new List<string>(),
+                ContentFingerprint = ""
             };
 
-            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
-            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction); // same again
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction); // same again
 
             var total = await _webGraph.TotalPopulatedNodesAsync(graphId);
 
@@ -140,10 +145,11 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = DateTimeOffset.UtcNow,
-                Links = new List<string> { "B" }
+                Links = new List<string> { "B" },
+                ContentFingerprint = ""
             };
 
-            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
 
             // Retrieve both nodes
             var nodeA = await _webGraph.GetNodeAsync(graphId, "A");
@@ -170,9 +176,10 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = DateTimeOffset.UtcNow,
-                Links = new List<string> { "B" }
+                Links = new List<string> { "B" },
+                ContentFingerprint = ""
             };
-            await _webGraph.AddWebPageAsync(pageA, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(pageA, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
 
             // Add Page B -> C
             var pageB = new WebPageItem
@@ -182,9 +189,10 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "B",
                 IsRedirect = false,
                 SourceLastModified = DateTimeOffset.UtcNow,
-                Links = new List<string> { "C" }
+                Links = new List<string> { "C" },
+                ContentFingerprint = ""
             };
-            await _webGraph.AddWebPageAsync(pageB, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(pageB, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
 
             // Get node B and verify it's populated
             var nodeB = await _webGraph.GetNodeAsync(graphId, "B");
@@ -206,9 +214,10 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = DateTimeOffset.UtcNow,
-                Links = new List<string> { "B" }
+                Links = new List<string> { "B" },
+                ContentFingerprint = ""
             };
-            await _webGraph.AddWebPageAsync(pageA, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(pageA, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
 
             // Step 2: Add Page B -> C (redirect)
             var pageB = new WebPageItem
@@ -218,9 +227,10 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "B",       // B redirects to C
                 IsRedirect = true,
                 SourceLastModified = DateTimeOffset.UtcNow,
-                Links = new List<string>()
+                Links = new List<string>(),
+                ContentFingerprint = ""
             };
-            await _webGraph.AddWebPageAsync(pageB, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(pageB, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
 
             // ASSERT 1: Node B should exist and be in Redirected state
             var nodeB = await _webGraph.GetNodeAsync(graphId, "B");
@@ -259,10 +269,11 @@ namespace Service.Graphing.Tests
                 Url = "B",
                 IsRedirect = true,
                 SourceLastModified = DateTime.UtcNow,
-                Links = new List<string> { "C" }
+                Links = new List<string> { "C" },
+                ContentFingerprint = ""
             };
 
-            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, OnLinkDiscoveredNoAction);
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, LinkDiscoveredCallbackNoAction);
 
             var nodeA = await _webGraph.GetNodeAsync(graphId, "A");
             var nodeB = await _webGraph.GetNodeAsync(graphId, "B");
@@ -303,18 +314,49 @@ namespace Service.Graphing.Tests
                 OriginalUrl = "A",
                 IsRedirect = false,
                 SourceLastModified = DateTimeOffset.UtcNow,
-                Links = new List<string> { "B" }
+                Links = new List<string> { "B" },
+                ContentFingerprint = ""
             };
 
             // First call should schedule B
-            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, onLinkDiscovered);
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, onLinkDiscovered);
 
             // Immediately call again - should NOT re-schedule B due to throttling
-            await _webGraph.AddWebPageAsync(page, OnNodePopulatedNoAction, onLinkDiscovered);
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, onLinkDiscovered);
 
             Assert.That(mockSchedules.Count, Is.EqualTo(1), "Link B should only be scheduled once due to throttle");
         }
 
+        [Test]
+        public async Task AddWebPageAsync_ShouldInvoke_OnLinkDiscovered_WhenForceRefreshIsTrue()
+        {
+            var graphId = Guid.NewGuid();
+            var mockSchedules = new List<Node>();
+            Func<Node, Task> onLinkDiscovered = node =>
+            {
+                mockSchedules.Add(node);
+                return Task.CompletedTask;
+            };
+
+            var page = new WebPageItem
+            {
+                GraphId = graphId,
+                Url = "A",
+                OriginalUrl = "A",
+                IsRedirect = false,
+                SourceLastModified = DateTimeOffset.UtcNow,
+                Links = new List<string> { "B" },
+                ContentFingerprint = ""
+            };
+
+            // First call schedules B
+            await _webGraph.AddWebPageAsync(page, forceRefresh: false, NodePopulatedCallbackNoAction, onLinkDiscovered);
+
+            // Second call immediately after with forceRefresh: true
+            await _webGraph.AddWebPageAsync(page, forceRefresh: true, NodePopulatedCallbackNoAction, onLinkDiscovered);
+
+            Assert.That(mockSchedules.Count, Is.EqualTo(2), "Link B should be scheduled again due to forceRefresh override");
+        }
 
     }
 }

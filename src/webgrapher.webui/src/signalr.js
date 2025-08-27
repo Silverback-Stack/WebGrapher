@@ -1,7 +1,21 @@
+import { ref } from "vue"
 import * as signalR from "@microsoft/signalr"
-import { addOrUpdateNode, addEdge } from "./sigma-graph-utils.js"
+import { addOrUpdateNode, addEdge } from "./sigma.js"
 
-export async function setupSignalR(graphId, { sigmaGraph, fa2, hubUrl, flushInterval = 2000, onStatus }) {
+// Create Controller
+export async function initSignalRController(graphId, { sigmaGraph, runFA2, hubUrl }) {
+  const status = ref("disconnected")
+  const controller = await setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, onStatus: (s) => (status.value = s) })
+  controller.graphId = graphId
+  controller.status = status
+  return controller
+}
+
+export function disposeSignalR(controller) {
+  controller?.dispose()
+}
+
+async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval = 2000, onStatus }) {
   // Build connection
   const connection = new signalR.HubConnectionBuilder()
     .withUrl(hubUrl)
@@ -48,12 +62,14 @@ export async function setupSignalR(graphId, { sigmaGraph, fa2, hubUrl, flushInte
   let edgeBuffer = []
   let flushTimer = null
 
+  // Receive node data
   connection.on("ReceiveGraphPayload", payload => {
     if (!payload) return
     payload.nodes.forEach(n => nodeBuffer.push(n))
     payload.edges.forEach(e => edgeBuffer.push(e))
   })
 
+  // Receive activity messages
   connection.on("ReceiveMessage", message => {
     console.log("Received message:", message)
   })
@@ -67,10 +83,7 @@ export async function setupSignalR(graphId, { sigmaGraph, fa2, hubUrl, flushInte
       nodeBuffer = []
       edgeBuffer = []
 
-      if (fa2 && !fa2.isRunning()) {
-        fa2.start()
-        setTimeout(() => fa2.stop(), 1950)
-      }
+      runFA2(500)
     }
   }, flushInterval)
 
