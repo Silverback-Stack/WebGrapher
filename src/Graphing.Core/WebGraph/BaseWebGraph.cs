@@ -42,7 +42,7 @@ namespace Graphing.Core.WebGraph
 
             if (webPage.IsRedirect)
             {
-                _logger.LogInformation($"Handling redirect {webPage.OriginalUrl} -> {webPage.Url}");
+                _logger.LogDebug($"Handling redirect {webPage.OriginalUrl} -> {webPage.Url}");
                 await SetRedirectedAsync(webPage.GraphId, webPage.OriginalUrl, webPage.Url);
             }
 

@@ -3,6 +3,7 @@ using System.Net;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
+using Events.Core.Events.LogEvents;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 
@@ -14,6 +15,7 @@ namespace Scraper.Core
         protected readonly IEventBus _eventBus;
         protected readonly IRequestSender _requestSender;
 
+        protected const string SERVICE_NAME = "SCRAPER";
         private const int CONTENT_MAX_BYTES = 4_194_304; //4 Mb
 
         public PageScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender)
@@ -35,6 +37,7 @@ namespace Scraper.Core
 
         private async Task ScrapeContent(ScrapePageEvent evt)
         {
+            string logMessage;
             var request = evt.CrawlPageRequest;
 
             var response = await FetchAsync(
@@ -45,27 +48,63 @@ namespace Scraper.Core
 
             if (response is null)
             {
-                _logger.LogDebug($"Scrape failed: No response for {request.Url} (Attempt {request.Attempt})");
+                logMessage = $"Scrape Failed: {request.Url} yielded no response. Attempt: {request.Attempt}";
+                _logger.LogError(logMessage);
+
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Error,
+                    logMessage,
+                    "ScrapeFailed",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        Attempt = request.Attempt
+                    });
                 return;
             }
 
             if (response.Metadata.StatusCode != HttpStatusCode.OK)
             {
-                _logger.LogDebug($"Scrape failed: {request.Url} returned status {response.Metadata.StatusCode} Attempt {request.Attempt})");
                 await PublishScrapePageFailedEvent(request, response);
+
+                logMessage = $"Scrape Failed: {request.Url} Status: {response.Metadata.StatusCode}. Attempt: {request.Attempt})";
+                _logger.LogError(logMessage);
+
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Error,
+                    logMessage,
+                    "ScrapeFailed",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        Attempt = request.Attempt,
+                        StatusCode = response.Metadata.StatusCode.ToString()
+                    });
                 return;
             }
 
-            if (response.IsFromCache)
-            {
-                _logger.LogDebug($"Scrape cached page {request.Url} Attempt {request.Attempt} Status: {response.Metadata.StatusCode}");
-            } 
-            else
-            {
-                _logger.LogDebug($"Scraped live page {request.Url} Attempt {request.Attempt} Status: {response.Metadata.StatusCode}");
-            }
-
             await PublishNormalisePageEvent(request, response);
+
+            var source = response.IsFromCache ? "Cache" : "Live";
+            logMessage = $"Scrape Completed ({source}): {request.Url} Status: {response.Metadata.StatusCode}. Attempt {request.Attempt}";
+            _logger.LogInformation(logMessage);
+
+            await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Information,
+                    logMessage,
+                    "ScrapeCompleted",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        Attempt = request.Attempt,
+                        StatusCode = response.Metadata.StatusCode.ToString()
+                    });
         }
 
         private async Task PublishScrapePageFailedEvent(
@@ -125,6 +164,27 @@ namespace Scraper.Core
                 cancellationToken);
         }
 
+        public async Task PublishClientLogEventAsync(
+            Guid graphId, 
+            Guid correlationId, 
+            LogType type, 
+            string message, 
+            string? code = null, 
+            Object? context = null)
+        {
+            var clientLogEvent = new ClientLogEvent
+            {
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = SERVICE_NAME,
+                Context = context
+            };
+
+            await _eventBus.PublishAsync(clientLogEvent);
+        }
     }
 
 }

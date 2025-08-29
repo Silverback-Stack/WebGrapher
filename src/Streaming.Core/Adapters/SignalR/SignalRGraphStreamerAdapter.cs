@@ -18,27 +18,22 @@ namespace Streaming.Core.Adapters.SignalR
             _hubContext = hubContext;
         }
 
-        public async override Task StreamGraphPayloadAsync(SigmaGraphPayloadDto payload)
+        public async override Task StreamGraphPayloadAsync(Guid graphId, SigmaGraphPayloadDto payload)
         {
             var firstNodeId = payload.Nodes.FirstOrDefault()?.Id ?? "N/A";
-            _logger.LogInformation($"Streaming payload starting with node {firstNodeId} to graph {payload.GraphId}");
+            _logger.LogDebug($"Streaming payload starting with node {firstNodeId} to graph {graphId}");
 
-            var clients = _hubContext.Clients.Group(payload.GraphId.ToString());
+            var clients = _hubContext.Clients.Group(graphId.ToString());
             await clients.SendAsync("ReceiveGraphPayload", payload);
         }
 
-        public async override Task BroadcastMessageAsync(Guid graphId, string message)
+        public async override Task BroadcastGraphLogAsync(Guid graphId, ClientLogDto payload)
         {
+            _logger.LogDebug($"Streaming client log to graph {graphId}");
+
             var clients = _hubContext.Clients.Group(graphId.ToString());
-            await clients.SendAsync("ReceiveMessage", message);
+            await clients.SendAsync("ReceiveGraphLog", payload);
         }
 
-        public async override Task BroadcastMetricsAsync(Guid graphId)
-        {
-            //TODO: some kind of API call to graphing service to get data
-            // TotalNodesAsync
-            // TotalPopulatedNodesAsync
-            // etc
-        }
     }
 }

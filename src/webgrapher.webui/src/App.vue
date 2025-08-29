@@ -4,7 +4,7 @@
   import axios from "axios"
   import Graph from "graphology"
   import * as signalR from "@microsoft/signalr"
-  import apiConfig from "./config/api-config.js"
+  import apiConfig from "./api-config.js"
   import {
     initSignalRController,
     disposeSignalR } from "./signalr.js"
@@ -18,10 +18,11 @@
     addEdge,
     resetHighlight,
     highlightNeighbors,
-    focusNode } from "./sigma.js"
+    panTo } from "./sigma.js"
   import GraphConnect from './components/graph-connect.vue'
   import GraphForm from './components/graph-form.vue'
   import NodeSidebar from './components/node-sidebar.vue'
+  import ActivitySidebar from './components/activity-sidebar.vue'
 
   // --- Refs / State ---
   // Sigma / Graph
@@ -52,9 +53,14 @@
   const route = useRoute()
   const router = useRouter()
 
+  // Activity Sidebar
+  const activitySidebarOpen = ref(false)
+  const activityLogs = ref([]) 
+
   // Node Sidebar
   const nodeSidebarOpen = ref(false)
   const nodeSidebarData = ref(null)
+
 
   // --- Lifecycle ---
   onMounted(async () => {
@@ -62,7 +68,7 @@
     fa2 = setupFA2(sigmaGraph)
 
     setupReducer(sigmaGraph, sigmaInstance, highlightedNode)
-    setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlightedNode, handleNodeSidebar, nodeSubGraph, graphId)
+    setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlightedNode, openNodeSidebar, nodeSubGraph, graphId)
     setupNodeSizing(sigmaGraph, sigmaInstance)
 
     loadGraphs()
@@ -99,6 +105,11 @@
     fa2Timer = setTimeout(() => {
       fa2.stop()
     }, duration)
+
+    runFA2.stop = () => {
+      if (fa2.isRunning()) fa2.stop()
+      clearTimeout(fa2Timer)
+    }
   }
 
 
@@ -120,7 +131,15 @@
     modalView.value = "crawl"
   }
 
-  function handleNodeSidebar(nodeData) {
+  function resetGraph() {
+    panTo(sigmaGraph, sigmaInstance, null, { ratio: 1, duration: 300 }) 
+  }
+
+  function openActivitySidebar() {
+    activitySidebarOpen.value = true
+  }
+
+  function openNodeSidebar(nodeData) {
     if (!nodeData) {
       nodeSidebarData.value = null
       nodeSidebarOpen.value = false
@@ -150,12 +169,17 @@
 
     runFA2(500)
 
-    //focus on selected node
-    focusNode(sigmaGraph, sigmaInstance, nodeAttr)
+    //pan camera to selected node
+    panTo(sigmaGraph, sigmaInstance, nodeAttr)
   }
 
   function onConfirmAction(response) {
-    modalView.value = null;
+    modalView.value = null
+
+    // Open activity sidebar when a new graph is created
+    if (response && response.id) {
+      activitySidebarOpen.value = true
+    }
   }
 
 
@@ -307,7 +331,7 @@
     // --- Connect SignalR ---
     disposeSignalR(signalrController)
     signalrController = await initSignalRController(graph.id, {
-      sigmaGraph, runFA2, hubUrl: apiConfig.SIGNALR_HUB
+      sigmaGraph, runFA2, hubUrl: apiConfig.SIGNALR_HUB, activityLogs
     })
 
     // Watch signalR status changes
@@ -358,7 +382,7 @@
   <header>
     <b-navbar type="is-primary">
       <template #brand>
-        <b-navbar-item>
+        <b-navbar-item @click="resetGraph">
           <span class="has-text-weight-bold is-size-4">WebGrapher</span>
         </b-navbar-item>
       </template>
@@ -398,7 +422,7 @@
 
         <!-- Graph Activity (only show if connected) -->
         <b-navbar-item v-if="signalrStatus === 'connected'">
-          <b-button type="is-light" outlined>
+          <b-button type="is-light" outlined @click="openActivitySidebar">
             <span class="icon">
               <i class="mdi mdi-list-box"></i>
             </span>
@@ -423,11 +447,16 @@
          ref="container"
          class="graph-container"></div>
 
+    <!-- Activity Sidebar -->
+    <ActivitySidebar v-model="activitySidebarOpen"
+                     :logs="activityLogs"
+                     @clear-activity="activityLogs = []"/>
+
     <!-- Node Sidebar -->
     <NodeSidebar v-model="nodeSidebarOpen"
-                  :node="nodeSidebarData"
-                  @crawl-node="handleCrawlNode"
-                  @focus-node="handleFocusNode"/>
+                 :node="nodeSidebarData"
+                 @crawl-node="handleCrawlNode"
+                 @focus-node="handleFocusNode" />
 
     <!-- Modal windows -->
     <b-modal v-if="modalView !== null"

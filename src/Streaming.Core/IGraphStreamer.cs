@@ -5,11 +5,9 @@ namespace Streaming.Core
 {
     public interface IGraphStreamer
     {
-        Task StreamGraphPayloadAsync(SigmaGraphPayloadDto payload);
+        Task StreamGraphPayloadAsync(Guid graphId, SigmaGraphPayloadDto payload);
 
-        Task BroadcastMessageAsync(Guid graphId, string message);
-
-        Task BroadcastMetricsAsync(Guid graphId);
+        Task BroadcastGraphLogAsync(Guid graphId, ClientLogDto payload);
 
     }
 }

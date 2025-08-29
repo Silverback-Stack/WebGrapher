@@ -15,7 +15,8 @@ export function setupSigma(sigmaGraph, container) {
   const sigmaInstance = new Sigma(sigmaGraph, container, {
     defaultNodeType: "image",
     renderLabels: true,
-    labelRenderedSizeThreshold: 30
+    labelRenderedSizeThreshold: 30,
+    defaultEdgeType: "arrow"
   })
   sigmaInstance.registerNodeProgram("image", createNodeImageProgram())
   return sigmaInstance
@@ -27,7 +28,7 @@ export function setupFA2(sigmaGraph) {
     iterations: 100,
     settings: {
       slowDown: 20,
-      gravity: 0.001,
+      gravity: 0.01,
       scalingRatio: 5,
       strongGravityMode: false,
       adjustSizes: true
@@ -36,11 +37,11 @@ export function setupFA2(sigmaGraph) {
 }
 
 // --- Node/Stage highlighting ---
-export function setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlightedNode, handleNodeSidebar, nodeSubGraph, graphId) {
+export function setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlightedNode, openNodeSidebar, nodeSubGraph, graphId) {
   sigmaInstance.on("clickNode", async ({ node }) => {
 
     // Trigger Node Sidebar
-    if (typeof handleNodeSidebar === "function") {
+    if (typeof openNodeSidebar === "function") {
       const nodeAttributes = sigmaGraph.getNodeAttributes(node)
 
       //highlight neighbourhood
@@ -70,7 +71,7 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlighted
         incomingEdges
       }
 
-      handleNodeSidebar(nodeData)
+      openNodeSidebar(nodeData)
     }
 
     if (highlightedNode.value === node) return
@@ -78,6 +79,7 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlighted
     if (highlightedNode.value) resetHighlight(sigmaGraph, sigmaInstance)
 
     highlightedNode.value = node
+
     highlightNeighbors(sigmaGraph, sigmaInstance, node)
 
     runFA2(250)
@@ -129,7 +131,7 @@ export function setupReducer(sigmaGraph, sigmaInstance, highlightedNodeRef) {
     sigmaGraph.forEachNode((node, attr) => {
       if (attr._originalType === "image") {
         const screenSize = attr.size / zoom
-        const newType = screenSize < 10 ? "circle" : "image"
+        const newType = screenSize < 10 ? "circle" : "image"                
         if (attr.type !== newType) {
           sigmaGraph.updateNodeAttributes(node, oldAttr => ({ ...oldAttr, type: newType }))
         }
@@ -143,27 +145,28 @@ export function setupReducer(sigmaGraph, sigmaInstance, highlightedNodeRef) {
 
 // --- Graph utils ---
 export function addOrUpdateNode(sigmaGraph, n) {
+  const pos = getRandomPosition(100);
   if (sigmaGraph.hasNode(n.id)) {
-    sigmaGraph.mergeNodeAttributes(n.id, {
+    sigmaGraph.updateNodeAttributes(n.id, oldAttr => ({
       _originalType: n.type, //used for reducer
-      label: n.label,
-      size: n.size,
-      color: GraphColors.Node, // solid gray
-      image: n.image,
+      label: n.label,        
+      size: oldAttr.size,    // preserve current size
+      color: oldAttr.color,  // preserve current color (highlighted or not)
+      image: n.image,        
       type: n.type,
       summary: n.summary,
       tags: n.tags,
       sourceLastModified: n.sourceLastModified,
-      createdAt: n.createdAt
-    })
+      createdAt: n.createdAt,
+      x: oldAttr.x,          // preserve current x
+      y: oldAttr.y           // preserve current y
+    }))
   } else {
-    const pos = getRandomPosition(100);
-
     sigmaGraph.addNode(n.id, {
       _originalType: n.type, //used for reducer
       label: n.label,
       size: n.size,
-      color: GraphColors.Node, // solid gray
+      color: GraphColors.Node,
       image: n.image,
       opacity: 1,
       type: n.type,
@@ -255,10 +258,13 @@ export function resetHighlight(sigmaGraph, sigmaInstance) {
   sigmaInstance.refresh();
 }
 
-export function focusNode(sigmaGraph, sigmaInstance, node) {
-  //pan camera to node
+// Pan/zoom Sigma camera to a node or the center of the graph.
+export function panTo(sigmaGraph, sigmaInstance, node = null, options = {}) {
+  const { duration = 300, ratio } = options;
+
   const camera = sigmaInstance.getCamera();
-  // Get graph bounding box
+
+  // Compute graph bounding box
   const bbox = sigmaGraph.nodes().reduce(
     (acc, n) => {
       const a = sigmaGraph.getNodeAttributes(n);
@@ -270,16 +276,25 @@ export function focusNode(sigmaGraph, sigmaInstance, node) {
       };
     },
     { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
-  )
+  );
 
-  // Convert node coordinates to normalized camera coordinates
-  const normX = (node.x - bbox.minX) / (bbox.maxX - bbox.minX)
-  const normY = (node.y - bbox.minY) / (bbox.maxY - bbox.minY)
+  // Determine target coordinates
+  let targetX, targetY;
+  if (node) {
+    targetX = (node.x - bbox.minX) / (bbox.maxX - bbox.minX);
+    targetY = (node.y - bbox.minY) / (bbox.maxY - bbox.minY);
+  } else {
+    // Center of the graph
+    const centerX = (bbox.minX + bbox.maxX) / 2;
+    const centerY = (bbox.minY + bbox.maxY) / 2;
+    targetX = (centerX - bbox.minX) / (bbox.maxX - bbox.minX);
+    targetY = (centerY - bbox.minY) / (bbox.maxY - bbox.minY);
+  }
 
   camera.animate(
-    { x: normX, y: normY, ratio: camera.ratio },
-    { duration: 250 }
-  )
+    { x: targetX, y: targetY, ratio: ratio ?? camera.ratio },
+    { duration }
+  );
 }
 
 function getRandomPosition(maxRange = 100) {

@@ -28,11 +28,10 @@
            :class="{ 'is-truncated': !isSummaryExpanded }">
           {{ node.summary }}
         </p>
-
         <a v-if="node?.summary && node?.summary.length > 200"
            class="has-text-link is-clickable is-size-6"
            @click="isSummaryExpanded = !isSummaryExpanded">
-          {{ isSummaryExpanded ? 'Show less' : 'Show more' }}
+          {{ isSummaryExpanded ? 'Less' : 'More' }}
         </a>
       </div>
 
@@ -138,9 +137,6 @@
     box-shadow: -2px 0 6px rgba(0,0,0,0.2);
     z-index: 1000; /* above graph but under modal */
     overflow-y: auto;
-    /* Blur content behind */
-    /*backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);*/ /* Safari support */
   }
 
   .node-sidebar-close {

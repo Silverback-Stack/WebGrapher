@@ -155,7 +155,7 @@
   import { ref, reactive, watch, watchEffect, onMounted, computed } from "vue"
   import { useRouter } from "vue-router"
   import axios from "axios"
-  import apiConfig from "../config/api-config.js"
+  import apiConfig from "../api-config.js"
 
   const router = useRouter()
 
