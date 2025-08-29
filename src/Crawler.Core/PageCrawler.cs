@@ -3,6 +3,7 @@ using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
+using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
@@ -16,6 +17,7 @@ namespace Crawler.Core
         protected readonly IRequestSender _requestSender;
         protected readonly ISitePolicyResolver _sitePolicyResolver;
 
+        protected const string SERVICE_NAME = "CRAWLER";
         protected const int MAX_CRAWL_ATTEMPTS = 3;
         protected const int MAX_CRAWL_DEPTH = 3;
 
@@ -43,6 +45,28 @@ namespace Crawler.Core
             _eventBus.Unsubscribe<ScrapePageFailedEvent>(RetryPageCrawl);
         }
 
+        public async Task PublishClientLogEventAsync(
+            Guid graphId,
+            Guid correlationId,
+            LogType type,
+            string message,
+            string? code = null,
+            Object? context = null)
+        {
+            var clientLogEvent = new ClientLogEvent
+            {
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = SERVICE_NAME,
+                Context = context
+            };
+
+            await _eventBus.PublishAsync(clientLogEvent);
+        }
+
         /// <summary>
         /// Evaluates whether the page can be crawled based on retry limits, depth,
         /// rate limiting, and robots.txt permissions. If allowed, publishes a scrape event.
@@ -51,17 +75,46 @@ namespace Crawler.Core
         {
             var request = evt.CrawlPageRequest;
 
-            _logger.LogInformation($"Crawl requested: {request.Url} Depth: {request.Depth} Attempt: {request.Attempt}");
+            var logMessage = $"Crawl requested: {request.Url} Depth: {request.Depth} Attempt: {request.Attempt}";
+            _logger.LogDebug(logMessage);
 
             if (HasExhaustedRetries(request.Attempt))
             {
-                _logger.LogDebug($"Abandoned crawl: {request.Url} max retries reached: {request.Attempt})");
+                logMessage = $"Crawl Abandoned: {request.Url} Max retries reached: {request.Attempt})";
+                _logger.LogWarning(logMessage);
+
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Warning,
+                    logMessage,
+                    "CrawlAbandoned",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        Depth = request.Depth,
+                        Attempt = request.Attempt
+                    });
                 return;
             }
 
             if (HasReachedMaxDepth(request.Depth, request.Options.MaxDepth))
             {
-                _logger.LogDebug($"Stopped crawl: {request.Url} max depth reached: {request.Depth})");
+                logMessage = $"Crawl Stopped: {request.Url} Max depth reached: {request.Depth}";
+                _logger.LogWarning(logMessage);
+
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Warning,
+                    logMessage,
+                    "CrawlStopped",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        Depth = request.Depth,
+                        Attempt = request.Attempt
+                    });
                 return;
             }
 
@@ -69,19 +122,29 @@ namespace Crawler.Core
 
             if (!_sitePolicyResolver.IsPermittedByRobotsTxt(request.Url, request.Options.UserAgent, sitePolicy))
             {
-                _logger.LogDebug($"Robots.txt denied: {request.Url} for user agent '{request.Options.UserAgent}'");
+                logMessage = $"Crawl Denied: Robots.txt denied: {request.Url}";
+                _logger.LogError(logMessage);
+
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Error,
+                    logMessage,
+                    "CrawlDenied",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        Depth = request.Depth,
+                        Attempt = request.Attempt
+                    });
                 return;
             }
 
             if (_sitePolicyResolver.IsRateLimited(sitePolicy))
             {
-                _logger.LogDebug($"Rate limited: {request.Url} retry scheduled after: {sitePolicy.RetryAfter?.ToString("o")} Attempt: {request.Attempt}");
-
                 await PublishScheduledCrawlPageEvent(request, sitePolicy.RetryAfter);
                 return;
             }
-
-            _logger.LogDebug($"Crawl permitted for {request.Url}, publishing scrape event. Depth: {request.Depth}");
 
             await PublishScrapePageEvent(evt);
         }
@@ -97,8 +160,6 @@ namespace Crawler.Core
                 request.Options.UserAgent,
                 evt.RetryAfter); //assigns RetryAfter interval
 
-            _logger.LogDebug($"Scheduling retry: {request.Url} after {sitePolicy.RetryAfter?.ToString("o")}. Next attempt: {request.Attempt + 1}");
-
             await PublishScheduledCrawlPageEvent(request, sitePolicy.RetryAfter);
         }
 
@@ -112,21 +173,33 @@ namespace Crawler.Core
         {
             var request = evt.CrawlPageRequest;
 
-            _logger.LogDebug($"Publishing ScrapePageEvent: {request.Url} Depth: {request.Depth} Attempt: {request.Attempt}");
-
             await _eventBus.PublishAsync(new ScrapePageEvent
             {
                 CrawlPageRequest = request,
                 CreatedAt = DateTimeOffset.UtcNow
             }, priority: request.Depth);
+
+            var logMessage = $"Crawl Permitted: {request.Url} scheduled for scraping. Depth: {request.Depth}";
+            _logger.LogInformation(logMessage);
+
+            await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Information,
+                    logMessage,
+                    "CrawlPermitted",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        Depth = request.Depth,
+                        Attempt = request.Attempt
+                    });
         }
 
         private async Task PublishScheduledCrawlPageEvent(CrawlPageRequestDto request, DateTimeOffset? retryAfter)
         {
             var attempt = request.Attempt + 1;
             var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(retryAfter);
-
-            _logger.LogInformation($"Scheduled CrawlPageEvent: {request.Url} at depth {request.Depth}, attempt {attempt}, scheduled for {scheduledOffset?.ToString("o")}");
 
             var crawlPageRequest = request with
             {
@@ -143,7 +216,22 @@ namespace Crawler.Core
                 crawlPageEvent, 
                 priority: request.Depth, 
                 scheduledOffset);
-        }
 
+            var logMessage = $"Crawl Rate-limited: {request.Url} retry scheduled after: {retryAfter?.ToString("o")} Attempt: {attempt}";
+            _logger.LogWarning(logMessage);
+
+            await PublishClientLogEventAsync(
+                request.GraphId,
+                request.CorrelationId,
+                LogType.Warning,
+                logMessage,
+                "CrawlRateLimited",
+                new LogContext
+                {
+                    Url = request.Url.AbsoluteUri,
+                    Depth = request.Depth,
+                    Attempt = attempt
+                });
+        }
     }
 }

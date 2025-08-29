@@ -4,6 +4,7 @@ using Caching.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
+using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core.Processors;
@@ -16,6 +17,7 @@ namespace Normalisation.Core
         private readonly ICache _blobCache;
         private readonly IEventBus _eventBus;
 
+        protected const string SERVICE_NAME = "NORMALISATION";
         private const int MAX_TITLE_LENGTH = 100;
         private const int MAX_SUMMARY_WORDS = 100;
         private const int MAX_KEYWORDS = 300; // one page of text
@@ -80,23 +82,66 @@ namespace Normalisation.Core
                 NormalisePageResult = normalisedPageResult,
                 CreatedAt = DateTimeOffset.UtcNow
             }, priority: request.Depth);
+
+
+            var logMessage = $"Normalisation Success: {result.Url} scheduled for graphing. Links: {links?.Count()} Keywords: {keywords?.Count()}";
+            _logger.LogInformation(logMessage);
+
+            await PublishClientLogEventAsync(
+                request.GraphId,
+                request.CorrelationId,
+                LogType.Information,
+                logMessage,
+                "NormalisationSuccess",
+                new LogContext
+                {
+                    Url = request.Url.AbsoluteUri,
+                    Title = title ?? string.Empty,
+                    TotalLinks = links?.Count() ?? 0,
+                    TotalKeywords = keywords?.Count() ?? 0
+                });
         }
 
         public async Task NormalisePageContentAsync(NormalisePageEvent evt)
         {
+            string logMessage;
             var request = evt.CrawlPageRequest;
             var result = evt.ScrapePageResult;
 
             if (result.BlobId is null || result.Encoding is null)
             {
-                _logger.LogDebug("There was no data to normalise.");
+                logMessage = "Normalisation Failed: No data to normalise.";
+                _logger.LogError(logMessage);
+
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Error,
+                    logMessage,
+                    "NormalisationFailed",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri
+                    });
                 return;
             }
 
             var htmlDocument = await GetHtmlDocumentAsync(result.BlobId, result.BlobContainer, result.Encoding);
             if (htmlDocument is null)
             {
-                _logger.LogDebug($"Normalisation failed. Blob {result.BlobId} could not be found at {result.BlobContainer}");
+                logMessage = $"Normalisation failed. Blob {result.BlobId} could not be found at {result.BlobContainer}";
+                _logger.LogError(logMessage);
+
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Error,
+                    logMessage,
+                    "NormalisationFailed",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri
+                    });
                 return;
             }
 
@@ -122,9 +167,6 @@ namespace Normalisation.Core
             var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
 
             await PublishGraphEvent(evt, normalisedTitle, normalisedSummary, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
-
-            var linkType = request.Options.ExcludeExternalLinks ? "internal" : "external";
-            _logger.LogDebug($"Publishing GraphPageEvent for {result.Url} with {normalisedLinks.Count()} {linkType} links and {normalisedKeywords.Count()} keywords.");
         }
 
         private async Task<string?> GetHtmlDocumentAsync(string blobId, string? container, string encoding)
@@ -265,6 +307,28 @@ namespace Normalisation.Core
             if (maxLinks <= 0) return 0;
             if (maxLinks > MAX_LINKS_PER_PAGE) return MAX_LINKS_PER_PAGE;
             return maxLinks;
+        }
+
+        public async Task PublishClientLogEventAsync(
+            Guid graphId, 
+            Guid correlationId, 
+            LogType type, 
+            string message, 
+            string? code = null,
+            Object? context = null)
+        {
+            var clientLogEvent = new ClientLogEvent
+            {
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = SERVICE_NAME,
+                Context = context
+            };
+
+            await _eventBus.PublishAsync(clientLogEvent);
         }
     }
 }

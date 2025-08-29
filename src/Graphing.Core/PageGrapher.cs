@@ -2,6 +2,7 @@
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
+using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.SigmaJs;
@@ -16,6 +17,7 @@ namespace Graphing.Core
         private readonly IEventBus _eventBus;
         private readonly IWebGraph _webGraph;
 
+        protected const string SERVICE_NAME = "GRAPHING";
         private const int MAX_REQUEST_DEPTH = 3;
         private const int MAX_REQUEST_NODES = 300;
 
@@ -35,6 +37,99 @@ namespace Graphing.Core
             _eventBus.Unsubscribe<GraphPageEvent>(ProcessGraphPageEventAsync);
         }
 
+        public async Task PublishClientLogEventAsync(
+            Guid graphId,
+            Guid correlationId,
+            LogType type,
+            string message,
+            string? code = null,
+            Object? context = null)
+        {
+            var clientLogEvent = new ClientLogEvent
+            {
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = SERVICE_NAME,
+                Context = context
+            };
+
+            await _eventBus.PublishAsync(clientLogEvent);
+        }
+
+        private async Task PublishGraphNodeAddedEvent(CrawlPageRequestDto request, Node node)
+        {
+            var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node);
+
+            if (!payload.Nodes.Any() && !payload.Edges.Any())
+                return;
+
+            await _eventBus.PublishAsync(new GraphNodeAddedEvent
+            {
+                SigmaGraphPayload = payload
+            });
+
+            var logMessage = $"Graphing Node Populated: {node.Url} scheduled for streaming. Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}";
+            _logger.LogInformation(logMessage);
+
+            await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Information,
+                    logMessage,
+                    "GraphingNodePopulated",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        NodeCount = payload.NodeCount,
+                        EdgeCount = payload.EdgeCount
+                    });
+        }
+
+        private async Task PublishCrawlPageEvent(CrawlPageRequestDto request, Node node)
+        {
+            var depth = request.Depth + 1;
+
+            var crawlPageRequest = request with
+            {
+                Url = new Uri(node.Url),
+                Attempt = 1,
+                Depth = depth
+            };
+
+            var crawlPageEvent = new CrawlPageEvent
+            {
+                CrawlPageRequest = crawlPageRequest,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
+
+            await _eventBus.PublishAsync(
+                crawlPageEvent,
+                priority: depth,
+                scheduledOffset);
+
+            var logMessage = $"Graphing Edge Discovered: {node.Url} scheduled for crawling. Depth {depth} Attempt: {crawlPageRequest.Attempt}";
+            _logger.LogInformation(logMessage);
+
+            await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Information,
+                    logMessage,
+                    "GraphingEdgeDiscovered",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri,
+                        Attempt = crawlPageRequest.Attempt,
+                        EdgeCount = crawlPageRequest.Depth
+                    });
+        }
+
+
         private async Task ProcessGraphPageEventAsync(GraphPageEvent evt)
         {
             var request = evt.CrawlPageRequest;
@@ -43,46 +138,13 @@ namespace Graphing.Core
             //Delegate : Called when Node is populated with data
             Func<Node, Task> nodePopulatedCallback = async (node) =>
             {
-                var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node);
-
-                if (!payload.Nodes.Any() && !payload.Edges.Any())
-                    return;
-
-                _logger.LogDebug($"Publishing node populated event for {node.Url} " +
-                     $"(nodes: {payload.NodeCount}, edges: {payload.EdgeCount})");
-
-                await _eventBus.PublishAsync(new GraphNodeAddedEvent
-                {
-                    SigmaGraphPayload = payload
-                });
+                await PublishGraphNodeAddedEvent(request, node);
             };
 
             //Delegate : Called when Link is discovered
             Func<Node, Task> linkDiscoveredCallback = async (node) =>
             {
-                var depth = request.Depth + 1;
-
-                var crawlPageRequest = request with
-                {
-                    Url = new Uri(node.Url),
-                    Attempt = 1,
-                    Depth = depth
-                };
-
-                var crawlPageEvent = new CrawlPageEvent
-                {
-                    CrawlPageRequest = crawlPageRequest,
-                    CreatedAt = DateTimeOffset.UtcNow
-                };
-
-                var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
-
-                _logger.LogDebug($"Scheduling crawl for link {node.Url} at depth {depth}");
-
-                await _eventBus.PublishAsync(
-                    crawlPageEvent, 
-                    priority: depth, 
-                    scheduledOffset);
+                await PublishCrawlPageEvent(request, node);
             };
 
             // when Depth is 0 the request was initiated by the user

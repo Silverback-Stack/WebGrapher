@@ -3,9 +3,9 @@ import * as signalR from "@microsoft/signalr"
 import { addOrUpdateNode, addEdge } from "./sigma.js"
 
 // Create Controller
-export async function initSignalRController(graphId, { sigmaGraph, runFA2, hubUrl }) {
+export async function initSignalRController(graphId, { sigmaGraph, runFA2, hubUrl, activityLogs }) {
   const status = ref("disconnected")
-  const controller = await setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, onStatus: (s) => (status.value = s) })
+  const controller = await setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, onStatus: (s) => (status.value = s), activityLogs })
   controller.graphId = graphId
   controller.status = status
   return controller
@@ -15,7 +15,7 @@ export function disposeSignalR(controller) {
   controller?.dispose()
 }
 
-async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval = 2000, onStatus }) {
+async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval = 2000, onStatus, activityLogs }) {
   // Build connection
   const connection = new signalR.HubConnectionBuilder()
     .withUrl(hubUrl)
@@ -70,8 +70,14 @@ async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval
   })
 
   // Receive activity messages
-  connection.on("ReceiveMessage", message => {
-    console.log("Received message:", message)
+  connection.on("ReceiveGraphLog", payload => {
+    // push new log to array
+    activityLogs.value.unshift(payload)
+
+    const MAX_LOGS = 1000
+    if (activityLogs.value.length > MAX_LOGS) {
+      activityLogs.value.pop() // drop oldest
+    }
   })
 
   // Periodic flush

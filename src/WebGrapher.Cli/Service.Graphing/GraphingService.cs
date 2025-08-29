@@ -32,7 +32,7 @@ namespace WebGrapher.Cli.Service.Graphing
             var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Debug)
+                .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
