@@ -1,7 +1,7 @@
 <template>
   <nav class="card">
     <header class="card-header">
-      <p class="card-header-title is-size-4">Connect to a Graph</p>
+      <p class="card-header-title is-size-4">Connect to Graph</p>
 
       <!--New WebGraph-->
       <div class="card-header-icon">
@@ -9,39 +9,98 @@
           <span class="icon">
             <i class="mdi mdi-plus-thick"></i>
           </span>
-          <span>New</span>
+          <span>New Graph</span>
         </b-button>
       </div>
     </header>
 
     <div class="card-content scrollable-content">
       <div class="graph-connect">
-        <div v-if="graphs.length === 0" class="has-text-grey">
-          No graphs found. Try creating one.
+
+        <!-- No Graphs Found -->
+        <div v-if="graphs.length === 0">
+          <p class="is-size-5 mb-2">No graphs found.</p>
+          <p>Create a new graph to get started.</p>
         </div>
         <div v-else>
-          <ul>
-            <li v-for="graph in graphs" :key="graph.id">
-              <a class="panel-block is-clickable subtle-hover mb-2 is-rounded" @click="selectGraph(graph)">
-                <div class="is-fullwidth">
-                  <strong class="has-text-primary">{{ graph.name }}</strong>
-                  <p>{{ graph.description }}</p>
-                  <p>{{ graph.url }}</p>
+
+          <!-- Graph List -->
+          <div class="list">
+            <div v-for="graph in graphs" :key="graph.id"
+                 class="list-item is-flex is-align-items-center is-justify-content-space-between">
+
+              <!-- Row Data -->
+              <div class="list-item-content">
+                <div class="list-item-title is-size-5">
+                  <span v-if="graph.id === props.connectedGraphId"
+                        class="icon has-text-success is-size-5 mr-1">
+                    <i class="mdi mdi-broadcast"></i>
+                  </span>
+                  <a @click="connectGraph(graph)">{{ graph.name }}</a>
                 </div>
-              </a>
-            </li>
-          </ul>
+                <div class="list-item-description">{{ graph.description }}</div>
+                <div class="list-item-description has-text-grey-light">{{ graph.id }}</div>
+              </div>
+
+              <!--Row Action Buttons-->
+              <div class="list-item-controls is-right">
+                <div class="buttons">
+
+                  <!-- Disconnect Button -->
+                  <b-button type="is-primary"
+                            v-if="graph.id === props.connectedGraphId"
+                            outlined
+                            @click.stop="disconnectGraph(graph)">
+                    <span class="icon">
+                      <i class="mdi mdi-broadcast-off"></i>
+                    </span>
+                    <span>Disconnect</span>
+                  </b-button>
+
+                  <!-- Connect Button -->
+                  <b-button type="is-primary"
+                            v-else
+                            outlined
+                            @click.stop="connectGraph(graph)">
+                    <span class="icon">
+                      <i class="mdi mdi-broadcast"></i>
+                    </span>
+                    <span>Connect</span>
+                  </b-button>
+
+                  <!-- Delete Button -->
+                  <b-tooltip type="is-light" position="is-left"
+                             :triggers="['click']"
+                             :auto-close="['outside', 'escape']">
+                    <template v-slot:content>
+                      <b-button type="is-danger" outlined
+                                @click="confirmDeleteGraph(graph)">
+                        <span class="icon"><i class="mdi mdi-alert"></i></span>
+                        <span>Confirm Delete</span>
+                      </b-button>
+                    </template>
+                    <b-button type="is-primary" outlined>
+                      <span class="icon"><i class="mdi mdi-trash-can-outline"></i></span>
+                      <span>Delete</span>
+                    </b-button>
+                  </b-tooltip>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
 
+    <!-- Pager -->
     <footer class="card-footer p-3 is-justify-content-center">
-      <!-- Pager -->
       <b-pagination v-if="graphs.length > 0 && totalCount > 0"
                     v-model="localPage"
                     :total="totalCount"
                     :per-page="pageSize"
-                    rounded
                     size="is-small" />
     </footer>
   </nav>
@@ -49,19 +108,19 @@
 
 <script setup>
   import { ref, defineProps, defineEmits, watch } from 'vue'
-  import { useRouter } from "vue-router"
+  import { useRouter } from 'vue-router'
 
   const props = defineProps({
     graphs: { type: Array, default: () => [] },
     page: { type: Number, default: 1 },
-    pageSize: { type: Number, default: 10 },
-    totalCount: { type: Number, default: 0 }
+    pageSize: { type: Number, default: 8 },
+    totalCount: { type: Number, default: 0 },
+    connectedGraphId: { type: String, default: null }
   })
 
-  const emit = defineEmits(["selectGraph", "createGraph", 'changePage'])
+  const emit = defineEmits(["connectGraph", "disconnectGraph", "createGraph", 'changePage', 'deleteGraph'])
 
   const localPage = ref(props.page)
-
 
   // Keep localPage in sync with parent for pager
   watch(() => props.page, val => {
@@ -73,17 +132,47 @@
     emit('changePage', newPage, props.pageSize)
   })
 
-  function selectGraph(graph) {
-    emit("selectGraph", graph)
+  function connectGraph(graph) {
+    emit("connectGraph", graph)
+  }
+
+  function disconnectGraph(graph) {
+    emit("disconnectGraph", graph)
   }
 
   function toggleGraphCreate() {
     emit('createGraph')
   }
+
+  function confirmDeleteGraph(graph) {
+    emit("deleteGraph", graph)
+  }
 </script>
 
 <style scoped>
-  .subtle-hover:hover {
-    background-color: rgba(0,0,0,0.05); /* very light gray */
+
+  .list {
+    background-color: initial;
+    box-shadow: none;
+    border-radius: 0;
   }
+
+  .list-item {
+      padding: 1em 0.5em;
+  }
+
+  .list-item a {
+    padding-left: 0; 
+    margin-left: 0; 
+  }
+
+  .list-item-controls {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .list-item:hover .list-item-controls {
+    opacity: 1;
+  }
+
 </style>

@@ -9,6 +9,7 @@ namespace Events.Core.Dtos
     public record SigmaGraphPayloadDto
     {
         public required Guid GraphId { get; set; }
+        public Guid? CorrolationId { get; set; } = null;
         public required IEnumerable<SigmaGraphNodeDto> Nodes { get; set; }
         public required IEnumerable<SigmaGraphEdgeDto> Edges { get; set; }
 

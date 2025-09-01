@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Graphing.Core.WebGraph.Dtos
 {
@@ -14,8 +10,8 @@ namespace Graphing.Core.WebGraph.Dtos
         public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.Now;
 
         public string Url { get; set; } = string.Empty;
+        public int MaxLinks { get; set; } = 10;
         public int MaxDepth { get; set; } = 3;
-        public int MaxLinks { get; set; } = 25;
         public bool ExcludeExternalLinks { get; init; } = true;
         public bool ExcludeQueryStrings { get; init; } = true;
         public string UrlMatchRegex { get; init; } = string.Empty;

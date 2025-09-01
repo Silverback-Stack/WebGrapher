@@ -36,7 +36,8 @@ namespace Streaming.Core
 
         public async Task PublishClientLogEventAsync(
             Guid graphId, 
-            Guid correlationId,
+            Guid? correlationId,
+            bool preview,
             LogType type, 
             string message, 
             string? code = null, 
@@ -46,6 +47,7 @@ namespace Streaming.Core
             {
                 GraphId = graphId,
                 CorrelationId = correlationId,
+                Preview = preview,
                 Type = type,
                 Message = message,
                 Code = code,
@@ -66,6 +68,23 @@ namespace Streaming.Core
             {
                 var payload = evt.SigmaGraphPayload;
                 await StreamGraphPayloadAsync(evt.SigmaGraphPayload.GraphId, payload);
+
+                var logMessage = $"Streaming {payload.NodeCount} nodes and {payload.EdgeCount} edges.";
+                _logger.LogInformation(logMessage);
+
+                await PublishClientLogEventAsync(
+                        payload.GraphId,
+                        payload.CorrolationId,
+                        preview: false,
+                        LogType.Information,
+                        logMessage,
+                        "StreamingPayload",
+                        new LogContext
+                        {
+                            NodeCount = payload.NodeCount,
+                            EdgeCount = payload.EdgeCount,
+                            Nodes = payload.Nodes.Select(n => n.Id)
+                        });
             }
             catch (Exception ex)
             {
@@ -80,6 +99,7 @@ namespace Streaming.Core
                 Id = evt.Id,
                 GraphId = evt.GraphId,
                 CorrelationId = evt.CorrelationId,
+                Preview = evt.Preview,
                 Type = evt.Type.ToString(),
                 Message = evt.Message,
                 Code = evt.Code,
@@ -97,6 +117,5 @@ namespace Streaming.Core
                 _logger.LogError(ex, $"Streaming Failed: Failed to stream log to GraphId: {clientLogDto.GraphId}");
             }
         }
-
     }
 }

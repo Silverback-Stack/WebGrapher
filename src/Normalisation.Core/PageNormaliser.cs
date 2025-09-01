@@ -43,6 +43,30 @@ namespace Normalisation.Core
             _eventBus.Unsubscribe<NormalisePageEvent>(NormalisePageContentAsync);
         }
 
+        public async Task PublishClientLogEventAsync(
+            Guid graphId,
+            Guid? correlationId,
+            bool preview,
+            LogType type,
+            string message,
+            string? code = null,
+            Object? context = null)
+        {
+            var clientLogEvent = new ClientLogEvent
+            {
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Preview = preview,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = SERVICE_NAME,
+                Context = context
+            };
+
+            await _eventBus.PublishAsync(clientLogEvent);
+        }
+
         private async Task PublishGraphEvent(
             NormalisePageEvent evt,
             string? title, 
@@ -76,29 +100,39 @@ namespace Normalisation.Core
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
-            await _eventBus.PublishAsync(new GraphPageEvent
+
+            // Publish GraphPageEvent only if request was not a preview request
+            if (request.Preview == false)
             {
-                CrawlPageRequest = request,
-                NormalisePageResult = normalisedPageResult,
-                CreatedAt = DateTimeOffset.UtcNow
-            }, priority: request.Depth);
+                await _eventBus.PublishAsync(new GraphPageEvent
+                {
+                    CrawlPageRequest = request,
+                    NormalisePageResult = normalisedPageResult,
+                    CreatedAt = DateTimeOffset.UtcNow
+                }, priority: request.Depth);
+            }
 
 
-            var logMessage = $"Normalisation Success: {result.Url} scheduled for graphing. Links: {links?.Count()} Keywords: {keywords?.Count()}";
+            var logMessage = $"Normalisation Completed: {result.Url} scheduled for graphing. Links: {links?.Count()} Keywords: {keywords?.Count()}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
                 request.GraphId,
                 request.CorrelationId,
+                request.Preview,
                 LogType.Information,
                 logMessage,
                 "NormalisationSuccess",
                 new LogContext
                 {
                     Url = request.Url.AbsoluteUri,
-                    Title = title ?? string.Empty,
-                    TotalLinks = links?.Count() ?? 0,
-                    TotalKeywords = keywords?.Count() ?? 0
+                    Title = normalisedPageResult.Title ?? string.Empty,
+                    Summary = normalisedPageResult.Summary ?? string.Empty,
+                    Keywords = normalisedPageResult.Keywords ?? string.Empty,
+                    Tags = normalisedPageResult.Tags ?? Enumerable.Empty<string>(),
+                    Links = normalisedPageResult.Links?.Select(u => u.AbsoluteUri) ?? Enumerable.Empty<string>(),
+                    ImageUrl = normalisedPageResult.ImageUrl?.AbsoluteUri ?? string.Empty,
+                    DetectedLanguageIso3 = normalisedPageResult.DetectedLanguageIso3 ?? string.Empty
                 });
         }
 
@@ -116,6 +150,7 @@ namespace Normalisation.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "NormalisationFailed",
@@ -135,6 +170,7 @@ namespace Normalisation.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "NormalisationFailed",
@@ -307,28 +343,6 @@ namespace Normalisation.Core
             if (maxLinks <= 0) return 0;
             if (maxLinks > MAX_LINKS_PER_PAGE) return MAX_LINKS_PER_PAGE;
             return maxLinks;
-        }
-
-        public async Task PublishClientLogEventAsync(
-            Guid graphId, 
-            Guid correlationId, 
-            LogType type, 
-            string message, 
-            string? code = null,
-            Object? context = null)
-        {
-            var clientLogEvent = new ClientLogEvent
-            {
-                GraphId = graphId,
-                CorrelationId = correlationId,
-                Type = type,
-                Message = message,
-                Code = code,
-                Service = SERVICE_NAME,
-                Context = context
-            };
-
-            await _eventBus.PublishAsync(clientLogEvent);
         }
     }
 }

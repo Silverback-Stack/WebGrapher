@@ -6,6 +6,9 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
 {
     public class SigmaJsGraphSerializer
     {
+        private const double MIN_NODE_SIZE = 10;
+        private const double MAX_NODE_SIZE = 50;
+
         public static (IReadOnlyList<SigmaGraphNodeDto> Nodes, IReadOnlyList<SigmaGraphEdgeDto> Edges)
             GetPopulationDelta(Node node)
         {
@@ -76,12 +79,9 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
 
         private static double CalculateNodeSize(int popularityScore)
         {
-            const double minSize = 10;
-            const double maxSize = 100;
-
             // Logarithmic scaling: keeps huge counts from exploding
-            return minSize +
-                (Math.Log10(popularityScore + 1) * (maxSize - minSize) / Math.Log10(1000));
+            return MIN_NODE_SIZE +
+                (Math.Log10(popularityScore + 1) * (MAX_NODE_SIZE - MIN_NODE_SIZE) / Math.Log10(1000));
         }
     }
 }

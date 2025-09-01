@@ -47,7 +47,8 @@ namespace Crawler.Core
 
         public async Task PublishClientLogEventAsync(
             Guid graphId,
-            Guid correlationId,
+            Guid? correlationId,
+            bool preview,
             LogType type,
             string message,
             string? code = null,
@@ -57,6 +58,7 @@ namespace Crawler.Core
             {
                 GraphId = graphId,
                 CorrelationId = correlationId,
+                Preview = preview,
                 Type = type,
                 Message = message,
                 Code = code,
@@ -86,6 +88,7 @@ namespace Crawler.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Warning,
                     logMessage,
                     "CrawlAbandoned",
@@ -106,6 +109,7 @@ namespace Crawler.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Warning,
                     logMessage,
                     "CrawlStopped",
@@ -128,6 +132,7 @@ namespace Crawler.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "CrawlDenied",
@@ -185,6 +190,7 @@ namespace Crawler.Core
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Information,
                     logMessage,
                     "CrawlPermitted",
@@ -223,6 +229,7 @@ namespace Crawler.Core
             await PublishClientLogEventAsync(
                 request.GraphId,
                 request.CorrelationId,
+                request.Preview,
                 LogType.Warning,
                 logMessage,
                 "CrawlRateLimited",

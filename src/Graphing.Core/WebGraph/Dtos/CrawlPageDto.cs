@@ -20,5 +20,6 @@ namespace Graphing.Core.WebGraph.Dtos
         public string ImageElementXPath { get; init; } = string.Empty;
         public string RelatedLinksElementXPath { get; init; } = string.Empty;
         public bool OverwriteDefaults { get; init; } = false;
+        public bool Preview { get; init; } = false;
     }
 }

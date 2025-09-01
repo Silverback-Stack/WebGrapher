@@ -39,7 +39,8 @@ namespace Graphing.Core
 
         public async Task PublishClientLogEventAsync(
             Guid graphId,
-            Guid correlationId,
+            Guid? correlationId,
+            bool preview,
             LogType type,
             string message,
             string? code = null,
@@ -49,6 +50,7 @@ namespace Graphing.Core
             {
                 GraphId = graphId,
                 CorrelationId = correlationId,
+                Preview = preview,
                 Type = type,
                 Message = message,
                 Code = code,
@@ -62,6 +64,7 @@ namespace Graphing.Core
         private async Task PublishGraphNodeAddedEvent(CrawlPageRequestDto request, Node node)
         {
             var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node);
+            payload.CorrolationId = request.CorrelationId;
 
             if (!payload.Nodes.Any() && !payload.Edges.Any())
                 return;
@@ -77,6 +80,7 @@ namespace Graphing.Core
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Information,
                     logMessage,
                     "GraphingNodePopulated",
@@ -118,6 +122,7 @@ namespace Graphing.Core
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Information,
                     logMessage,
                     "GraphingEdgeDiscovered",
@@ -184,40 +189,7 @@ namespace Graphing.Core
 
         public async Task<Graph?> CreateGraphAsync(GraphOptions options)
         {
-            var newGraph = await _webGraph.CreateGraphAsync(options);
-
-            if (newGraph != null) {
-
-                //create a crawl page request
-                var crawlPageRequest = new CrawlPageRequestDto
-                {
-                    Url = options.Url,
-                    GraphId = newGraph.Id,
-                    CorrelationId = Guid.NewGuid(),
-                    Attempt = 1,
-                    Depth = 0,
-                    Options = new CrawlPageRequestOptionsDto
-                    {
-                        MaxDepth = options.MaxDepth,
-                        MaxLinks = options.MaxLinks,
-                        ExcludeExternalLinks = options.ExcludeExternalLinks,
-                        ExcludeQueryStrings = options.ExcludeQueryStrings,
-                        UrlMatchRegex = options.UrlMatchRegex,
-                        TitleElementXPath = options.TitleElementXPath,
-                        ContentElementXPath = options.ContentElementXPath,
-                        SummaryElementXPath = options.SummaryElementXPath,
-                        ImageElementXPath = options.ImageElementXPath,
-                        RelatedLinksElementXPath = options.RelatedLinksElementXPath,
-                        UserAgent = options.UserAgent,
-                        UserAccepts = options.UserAccepts
-                    },
-                    RequestedAt = DateTimeOffset.UtcNow
-                };
-
-                await PublishCrawlPageEvent(crawlPageRequest);
-            }
-
-            return newGraph;
+            return await _webGraph.CreateGraphAsync(options);
         }
 
         public async Task<Graph> UpdateGraphAsync(Graph graph)
@@ -235,7 +207,7 @@ namespace Graphing.Core
             return await _webGraph.ListGraphsAsync(page, pageSize);
         }
 
-        public async Task CrawlPageAsync(Guid graphId, GraphOptions options)
+        public async Task<CrawlPageRequestDto> CrawlPageAsync(Guid graphId, GraphOptions options)
         {
             //create a crawl page request
             var crawlPageRequest = new CrawlPageRequestDto
@@ -245,6 +217,7 @@ namespace Graphing.Core
                 CorrelationId = Guid.NewGuid(),
                 Attempt = 1,
                 Depth = 0,
+                Preview = options.Preview,
                 Options = new CrawlPageRequestOptionsDto
                 {
                     MaxDepth = options.MaxDepth,
@@ -264,6 +237,8 @@ namespace Graphing.Core
             };
 
             await PublishCrawlPageEvent(crawlPageRequest);
+
+            return crawlPageRequest;
         }
 
         public async Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
@@ -295,10 +270,14 @@ namespace Graphing.Core
             return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId);
         }
 
-        public async Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl)
+        public async Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl, int maxDepth = 1, int? maxNodes = null)
         {
+            maxDepth = Math.Clamp(maxDepth, 1, MAX_REQUEST_DEPTH);
+            if (maxNodes.HasValue)
+                maxNodes = Math.Clamp(maxNodes.Value, 1, MAX_REQUEST_NODES);
+
             var nodes = nodeUrl != null
-                ? await _webGraph.TraverseGraphAsync(graphId, nodeUrl.AbsoluteUri, 1)
+                ? await _webGraph.TraverseGraphAsync(graphId, nodeUrl.AbsoluteUri, maxDepth, maxNodes)
                 : Enumerable.Empty<Node>();
 
             if (!nodes.Any())

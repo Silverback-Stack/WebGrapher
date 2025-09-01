@@ -35,6 +35,30 @@ namespace Scraper.Core
             _eventBus.Unsubscribe<ScrapePageEvent>(ScrapeContent);
         }
 
+        public async Task PublishClientLogEventAsync(
+            Guid graphId,
+            Guid? correlationId,
+            bool preview,
+            LogType type,
+            string message,
+            string? code = null,
+            Object? context = null)
+        {
+            var clientLogEvent = new ClientLogEvent
+            {
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Preview = preview,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = SERVICE_NAME,
+                Context = context
+            };
+
+            await _eventBus.PublishAsync(clientLogEvent);
+        }
+
         private async Task ScrapeContent(ScrapePageEvent evt)
         {
             string logMessage;
@@ -54,6 +78,7 @@ namespace Scraper.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "ScrapeFailed",
@@ -75,6 +100,7 @@ namespace Scraper.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "ScrapeFailed",
@@ -96,6 +122,7 @@ namespace Scraper.Core
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
+                    request.Preview,
                     LogType.Information,
                     logMessage,
                     "ScrapeCompleted",
@@ -162,28 +189,6 @@ namespace Scraper.Core
                 CONTENT_MAX_BYTES,
                 compositeKey,
                 cancellationToken);
-        }
-
-        public async Task PublishClientLogEventAsync(
-            Guid graphId, 
-            Guid correlationId, 
-            LogType type, 
-            string message, 
-            string? code = null, 
-            Object? context = null)
-        {
-            var clientLogEvent = new ClientLogEvent
-            {
-                GraphId = graphId,
-                CorrelationId = correlationId,
-                Type = type,
-                Message = message,
-                Code = code,
-                Service = SERVICE_NAME,
-                Context = context
-            };
-
-            await _eventBus.PublishAsync(clientLogEvent);
         }
     }
 

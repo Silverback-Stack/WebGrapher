@@ -10,8 +10,8 @@
     <div class="activity-sidebar-content">
 
       <div class="activity-header">
-        <!-- Title -->
         <h1 class="activity-sidebar-title title is-3">Activity</h1>
+
         <p class="is-flex is-justify-content-space-between">
           <span>Log Stream</span>
           <a class="has-text-link is-clickable is-size-6"
@@ -40,7 +40,7 @@
 
                 <i v-if="log.service === 'SCRAPER'"
                    :class="[
-                     'mdi mdi-text-box',
+                     'mdi mdi-cloud-download',
                      log.type === 'Error' ? 'has-text-danger' : '',
                      log.type === 'Warning' ? 'has-text-warning' : ''
                    ]">
@@ -48,7 +48,7 @@
 
                 <i v-if="log.service === 'NORMALISATION'"
                    :class="[
-                     'mdi mdi-text-box-search',
+                     'mdi mdi-text-box',
                      log.type === 'Error' ? 'has-text-danger' : '',
                      log.type === 'Warning' ? 'has-text-warning' : ''
                    ]">

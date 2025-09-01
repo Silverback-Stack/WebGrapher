@@ -193,7 +193,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
                 Id = Guid.NewGuid(),
                 Name = options.Name,
                 Description = options.Description,
-                Url = options.Url.AbsoluteUri,
+                Url = options.Url?.AbsoluteUri ?? "https://",
                 MaxDepth = options.MaxDepth,
                 MaxLinks = options.MaxLinks,
                 ExcludeExternalLinks = options.ExcludeExternalLinks,

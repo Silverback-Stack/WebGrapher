@@ -36,31 +36,13 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
             if (createGraph == null)
                 return BadRequest("Request body cannot be empty.");
 
-            if (!Uri.TryCreate(createGraph.Url, UriKind.Absolute, out var validatedUrl))
-            {
-                ModelState.AddModelError(nameof(createGraph.Url), "Invalid URL. Use format https://www.example.com");
-                return ValidationProblem();
-            }
-
             var userAgent = Request.Headers["User-Agent"].FirstOrDefault();
 
             var newGraph = await _pageGrapher.CreateGraphAsync(new GraphOptions
             {
                 Name = createGraph.Name,
                 Description = createGraph.Description,
-                Url = validatedUrl,
-                MaxDepth = Math.Max(1, createGraph.MaxDepth),
-                MaxLinks = Math.Max(1, createGraph.MaxLinks),
-                ExcludeExternalLinks = createGraph.ExcludeExternalLinks,
-                ExcludeQueryStrings = createGraph.ExcludeQueryStrings,
-                UrlMatchRegex = createGraph.UrlMatchRegex,
-                TitleElementXPath = createGraph.TitleElementXPath,
-                ContentElementXPath = createGraph.ContentElementXPath,
-                SummaryElementXPath = createGraph.SummaryElementXPath,
-                ImageElementXPath = createGraph.ImageElementXPath,
-                RelatedLinksElementXPath = createGraph.RelatedLinksElementXPath,
-                UserAgent = string.IsNullOrEmpty(userAgent) ? GraphOptions.DEFAULT_USER_AGENT : userAgent,
-                UserAccepts = GraphOptions.DEFAULT_USER_ACCEPTS //always use default as crawler currently only supports text & html
+                UserAgent = userAgent ?? GraphOptions.DEFAULT_USER_AGENT
             });
 
             if (newGraph == null)
@@ -161,7 +143,7 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
             //submit a crawl page request:
             var userAgent = Request.Headers["User-Agent"].FirstOrDefault();
 
-            await _pageGrapher.CrawlPageAsync(graphId, new GraphOptions
+            var crawlPageRequestDto = await _pageGrapher.CrawlPageAsync(graphId, new GraphOptions
             {
                 Url = validatedUrl,
                 MaxDepth = Math.Max(1, crawlPage.MaxDepth),
@@ -175,10 +157,11 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
                 ImageElementXPath = crawlPage.ImageElementXPath,
                 RelatedLinksElementXPath = crawlPage.RelatedLinksElementXPath,
                 UserAgent = string.IsNullOrEmpty(userAgent) ? GraphOptions.DEFAULT_USER_AGENT : userAgent,
-                UserAccepts = GraphOptions.DEFAULT_USER_ACCEPTS //always use default as crawler currently only supports text & html
+                UserAccepts = GraphOptions.DEFAULT_USER_ACCEPTS, //always use default as crawler currently only supports text & html
+                Preview = crawlPage.Preview
             });
 
-            return Ok();
+            return Ok(crawlPageRequestDto);
         }
 
 
@@ -237,7 +220,7 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
             if (subGraphRequest == null)
                 return BadRequest("Request body cannot be empty.");
 
-            var data = await _pageGrapher.GetNodeSubgraphAsync(graphId, subGraphRequest.NodeUrl);
+            var data = await _pageGrapher.GetNodeSubgraphAsync(graphId, subGraphRequest.NodeUrl, subGraphRequest.MaxDepth, subGraphRequest.MaxNodes);
 
             if (data == null || !data.Nodes.Any())
             {

@@ -4,7 +4,8 @@
   import axios from "axios"
   import Graph from "graphology"
   import * as signalR from "@microsoft/signalr"
-  import apiConfig from "./api-config.js"
+  import apiConfig from "./config/api-config.js"
+  import appConfig from "./config/app-config.js"
   import {
     initSignalRController,
     disposeSignalR } from "./signalr.js"
@@ -16,8 +17,8 @@
     setupNodeSizing,
     addOrUpdateNode,
     addEdge,
-    resetHighlight,
-    highlightNeighbors,
+    resetHighlightNodeNeighborhood,
+    highlightNodeNeighborhood,
     panTo } from "./sigma.js"
   import GraphConnect from './components/graph-connect.vue'
   import GraphForm from './components/graph-form.vue'
@@ -40,13 +41,14 @@
   // Modal / Page
   const modalView = ref(null)
   const graphId = ref(null)
+  const graphTitle = ref(null)
   const connectingGraphId = ref(null)
   const crawlUrl = ref(null)
 
   // Pagination / Graph list
   const availableGraphs = ref([])
   const page = ref(1)
-  const pageSize = ref(10)
+  const pageSize = ref(appConfig.defaultPageSize)
   const totalCount = ref(0)
 
   // Routing
@@ -55,11 +57,15 @@
 
   // Activity Sidebar
   const activitySidebarOpen = ref(false)
-  const activityLogs = ref([]) 
+  const activityLogs = ref([])
 
   // Node Sidebar
   const nodeSidebarOpen = ref(false)
   const nodeSidebarData = ref(null)
+
+  // Subgraph Requests Throttle
+  const subgraphRequestCache = new Map()
+  let subgraphRequest = { nodeId: null, controller: null }
 
 
   // --- Lifecycle ---
@@ -93,7 +99,7 @@
 
 
   // --- Centralized FA2 ---
-  function runFA2(duration = 1000) {
+  function runFA2(duration = appConfig.fa2DurationSlow_MS) {
     // If already running, just extend the timer
     if (fa2.isRunning()) {
       clearTimeout(fa2Timer)
@@ -132,7 +138,14 @@
   }
 
   function resetGraph() {
-    panTo(sigmaGraph, sigmaInstance, null, { ratio: 1, duration: 300 }) 
+    panTo(sigmaGraph, sigmaInstance, null, {
+      ratio: 1,
+      duration: appConfig.panDuration_MS
+    }) 
+  }
+
+  function clearActivity() {
+    activityLogs.value = []
   }
 
   function openActivitySidebar() {
@@ -161,25 +174,42 @@
 
     const nodeAttr = sigmaGraph.getNodeAttributes(nodeId);
 
-    if (highlightedNode.value) resetHighlight(sigmaGraph, sigmaInstance)
+    if (highlightedNode.value) resetHighlightNodeNeighborhood(sigmaGraph, sigmaInstance)
 
     // Highlight node
     highlightedNode.value = nodeId;
-    highlightNeighbors(sigmaGraph, sigmaInstance, nodeId);
+    highlightNodeNeighborhood(sigmaGraph, sigmaInstance, nodeId);
 
-    runFA2(500)
+    runFA2(appConfig.fa2DurationSlow_MS)
 
     //pan camera to selected node
     panTo(sigmaGraph, sigmaInstance, nodeAttr)
   }
 
   function onConfirmAction(response) {
-    modalView.value = null
+    switch (response.type) {
+      case "create":
+        modalView.value = "crawl";
+        break;
+      case "update":
+        modalView.value = null
+        break;
+      case "crawl":
+        if (response.data.preview === true) {
+          const correlationId = response.data.correlationId
+          modalView.value = "preview"
 
-    // Open activity sidebar when a new graph is created
-    if (response && response.id) {
-      activitySidebarOpen.value = true
+        } else {
+          //crawl - hide modal
+          modalView.value = null
+          activitySidebarOpen.value = true;
+        }
+        break;
     }
+  }
+
+  function onPreviewBack() {
+    modalView.value = "crawl";
   }
 
 
@@ -219,7 +249,7 @@
       payload.nodes.forEach(n => addOrUpdateNode(sigmaGraph, n))
       payload.edges.forEach(e => addEdge(sigmaGraph, e))
 
-      runFA2(1500)
+      runFA2(appConfig.fa2DurationSlow_MS)
 
     } catch (err) {
       console.error("Failed to populate graph:", err)
@@ -227,31 +257,28 @@
   }
 
 
-
-
-  const requestCache = new Map() // nodeId => last request timestamp
-  const THROTTLE_MS = 30_000 //30 seconds
-  let currentRequest = { nodeId: null, controller: null }
-
   async function nodeSubGraph(graphId, nodeId, sigmaGraph, runFA2) {
     const now = Date.now()
 
     // Skip if recently requested
-    const last = requestCache.get(nodeId) || 0
-    if (now - last < THROTTLE_MS) return
+    const last = subgraphRequestCache.get(nodeId) || 0
+    if (now - last < appConfig.subGraphThrottle_MS) return
 
     // Abort previous request
-    currentRequest.controller?.abort()
+    subgraphRequest.controller?.abort()
 
     // Create new controller for this request
     const controller = new AbortController()
-    currentRequest = { nodeId, controller }
-    requestCache.set(nodeId, now)
+    subgraphRequest = { nodeId, controller }
+    subgraphRequestCache.set(nodeId, now)
 
     try {
       const { data: payload } = await axios.post(
         apiConfig.GRAPH_NODESUBGRAPH(graphId.value),
-        { nodeUrl: nodeId },
+        {
+          nodeUrl: nodeId,
+          maxDepth: appConfig.subGraphDepth
+        },
         { signal: controller.signal }
       )
 
@@ -275,19 +302,20 @@
 
       payload.edges.forEach(e => addEdge(sigmaGraph, e))
 
-      runFA2(1000)
+      runFA2(appConfig.fa2DurationSlow_MS)
 
     } catch (err) {
       if (axios.isCancel(err)) console.debug(`Request for node ${nodeId} cancelled`)
       else console.error(`Failed to load subgraph for node ${nodeId}:`, err)
     } finally {
       //clear request once complete
-      if (currentRequest.nodeId === nodeId) currentRequest = { nodeId: null, controller: null }
-      pruneOldRequests(requestCache, THROTTLE_MS)
+      if (subgraphRequest.nodeId === nodeId) subgraphRequest = { nodeId: null, controller: null }
+      clearSubgraphRequests(subgraphRequestCache, appConfig.subGraphThrottle_MS)
     }
   }
 
-  function pruneOldRequests(requestMap, thresholdMs) {
+  // Clears expired subgraph requests
+  function clearSubgraphRequests(requestMap, thresholdMs) {
     const now = Date.now()
     for (const [nodeId, timestamp] of requestMap.entries()) {
       if (now - timestamp > thresholdMs) {
@@ -307,26 +335,31 @@
     sigmaGraph.clear()
     fa2 = setupFA2(sigmaGraph)
     highlightedNode.value = null
+    clearActivity()
   }
 
 
   // --- Graph Connection / SignalR Functions ---
-  async function connectToGraph(graph) {
-    if (connectingGraphId.value === graph.id) return;
+  async function connectGraph(graph) {
+    if (connectingGraphId.value === graph.id) return
 
     //update valid graphId
-    connectingGraphId.value = graph.id;
-    modalView.value = null;
-    graphId.value = graph.id;
+    connectingGraphId.value = graph.id
+    modalView.value = null
+    graphId.value = graph.id
+    graphTitle.value = graph.name
     await router.push({
       name: "Graph",
       params: { id: graph.id }
-    });
+    })
 
     resetGraphState()
 
     // --- populate with initial data ---
-    await populateGraph(graph.id, sigmaGraph, runFA2, { maxDepth: 6, maxNodes: 5000 })
+    await populateGraph(graph.id, sigmaGraph, runFA2, {
+      maxDepth: appConfig.populateGraphMaxDepth,
+      maxNodes: appConfig.populateGraphMaxNodes
+    })
 
     // --- Connect SignalR ---
     disposeSignalR(signalrController)
@@ -339,6 +372,16 @@
     watch(signalrController.status, val => {
       signalrStatus.value = val
     })
+  }
+
+  async function disconnectGraph(graph) {
+    connectingGraphId.value = null
+    graphId.value = null
+    graphTitle.value = null
+    disposeSignalR(signalrController)
+    signalrController = null
+
+    await router.push({ path: "/" })
   }
 
   //Connect to Graph by Id (from route)
@@ -361,7 +404,7 @@
       const graph = response.data
       if (!graph) throw new Error("Graph not found")
 
-      await connectToGraph(graph);
+      await connectGraph(graph);
 
     } catch (err) {
       console.error("Failed to connect graph:", err)
@@ -376,6 +419,28 @@
     }
   }
 
+  async function deleteGraph(graph) {
+    if (!graph?.id) return
+
+    try {
+      // Call DELETE API
+      await axios.delete(apiConfig.GRAPH_DELETE(graph.id))
+
+      // If the deleted graph is the one we're connected to, disconnect
+      if (graphId.value === graph.id) {
+        await disconnectGraph(graph)
+        graphId.value = null
+        modalView.value = "connect"
+      }
+
+      // Refresh list
+      await loadGraphs(page.value, pageSize.value)
+
+    } catch (err) {
+      console.error(`Failed to delete graph ${graph.id}:`, err)
+    }
+  }
+
 </script>
 
 <template>
@@ -384,18 +449,11 @@
       <template #brand>
         <b-navbar-item @click="resetGraph">
           <span class="has-text-weight-bold is-size-4">WebGrapher</span>
+          <span class="is-size-4 has-text-grey has-text-weight-light" v-if="graphTitle">&bull;&nbsp;&nbsp;{{ graphTitle }}</span>
         </b-navbar-item>
       </template>
 
       <template #end>
-        <!-- New Graph -->
-        <b-navbar-item v-if="signalrStatus !== 'connected'">
-          <b-button type="is-light" outlined @click="openCreateGraph">
-            <span class="icon"><i class="mdi mdi-plus-thick"></i></span>
-            <span>New</span>
-          </b-button>
-        </b-navbar-item>
-
         <!-- Crawl Page (only show if connected) -->
         <b-navbar-item v-if="signalrStatus === 'connected'">
           <b-button type="is-light" outlined @click="openCrawlGraph">
@@ -409,14 +467,21 @@
         <!-- Connect -->
         <b-navbar-item>
           <b-button type="is-light" outlined @click="openConnect">
-            <span class="icon">
-              <i class="mdi mdi-circle"
-                 :class="{
-                  'has-text-success': signalrStatus === 'connected',
-                  'has-text-danger': signalrStatus !== 'connected',
-                }"></i>
+            <span class="icon" v-if="signalrStatus === 'connected'">
+              <i class="mdi mdi-broadcast"></i>
+            </span>
+            <span class="icon" v-else>
+              <i class="mdi mdi-broadcast-off"></i>
             </span>
             <span>{{ signalrStatus === 'connected' ? "Connected" : "Connect" }}</span>
+          </b-button>
+        </b-navbar-item>
+
+        <!-- New Graph -->
+        <b-navbar-item v-if="signalrStatus !== 'connected'">
+          <b-button type="is-light" outlined @click="openCreateGraph">
+            <span class="icon"><i class="mdi mdi-plus-thick"></i></span>
+            <span>New</span>
           </b-button>
         </b-navbar-item>
 
@@ -450,7 +515,7 @@
     <!-- Activity Sidebar -->
     <ActivitySidebar v-model="activitySidebarOpen"
                      :logs="activityLogs"
-                     @clear-activity="activityLogs = []"/>
+                     @clear-activity="clearActivity"/>
 
     <!-- Node Sidebar -->
     <NodeSidebar v-model="nodeSidebarOpen"
@@ -468,20 +533,22 @@
 
       <GraphConnect v-if="modalView === 'connect'"
                     :graphs="availableGraphs"
+                    :connectedGraphId="graphId"
                     :page="page"
                     :pageSize="pageSize"
                     :totalCount="totalCount"
-                    @selectGraph="connectToGraph"
+                    @connectGraph="connectGraph"
+                    @disconnectGraph="disconnectGraph"
                     @createGraph="openCreateGraph"
-                    @changePage="loadGraphs" />
+                    @changePage="loadGraphs"
+                    @deleteGraph="deleteGraph"/>
 
-      <GraphForm v-if="['create', 'update', 'crawl'].includes(modalView)"
+      <GraphForm v-if="['create', 'update', 'crawl', 'preview'].includes(modalView)"
                  :graphId="graphId"
                  :mode="modalView"
                  :crawlUrl="crawlUrl"
-                 @confirmAction="onConfirmAction" />
-
-      <!-- <GraphPreview v-if="modalView === 'preview'" /> -->
+                 @confirmAction="onConfirmAction"
+                 @previewBack="onPreviewBack"/>
     </b-modal>
   </main>
 </template>
