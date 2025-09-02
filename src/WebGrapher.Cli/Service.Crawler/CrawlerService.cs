@@ -3,6 +3,7 @@ using Caching.Core;
 using Crawler.Core;
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Serilog;
@@ -15,8 +16,19 @@ namespace WebGrapher.Cli.Service.Crawler
     {
         public async static Task<IPageCrawler> InitializeAsync(IEventBus eventBus)
         {
+            //CONFIG SETTINGS:
+            var crawlerConfig = new ConfigurationBuilder()
+            .SetBasePath(Path.Combine(AppContext.BaseDirectory, "Service.Crawler"))
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+            var crawlerSettings = new CrawlerSettings();
+            crawlerConfig.GetSection("CrawlerSettings").Bind(crawlerSettings);
+
+
             //SETUP LOGGING:
-            var serviceName = typeof(CrawlerService).Name;
+            var serviceName = crawlerSettings.ServiceName;
             var logFilePath = $"logs/{serviceName}.log";
 
             var serilogLogger = new LoggerConfiguration()
@@ -50,15 +62,14 @@ namespace WebGrapher.Cli.Service.Crawler
                 logger);
 
             var sitePolicyResolver = new SitePolicyResolver(
-                logger, policyCache, requestSender);
+                crawlerSettings, logger, policyCache, requestSender);
 
 
             //Create Crawler:
             var crawler = CrawlerFactory.CreateCrawler(
-                logger, eventBus, requestSender, sitePolicyResolver);
+                crawlerSettings, logger, eventBus, requestSender, sitePolicyResolver);
 
             logger.LogInformation($"Crawler service started.");
-
             return crawler;
         }
     }

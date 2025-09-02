@@ -131,7 +131,81 @@
         </div>
 
         <div v-if="props.mode === 'preview'">
-          <p>there is the preview part!</p>
+
+          <div v-if="previewLogs.length">
+
+            <div v-for="log in previewLogs" :key="log.id">
+              <p>
+                <i v-if="log.service === 'CRAWLER'"
+                   :class="[
+                   'mdi mdi-spider icon',
+                   log.type === 'Error' ? 'has-text-danger' : '',
+                   log.type === 'Warning' ? 'has-text-warning' : ''
+                 ]"></i>
+                <i v-if="log.service === 'SCRAPER'"
+                   :class="[
+                   'mdi mdi-cloud-download icon',
+                   log.type === 'Error' ? 'has-text-danger' : '',
+                   log.type === 'Warning' ? 'has-text-warning' : ''
+                 ]"></i>
+                <i v-if="log.service === 'NORMALISATION'"
+                   :class="[
+                     'mdi mdi-text-box icon',
+                     log.type === 'Error' ? 'has-text-danger' : '',
+                     log.type === 'Warning' ? 'has-text-warning' : ''
+                   ]"></i>
+                <span>{{ log.message }}</span>
+              </p>
+
+              <!-- If this log is NormalisationSuccess, show preview details -->
+              <div v-if="log.code === 'NormalisationSuccess' && log.context?.preview"
+                   class="mt-2 pl-4 box">
+
+                <div v-if="log.context.preview.imageUrl" class="columns is-mobile">
+                  <div class="column is-3">
+                    <b-image v-if="log.context.preview.imageUrl"
+                             :src="log.context.preview.imageUrl"
+                             alt="Preview"
+                             responsive />
+                  </div>
+                </div>
+
+                <h3><strong>Title</strong></h3>
+                <p>{{ log.context.preview.title }}</p>
+
+                <h3 class="mt-3"><strong>Summary</strong></h3>
+                <p>{{ log.context.preview.summary }}</p>
+
+                <h3 class="mt-3"><strong>Keywords</strong></h3>
+                <p>{{ log.context.preview.keywords }}</p>
+
+                <h3 class="mt-3"><strong>Tags</strong></h3>
+                <p>
+                  <span v-for="(tag, idx) in log.context.preview.tags" :key="idx">{{ tag }}, </span>
+                </p>
+
+                <h3 class="mt-3"><strong>Links</strong></h3>
+                <ul>
+                  <li v-for="(link, idx) in log.context.preview.links" :key="idx">
+                    <a :href="link" target="_blank">{{ link }}</a>
+                  </li>
+                </ul>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div v-if="previewLogs.length === 0 || (
+               previewLogs.every(log => log.code !== 'NormalisationSuccess') &&
+               previewLogs.every(log => log.type === 'Information'))"
+               class="mt-2 pl-4 box has-text-centered">
+            <span class="icon is-large">
+              <i class="mdi mdi-loading mdi-spin mdi-48px"></i>
+            </span>
+            <p>Generating Preview</p>
+          </div>
+
         </div>
 
       </section>
@@ -193,8 +267,10 @@
 
   const props = defineProps({
     graphId: { type: String, default: null },
+    correlationId: { type: String, default: null },
     mode: { type: String, default: "create" }, // "create" | "update" | "crawl" | "preview"
-    crawlUrl: { type: String, default: "https://" } 
+    crawlUrl: { type: String, default: "https://" },
+    activityLogs: { type: Array, default: [] }
   });
   const { graphId } = props;
   const showAdvancedOptions = ref(props.mode !== 'crawl');
@@ -234,8 +310,6 @@
     }
     return total
   })
-
-
 
 
   // Scroll to top on errors
@@ -337,6 +411,16 @@
     if (!apiError?.errors) return [apiError?.title || "Unknown error"];
     return Object.values(apiError.errors).flat();
   }
+
+  // Find the matching preview logs
+  const previewLogs = computed(() => {
+    return props.activityLogs.filter(
+      log =>
+        log.graphId === props.graphId &&
+        log.correlationId === props.correlationId
+    )
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) // oldest first
+  })
 
 </script>
 

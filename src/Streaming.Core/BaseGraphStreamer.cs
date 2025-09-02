@@ -37,7 +37,6 @@ namespace Streaming.Core
         public async Task PublishClientLogEventAsync(
             Guid graphId, 
             Guid? correlationId,
-            bool preview,
             LogType type, 
             string message, 
             string? code = null, 
@@ -47,7 +46,6 @@ namespace Streaming.Core
             {
                 GraphId = graphId,
                 CorrelationId = correlationId,
-                Preview = preview,
                 Type = type,
                 Message = message,
                 Code = code,
@@ -75,7 +73,6 @@ namespace Streaming.Core
                 await PublishClientLogEventAsync(
                         payload.GraphId,
                         payload.CorrolationId,
-                        preview: false,
                         LogType.Information,
                         logMessage,
                         "StreamingPayload",
@@ -99,7 +96,6 @@ namespace Streaming.Core
                 Id = evt.Id,
                 GraphId = evt.GraphId,
                 CorrelationId = evt.CorrelationId,
-                Preview = evt.Preview,
                 Type = evt.Type.ToString(),
                 Message = evt.Message,
                 Code = evt.Code,

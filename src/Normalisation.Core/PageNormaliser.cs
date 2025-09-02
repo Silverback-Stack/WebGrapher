@@ -46,7 +46,6 @@ namespace Normalisation.Core
         public async Task PublishClientLogEventAsync(
             Guid graphId,
             Guid? correlationId,
-            bool preview,
             LogType type,
             string message,
             string? code = null,
@@ -56,7 +55,6 @@ namespace Normalisation.Core
             {
                 GraphId = graphId,
                 CorrelationId = correlationId,
-                Preview = preview,
                 Type = type,
                 Message = message,
                 Code = code,
@@ -69,11 +67,11 @@ namespace Normalisation.Core
 
         private async Task PublishGraphEvent(
             NormalisePageEvent evt,
-            string? title, 
+            string? title,
             string? summary,
-            string? keywords, 
-            IEnumerable<string>? tags, 
-            IEnumerable<Uri>? links, 
+            string? keywords,
+            IEnumerable<string>? tags,
+            IEnumerable<Uri>? links,
             Uri? imageUrl,
             string? languageIso3)
         {
@@ -100,10 +98,23 @@ namespace Normalisation.Core
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
-
-            // Publish GraphPageEvent only if request was not a preview request
-            if (request.Preview == false)
+            // Check if request is Preview of Normalised data
+            LogContextPreview? preview = null;
+            if (request.Preview) {
+                preview = new LogContextPreview
+                {
+                    Title = normalisedPageResult.Title,
+                    Summary = normalisedPageResult.Summary,
+                    Keywords = normalisedPageResult.Keywords,
+                    Tags = normalisedPageResult.Tags,
+                    Links = normalisedPageResult.Links?.Select(l => l.AbsoluteUri),
+                    ImageUrl = normalisedPageResult.ImageUrl?.AbsoluteUri,
+                    DetectedLanguageIso3 = normalisedPageResult.DetectedLanguageIso3
+                };
+            }
+            else
             {
+                // Not a Preview - continue to Publish GraphPageEvent
                 await _eventBus.PublishAsync(new GraphPageEvent
                 {
                     CrawlPageRequest = request,
@@ -112,27 +123,21 @@ namespace Normalisation.Core
                 }, priority: request.Depth);
             }
 
-
-            var logMessage = $"Normalisation Completed: {result.Url} scheduled for graphing. Links: {links?.Count()} Keywords: {keywords?.Count()}";
+            var logMessage = $"Normalisation Completed: {result.Url} Links: {links?.Count()} Keywords: {keywords?.Count()}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
                 request.GraphId,
                 request.CorrelationId,
-                request.Preview,
                 LogType.Information,
                 logMessage,
                 "NormalisationSuccess",
                 new LogContext
                 {
                     Url = request.Url.AbsoluteUri,
-                    Title = normalisedPageResult.Title ?? string.Empty,
-                    Summary = normalisedPageResult.Summary ?? string.Empty,
-                    Keywords = normalisedPageResult.Keywords ?? string.Empty,
-                    Tags = normalisedPageResult.Tags ?? Enumerable.Empty<string>(),
-                    Links = normalisedPageResult.Links?.Select(u => u.AbsoluteUri) ?? Enumerable.Empty<string>(),
-                    ImageUrl = normalisedPageResult.ImageUrl?.AbsoluteUri ?? string.Empty,
-                    DetectedLanguageIso3 = normalisedPageResult.DetectedLanguageIso3 ?? string.Empty
+                    TotalLinks = normalisedPageResult.Links?.Count() ?? 0,
+                    TotalKeywords = normalisedPageResult.Keywords?.Count() ?? 0,
+                    Preview = preview
                 });
         }
 
@@ -150,7 +155,6 @@ namespace Normalisation.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
-                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "NormalisationFailed",
@@ -170,7 +174,6 @@ namespace Normalisation.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
-                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "NormalisationFailed",

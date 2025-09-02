@@ -38,7 +38,6 @@ namespace Scraper.Core
         public async Task PublishClientLogEventAsync(
             Guid graphId,
             Guid? correlationId,
-            bool preview,
             LogType type,
             string message,
             string? code = null,
@@ -48,7 +47,6 @@ namespace Scraper.Core
             {
                 GraphId = graphId,
                 CorrelationId = correlationId,
-                Preview = preview,
                 Type = type,
                 Message = message,
                 Code = code,
@@ -78,7 +76,6 @@ namespace Scraper.Core
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
-                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "ScrapeFailed",
@@ -94,13 +91,12 @@ namespace Scraper.Core
             {
                 await PublishScrapePageFailedEvent(request, response);
 
-                logMessage = $"Scrape Failed: {request.Url} Status: {response.Metadata.StatusCode}. Attempt: {request.Attempt})";
+                logMessage = $"Scrape Failed: {request.Url} Status: {response.Metadata.StatusCode}. Attempt: {request.Attempt}";
                 _logger.LogError(logMessage);
 
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
-                    request.Preview,
                     LogType.Error,
                     logMessage,
                     "ScrapeFailed",
@@ -122,7 +118,6 @@ namespace Scraper.Core
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
-                    request.Preview,
                     LogType.Information,
                     logMessage,
                     "ScrapeCompleted",

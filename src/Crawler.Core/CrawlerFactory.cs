@@ -9,13 +9,14 @@ namespace Crawler.Core
     public class CrawlerFactory
     {
         public static IPageCrawler CreateCrawler(
+            CrawlerSettings crawlerSettings,
             ILogger logger,
             IEventBus eventBus,
             IRequestSender requestSender,
             ISitePolicyResolver sitePolicyResolver)
         {
             var service = new PageCrawler(
-                logger, eventBus, requestSender, sitePolicyResolver);
+                crawlerSettings, logger, eventBus, requestSender, sitePolicyResolver);
 
             service.SubscribeAll();
             return service;

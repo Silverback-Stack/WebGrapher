@@ -22,7 +22,7 @@
 
       <div class="activity-scroll">
         <ul class="log-list">
-          <li v-for="log in logs"
+          <li v-for="log in activityLogs"
               :key="log.id"
               class="log-entry mb-1">
 
@@ -40,7 +40,7 @@
 
                 <i v-if="log.service === 'SCRAPER'"
                    :class="[
-                     'mdi mdi-cloud-download',
+                     'mdi mdi-cloud-download icon',
                      log.type === 'Error' ? 'has-text-danger' : '',
                      log.type === 'Warning' ? 'has-text-warning' : ''
                    ]">
@@ -48,7 +48,7 @@
 
                 <i v-if="log.service === 'NORMALISATION'"
                    :class="[
-                     'mdi mdi-text-box',
+                     'mdi mdi-text-box icon',
                      log.type === 'Error' ? 'has-text-danger' : '',
                      log.type === 'Warning' ? 'has-text-warning' : ''
                    ]">
@@ -56,7 +56,7 @@
 
                 <i v-if="log.service === 'GRAPHING'"
                    :class="[
-                     'mdi mdi-graph',
+                     'mdi mdi-graph icon',
                      log.type === 'Error' ? 'has-text-danger' : '',
                      log.type === 'Warning' ? 'has-text-warning' : ''
                    ]">
@@ -64,7 +64,7 @@
 
                 <i v-if="log.service === 'STREAMING'"
                    :class="[
-                     'mdi mdi-broadcast',
+                     'mdi mdi-broadcast icon',
                      log.type === 'Error' ? 'has-text-danger' : '',
                      log.type === 'Warning' ? 'has-text-warning' : ''
                    ]">
@@ -90,9 +90,9 @@
 
   const emit = defineEmits(["update:modelValue", "clear-activity"])
 
-  const { modelValue, logs } = defineProps({
+  const { modelValue, activityLogs } = defineProps({
     modelValue: Boolean,
-    logs: Array
+    activityLogs: Array
   })
 
   const expanded = ref(null)

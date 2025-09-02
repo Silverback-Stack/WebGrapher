@@ -28,4 +28,10 @@
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Service.Crawler\appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

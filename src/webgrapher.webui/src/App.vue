@@ -41,6 +41,7 @@
   // Modal / Page
   const modalView = ref(null)
   const graphId = ref(null)
+  const correlationId = ref(null)
   const graphTitle = ref(null)
   const connectingGraphId = ref(null)
   const crawlUrl = ref(null)
@@ -196,7 +197,7 @@
         break;
       case "crawl":
         if (response.data.preview === true) {
-          const correlationId = response.data.correlationId
+          correlationId.value = response.data.correlationId
           modalView.value = "preview"
 
         } else {
@@ -514,7 +515,7 @@
 
     <!-- Activity Sidebar -->
     <ActivitySidebar v-model="activitySidebarOpen"
-                     :logs="activityLogs"
+                     :activityLogs="activityLogs"
                      @clear-activity="clearActivity"/>
 
     <!-- Node Sidebar -->
@@ -545,8 +546,10 @@
 
       <GraphForm v-if="['create', 'update', 'crawl', 'preview'].includes(modalView)"
                  :graphId="graphId"
+                 :correlationId="correlationId"
                  :mode="modalView"
                  :crawlUrl="crawlUrl"
+                 :activityLogs="activityLogs"
                  @confirmAction="onConfirmAction"
                  @previewBack="onPreviewBack"/>
     </b-modal>

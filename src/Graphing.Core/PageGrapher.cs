@@ -40,7 +40,6 @@ namespace Graphing.Core
         public async Task PublishClientLogEventAsync(
             Guid graphId,
             Guid? correlationId,
-            bool preview,
             LogType type,
             string message,
             string? code = null,
@@ -50,7 +49,6 @@ namespace Graphing.Core
             {
                 GraphId = graphId,
                 CorrelationId = correlationId,
-                Preview = preview,
                 Type = type,
                 Message = message,
                 Code = code,
@@ -74,13 +72,12 @@ namespace Graphing.Core
                 SigmaGraphPayload = payload
             });
 
-            var logMessage = $"Graphing Node Populated: {node.Url} scheduled for streaming. Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}";
+            var logMessage = $"Graphing Node Populated: {node.Url} Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
-                    request.Preview,
                     LogType.Information,
                     logMessage,
                     "GraphingNodePopulated",
@@ -116,13 +113,12 @@ namespace Graphing.Core
                 priority: depth,
                 scheduledOffset);
 
-            var logMessage = $"Graphing Edge Discovered: {node.Url} scheduled for crawling. Depth {depth} Attempt: {crawlPageRequest.Attempt}";
+            var logMessage = $"Graphing Edge Discovered: {node.Url} Depth {depth} Attempt: {crawlPageRequest.Attempt}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
-                    request.Preview,
                     LogType.Information,
                     logMessage,
                     "GraphingEdgeDiscovered",

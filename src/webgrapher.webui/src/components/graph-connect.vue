@@ -18,9 +18,8 @@
       <div class="graph-connect">
 
         <!-- No Graphs Found -->
-        <div v-if="graphs.length === 0">
-          <p class="is-size-5 mb-2">No graphs found.</p>
-          <p>Create a new graph to get started.</p>
+        <div v-if="graphs.length === 0" class="is-size-5">
+          <p class="mb-2">Create a new graph to get started.</p>
         </div>
         <div v-else>
 

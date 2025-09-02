@@ -8,7 +8,6 @@ namespace Events.Core.Dtos
         public required Guid Id { get; init; }
         public required Guid GraphId { get; init; }
         public required Guid? CorrelationId { get; set; }
-        public bool Preview { get; set; }
         public String Type { get; init; } = string.Empty;
         public required string Message { get; init; } = string.Empty;
         public string? Code { get; init; }
