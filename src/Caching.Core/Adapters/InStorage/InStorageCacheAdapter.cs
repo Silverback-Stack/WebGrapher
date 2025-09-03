@@ -1,35 +1,31 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
 
 namespace Caching.Core.Adapters.InStorage
 {
     public partial class InStorageCacheAdapter : ICache
     {
+        private readonly CacheSettings _settings;
         private readonly ILogger _logger;
-
-        private const string CACHE_CONTAINER = "storage.cache";
-        private const int ABSOLUTE_EXPIRATION_HOURS = 0; //clears all on startup
 
         /// <summary>
         /// In-storage cache adapter for local development.
         /// </summary>
-        public InStorageCacheAdapter(string serviceName, ILogger logger)
+        public InStorageCacheAdapter(CacheSettings settings, string serviceName, ILogger logger)
         {
+            _settings = settings;
             _logger = logger;
-            Container = CreateContainer(serviceName);
+            Container = CreateContainer(serviceName, _settings.InStorage.ContainerName);
 
             ClearCacheAsync();
         }
 
         public string Container { get; private set; }
 
-        private string CreateContainer(string serviceName)
+        private string CreateContainer(string serviceName, string containerName)
         {
-            var basePath = Path.Combine(AppContext.BaseDirectory, CACHE_CONTAINER);
+            var basePath = Path.Combine(AppContext.BaseDirectory, containerName);
             var containerPath = Path.Combine(basePath, serviceName);
 
             try
@@ -134,7 +130,7 @@ namespace Caching.Core.Adapters.InStorage
 
         private void ClearCacheAsync()
         {
-            var cutoff = DateTime.UtcNow.AddHours(-ABSOLUTE_EXPIRATION_HOURS);
+            var cutoff = DateTime.UtcNow.AddHours(-_settings.InStorage.AbsoluteExpirationHours);
             var filePath = GetFilePath(string.Empty);
 
             foreach (var file in Directory.GetFiles(filePath))

@@ -3,7 +3,7 @@ using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using WebGrapher.Cli.Service.Crawler;
 using WebGrapher.Cli.Service.Events;
 using WebGrapher.Cli.Service.Graphing;
@@ -22,7 +22,18 @@ namespace WebGrapher.Cli
 
         public async Task InitializeAsync()
         {
-            _eventBus = await EventBusService.StartAsync();
+            //Setup Configuration using appsettings overrides
+            var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("Service.Events/appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+            //bind appsettings overrides to default settings objects
+            var eventBusSettings = new EventBusSettings();
+            configuration.GetSection("EventBus").Bind(eventBusSettings);
+
+            _eventBus = await EventBusService.StartAsync(eventBusSettings);
 
             var crawlerTask = Task.Run(async () 
                 => _pageCrawler = await CrawlerService.InitializeAsync(_eventBus));
@@ -107,8 +118,8 @@ namespace WebGrapher.Cli
                 Depth = 0,
                 Options = new CrawlPageRequestOptionsDto
                 {
-                    MaxDepth = 3,
-                    MaxLinks = 25,
+                    MaxDepth = 1,
+                    MaxLinks = 10,
                     ExcludeExternalLinks = true,
                     ExcludeQueryStrings = true,
                     UrlMatchRegex = "",

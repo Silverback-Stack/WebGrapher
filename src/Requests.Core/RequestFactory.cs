@@ -7,7 +7,7 @@ namespace Requests.Core
 {
     public static class RequestFactory
     {
-        public static IRequestSender CreateRequestSender(ILogger logger, ICache metaCache, ICache blobCache)
+        public static IRequestSender CreateRequestSender(RequestSenderSettings settings, ILogger logger, ICache metaCache, ICache blobCache)
         {
             var httpClientHandler = new HttpClientHandler
             {
@@ -17,9 +17,9 @@ namespace Requests.Core
 
             IHttpRequester httpRequester = new HttpClientAdapter(new HttpClient(httpClientHandler));
 
-            IRequestTransformer requestTransformer = new RequestTransformer();
+            IRequestTransformer requestTransformer = new RequestTransformer(settings);
 
-            return new RequestSender(logger, metaCache, blobCache, httpRequester, requestTransformer);
+            return new RequestSender(settings, logger, metaCache, blobCache, httpRequester, requestTransformer);
         }
     }
 }

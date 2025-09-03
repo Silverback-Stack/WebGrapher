@@ -6,6 +6,7 @@ using Events.Core.Events;
 using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Requests.Core;
 
 namespace Crawler.Core

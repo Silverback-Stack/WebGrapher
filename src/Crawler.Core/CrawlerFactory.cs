@@ -2,6 +2,7 @@
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Requests.Core;
 
 namespace Crawler.Core

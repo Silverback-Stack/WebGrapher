@@ -7,9 +7,12 @@ namespace Requests.Core
 {
     public class RequestTransformer : IRequestTransformer
     {
-        private const int RETRY_AFTER_MINUTES = 1;
-        private static readonly ContentType CONTENT_TYPE = new ContentType("text/html");
-        private static readonly Encoding CONTENT_ENCODING = Encoding.UTF8;
+        private readonly RequestSenderSettings _settings;
+
+        public RequestTransformer(RequestSenderSettings settings)
+        {
+            _settings = settings;
+        }
 
         /// <summary>
         /// Transforms HttpResponseMessage into RequestResponseItem dto.
@@ -72,24 +75,30 @@ namespace Requests.Core
             };
         }
 
-        private static string ResolveContentType(HttpContent? content)
+        /// <summary>
+        /// Determines the media type of the given HTTP content from the header, 
+        /// falling back to a default if necessary.
+        /// </summary>
+        private string ResolveContentType(HttpContent? content)
         {
+            var defaultContentType = new ContentType("text/html");
+
             try
             {
                 var rawContentType = content?.Headers?.ContentType?.ToString();
                 var contentType = !string.IsNullOrWhiteSpace(rawContentType)
                     ? new ContentType(rawContentType)
-                    : CONTENT_TYPE;
+                    : defaultContentType;
 
                 return contentType.MediaType;
             }
             catch (FormatException)
             {
-                return CONTENT_TYPE.MediaType;
+                return defaultContentType.MediaType;
             }
             catch (ArgumentNullException)
             {
-                return CONTENT_TYPE.MediaType;
+                return defaultContentType.MediaType;
             }
         }
 
@@ -101,17 +110,17 @@ namespace Requests.Core
             {
                 var encoding = !string.IsNullOrWhiteSpace(charset)
                     ? Encoding.GetEncoding(charset)
-                    : CONTENT_ENCODING;
+                    : Encoding.UTF8;
 
                 return encoding.WebName;
             }
             catch (ArgumentException)
             {
-                return CONTENT_ENCODING.WebName;
+                return Encoding.UTF8.WebName;
             }
         }
 
-        public static DateTimeOffset? GetRetryAfterOffset(
+        public DateTimeOffset? GetRetryAfterOffset(
             HttpStatusCode statusCode, RetryConditionHeaderValue? retryAfter)
         {
             if (retryAfter == null)
@@ -122,7 +131,7 @@ namespace Requests.Core
                     or HttpStatusCode.ServiceUnavailable)
                 {
                     return DateTimeOffset.UtcNow.Add(
-                        TimeSpan.FromMinutes(RETRY_AFTER_MINUTES));
+                        TimeSpan.FromMinutes(_settings.RetryAfterFallbackMinutes));
                 }
                 return null;
             }

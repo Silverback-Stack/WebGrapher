@@ -11,15 +11,14 @@ namespace Scraper.Core
 {
     public class PageScraper : IPageScraper, IEventBusLifecycle
     {
+        protected readonly ScraperSettings _settings;
         protected readonly ILogger _logger;
         protected readonly IEventBus _eventBus;
         protected readonly IRequestSender _requestSender;
 
-        protected const string SERVICE_NAME = "SCRAPER";
-        private const int CONTENT_MAX_BYTES = 4_194_304; //4 Mb
-
-        public PageScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender)
+        public PageScraper(ScraperSettings settings, ILogger logger, IEventBus eventBus, IRequestSender requestSender)
         {
+            _settings = settings;
             _logger = logger;
             _eventBus = eventBus;
             _requestSender = requestSender;
@@ -50,7 +49,7 @@ namespace Scraper.Core
                 Type = type,
                 Message = message,
                 Code = code,
-                Service = SERVICE_NAME,
+                Service = _settings.ServiceName,
                 Context = context
             };
 
@@ -181,7 +180,7 @@ namespace Scraper.Core
                 url,
                 userAgent,
                 clientAccept,
-                CONTENT_MAX_BYTES,
+                _settings.ContentMaxBytes,
                 compositeKey,
                 cancellationToken);
         }

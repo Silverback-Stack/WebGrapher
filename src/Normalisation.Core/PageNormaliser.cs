@@ -13,21 +13,14 @@ namespace Normalisation.Core
 {
     public class PageNormaliser : IPageNormaliser, IEventBusLifecycle
     {
+        private readonly NormalisationSettings _settings;
         private readonly ILogger _logger;
         private readonly ICache _blobCache;
         private readonly IEventBus _eventBus;
 
-        protected const string SERVICE_NAME = "NORMALISATION";
-        private const int MAX_TITLE_LENGTH = 100;
-        private const int MAX_SUMMARY_WORDS = 100;
-        private const int MAX_KEYWORDS = 300; // one page of text
-        private const int MAX_KEYWORD_TAGS = 10;
-        private const int MAX_LINKS_PER_PAGE = 100;
-
-        private static readonly string[] ALLOWABLE_LINK_SCHEMAS = ["http", "https"];
-
-        public PageNormaliser(ILogger logger, ICache blobCache, IEventBus eventBus)
+        public PageNormaliser(NormalisationSettings settings, ILogger logger, ICache blobCache, IEventBus eventBus)
         {
+            _settings = settings;
             _logger = logger;
             _blobCache = blobCache;
             _eventBus = eventBus;
@@ -58,7 +51,7 @@ namespace Normalisation.Core
                 Type = type,
                 Message = message,
                 Code = code,
-                Service = SERVICE_NAME,
+                Service = _settings.ServiceName,
                 Context = context
             };
 
@@ -195,7 +188,7 @@ namespace Normalisation.Core
             var normalisedTitle = NormaliseTitle(extractedTitle);
             var normalisedSummary = NormaliseSummary(extractedSummary);
             var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
-            var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, MAX_KEYWORD_TAGS);
+            var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, _settings.MaxKeywordTags);
             var normalisedLinks = NormaliseLinks(
                 extractedLinks,
                 request.Url,
@@ -238,7 +231,7 @@ namespace Normalisation.Core
             text = TextNormaliser.DecodeHtml(text);
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
-            text = TextNormaliser.Truncate(text, MAX_TITLE_LENGTH);
+            text = TextNormaliser.Truncate(text, _settings.MaxTitleLength);
 
             return text;
         }
@@ -248,7 +241,7 @@ namespace Normalisation.Core
             if (text == null) return string.Empty;
 
             text = TextNormaliser.DecodeHtml(text);
-            text = TextNormaliser.TruncateToWords(text, MAX_SUMMARY_WORDS);
+            text = TextNormaliser.TruncateToWords(text, _settings.MaxSummaryWords);
 
             return text;
         }
@@ -275,7 +268,7 @@ namespace Normalisation.Core
             if (languageIso3 != null)
                 text = StopWordFilter.RemoveStopWords(text, languageIso3);
             text = TextNormaliser.RemoveDuplicateWords(text);
-            text = TextNormaliser.TruncateToWords(text, MAX_KEYWORDS);
+            text = TextNormaliser.TruncateToWords(text, _settings.MaxKeywords);
 
             return text;
         }
@@ -310,7 +303,7 @@ namespace Normalisation.Core
 
             //uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
 
-            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, ALLOWABLE_LINK_SCHEMAS);
+            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _settings.AllowableLinkSchemas);
 
             if (excludeExternalLinks)
                 uniqueUrls = UrlNormaliser.RemoveExternalLinks(uniqueUrls, baseUrl);
@@ -336,7 +329,7 @@ namespace Normalisation.Core
 
             var uniqueUrls = UrlNormaliser.MakeAbsolute(new List<string> { imageUrl }, baseUrl);
 
-            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, ALLOWABLE_LINK_SCHEMAS);
+            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _settings.AllowableLinkSchemas);
 
             return uniqueUrls.FirstOrDefault();
         }
@@ -344,7 +337,7 @@ namespace Normalisation.Core
         private int GetLinkLimit(int maxLinks)
         {
             if (maxLinks <= 0) return 0;
-            if (maxLinks > MAX_LINKS_PER_PAGE) return MAX_LINKS_PER_PAGE;
+            if (maxLinks > _settings.MaxLinksPerPage) return _settings.MaxLinksPerPage;
             return maxLinks;
         }
     }

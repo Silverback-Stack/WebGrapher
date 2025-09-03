@@ -3,17 +3,14 @@ namespace Caching.Core.Helpers
 {
     public static class CacheDurationHelper
     {
-        private const int MIN_ABSOLUTE_EXPIRY_MINUTES = 5;
-        private const int MAX_ABSOLUTE_EXPIRY_MINUTES = 20;
-
         /// <summary>
         /// Returns a clamped duration between now and the provided expiry,
         /// within configured bounds. Returns minimal TTL if expiry is missing or already expired.
         /// </summary>
         public static TimeSpan? Clamp(
             DateTimeOffset? expires, 
-            int minDurationInMinutes = MIN_ABSOLUTE_EXPIRY_MINUTES, 
-            int maxDurationInMinutes = MAX_ABSOLUTE_EXPIRY_MINUTES)
+            int minDurationInMinutes, 
+            int maxDurationInMinutes)
         {
             if (minDurationInMinutes > maxDurationInMinutes)
                 throw new ArgumentException("minDuration cannot be greater than maxDuration");

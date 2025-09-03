@@ -5,7 +5,7 @@ namespace Crawler.Core
 {
     public class CrawlerSettings
     {
-        public string ServiceName { get; set; } = "CRAWLER";
+        public string ServiceName { get; set; } = "Crawler";
         public int MaxCrawlAttemptLimit { get; set; } = 3;
         public int MaxCrawlDepthLimit { get; set; } = 3;
 

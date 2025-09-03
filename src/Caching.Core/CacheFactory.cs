@@ -7,21 +7,21 @@ namespace Caching.Core
 {
     public static class CacheFactory
     {
-        public static ICache CreateCache(string serviceName, CacheOptions options, ILogger logger)
+        public static ICache CreateCache(CacheSettings settings, string serviceName, ILogger logger)
         {
-            switch (options)
+            switch (settings.CacheType)
             {
-                case CacheOptions.InMemory:
+                case CacheType.InMemory:
                     return new InMemoryCacheAdapter(serviceName, logger);
 
-                case CacheOptions.InStorage:
-                    return new InStorageCacheAdapter(serviceName, logger);
+                case CacheType.InStorage:
+                    return new InStorageCacheAdapter(settings, serviceName, logger);
 
-                case CacheOptions.Redis:
+                case CacheType.Redis:
                     throw new NotImplementedException();
 
                 default:
-                    throw new NotSupportedException($"Caching option '{options}' is not supported.");
+                    throw new NotSupportedException($"Caching option '{settings.CacheType}' is not supported.");
             }
         }
     }

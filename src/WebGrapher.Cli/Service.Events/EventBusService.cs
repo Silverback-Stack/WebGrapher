@@ -1,7 +1,6 @@
 ﻿using System;
 using Events.Core.Bus;
 using Events.Core.Events;
-using Events.Core.RateLimiters;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
@@ -11,10 +10,10 @@ namespace WebGrapher.Cli.Service.Events
 {
     internal class EventBusService
     {
-        public async static Task<IEventBus> StartAsync()
+        public async static Task<IEventBus> StartAsync(EventBusSettings settings)
         {
             //configure logging:
-            var serviceName = typeof(EventBusService).Name;
+            var serviceName = settings.ServiceName;
             var logFilePath = $"logs/{serviceName}.log";
 
             var serilogLogger = new LoggerConfiguration()
