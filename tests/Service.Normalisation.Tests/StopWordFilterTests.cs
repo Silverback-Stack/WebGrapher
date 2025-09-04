@@ -1,4 +1,6 @@
+using Normalisation.Core;
 using Normalisation.Core.Processors;
+using NUnit.Framework.Constraints;
 
 namespace Service.Normalisation.Tests
 {
@@ -15,22 +17,25 @@ namespace Service.Normalisation.Tests
         [TestCase("Je vais au marché demain", "fr", "vais marché demain")] //French
         public void RemoveStopWords_FromInput_RemovesCorrectly(string input, string lang, string expected)
         {
-            var result = StopWordFilter.RemoveStopWords(input, lang);
+            var normalisationSetting = new NormalisationSettings();
+            var result = StopWordFilter.RemoveStopWords(input, lang, normalisationSetting);
             Assert.That(result, Is.EqualTo(expected));
         }
 
         [Test]
         public void RemoveStopWords_FromNoInput_ReturnsEmpty()
         {
-            var result = StopWordFilter.RemoveStopWords("", "en");
+            var normalisationSetting = new NormalisationSettings();
+            var result = StopWordFilter.RemoveStopWords("", "en", normalisationSetting);
             Assert.That(result, Is.Empty);
         }
 
         [Test]
         public void RemoveStopWords_UnknownLanguageCode_DefaultsToEnglishAndRemovesStopWords()
         {
+            var normalisationSetting = new NormalisationSettings();
             var input = "This is a test of unknown language";
-            var result = StopWordFilter.RemoveStopWords(input, "xx"); //defaults to English
+            var result = StopWordFilter.RemoveStopWords(input, "xx", normalisationSetting); //defaults to English
             Assert.That(result, Is.EqualTo("unknown language")); //stop words removed
         }
     }

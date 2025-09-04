@@ -22,7 +22,7 @@ namespace Events.Core.Bus
         /// </summary>
         Task PublishClientLogEventAsync(
             Guid graphId,
-            Guid correlationId,
+            Guid? correlationId,
             LogType type, 
             string message, 
             string? code = null,

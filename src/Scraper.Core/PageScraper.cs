@@ -14,15 +14,14 @@ namespace Scraper.Core
         protected readonly ILogger _logger;
         protected readonly IEventBus _eventBus;
         protected readonly IRequestSender _requestSender;
+        protected readonly ScraperSettings _scraperSettings;
 
-        protected const string SERVICE_NAME = "SCRAPER";
-        private const int CONTENT_MAX_BYTES = 4_194_304; //4 Mb
-
-        public PageScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender)
+        public PageScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender, ScraperSettings scraperSettings)
         {
             _logger = logger;
             _eventBus = eventBus;
             _requestSender = requestSender;
+            _scraperSettings = scraperSettings;
         }
 
         public void SubscribeAll()
@@ -33,6 +32,28 @@ namespace Scraper.Core
         public void UnsubscribeAll()
         {
             _eventBus.Unsubscribe<ScrapePageEvent>(ScrapeContent);
+        }
+
+        public async Task PublishClientLogEventAsync(
+            Guid graphId,
+            Guid? correlationId,
+            LogType type,
+            string message,
+            string? code = null,
+            Object? context = null)
+        {
+            var clientLogEvent = new ClientLogEvent
+            {
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = _scraperSettings.ServiceName,
+                Context = context
+            };
+
+            await _eventBus.PublishAsync(clientLogEvent);
         }
 
         private async Task ScrapeContent(ScrapePageEvent evt)
@@ -69,7 +90,7 @@ namespace Scraper.Core
             {
                 await PublishScrapePageFailedEvent(request, response);
 
-                logMessage = $"Scrape Failed: {request.Url} Status: {response.Metadata.StatusCode}. Attempt: {request.Attempt})";
+                logMessage = $"Scrape Failed: {request.Url} Status: {response.Metadata.StatusCode}. Attempt: {request.Attempt}";
                 _logger.LogError(logMessage);
 
                 await PublishClientLogEventAsync(
@@ -159,31 +180,9 @@ namespace Scraper.Core
                 url,
                 userAgent,
                 clientAccept,
-                CONTENT_MAX_BYTES,
+                _scraperSettings.ContentMaxBytes,
                 compositeKey,
                 cancellationToken);
-        }
-
-        public async Task PublishClientLogEventAsync(
-            Guid graphId, 
-            Guid correlationId, 
-            LogType type, 
-            string message, 
-            string? code = null, 
-            Object? context = null)
-        {
-            var clientLogEvent = new ClientLogEvent
-            {
-                GraphId = graphId,
-                CorrelationId = correlationId,
-                Type = type,
-                Message = message,
-                Code = code,
-                Service = SERVICE_NAME,
-                Context = context
-            };
-
-            await _eventBus.PublishAsync(clientLogEvent);
         }
     }
 

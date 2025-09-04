@@ -12,10 +12,11 @@ namespace Crawler.Core
             ILogger logger,
             IEventBus eventBus,
             IRequestSender requestSender,
-            ISitePolicyResolver sitePolicyResolver)
+            ISitePolicyResolver sitePolicyResolver,
+            CrawlerSettings crawlerSettings)
         {
             var service = new PageCrawler(
-                logger, eventBus, requestSender, sitePolicyResolver);
+                logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
             service.SubscribeAll();
             return service;

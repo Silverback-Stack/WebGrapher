@@ -9,7 +9,7 @@ namespace Graphing.Core.WebGraph
             bool forceRefresh,
             Func<Node, Task> nodePopulatedCallback, 
             Func<Node, Task> linkDiscoveredCallback,
-            LinkUpdateMode linkUpdateMode = LinkUpdateMode.Append);
+            NodeEdgesUpdateMode linkUpdateMode = NodeEdgesUpdateMode.Append);
 
         Task<Graph?> GetGraphByIdAsync(Guid graphId);
 

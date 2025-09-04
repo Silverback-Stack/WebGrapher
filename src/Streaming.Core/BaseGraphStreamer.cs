@@ -11,15 +11,16 @@ namespace Streaming.Core
     {
         protected readonly ILogger _logger;
         protected readonly IEventBus _eventBus;
-
-        protected const string SERVICE_NAME = "STREAMING";
+        protected readonly StreamingSettings _streamingSettings;
 
         public BaseGraphStreamer(
             ILogger logger, 
-            IEventBus eventBus)
+            IEventBus eventBus,
+            StreamingSettings streamingSettings)
         {
             _logger = logger;
             _eventBus = eventBus;
+            _streamingSettings = streamingSettings;
         }
 
         public void SubscribeAll()
@@ -36,7 +37,7 @@ namespace Streaming.Core
 
         public async Task PublishClientLogEventAsync(
             Guid graphId, 
-            Guid correlationId,
+            Guid? correlationId,
             LogType type, 
             string message, 
             string? code = null, 
@@ -49,7 +50,7 @@ namespace Streaming.Core
                 Type = type,
                 Message = message,
                 Code = code,
-                Service = SERVICE_NAME,
+                Service = _streamingSettings.ServiceName,
                 Context = context
             };
 
@@ -66,6 +67,22 @@ namespace Streaming.Core
             {
                 var payload = evt.SigmaGraphPayload;
                 await StreamGraphPayloadAsync(evt.SigmaGraphPayload.GraphId, payload);
+
+                var logMessage = $"Streaming {payload.NodeCount} nodes and {payload.EdgeCount} edges.";
+                _logger.LogInformation(logMessage);
+
+                await PublishClientLogEventAsync(
+                        payload.GraphId,
+                        payload.CorrolationId,
+                        LogType.Information,
+                        logMessage,
+                        "StreamingPayload",
+                        new LogContext
+                        {
+                            NodeCount = payload.NodeCount,
+                            EdgeCount = payload.EdgeCount,
+                            Nodes = payload.Nodes.Select(n => n.Id)
+                        });
             }
             catch (Exception ex)
             {
@@ -97,6 +114,5 @@ namespace Streaming.Core
                 _logger.LogError(ex, $"Streaming Failed: Failed to stream log to GraphId: {clientLogDto.GraphId}");
             }
         }
-
     }
 }

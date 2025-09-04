@@ -6,13 +6,14 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
 {
     public class SigmaJsGraphSerializer
     {
+
         public static (IReadOnlyList<SigmaGraphNodeDto> Nodes, IReadOnlyList<SigmaGraphEdgeDto> Edges)
-            GetPopulationDelta(Node node)
+            GetPopulationDelta(Node node, GraphingSettings graphingSettings)
         {
             if (node.State != NodeState.Populated)
                 return (Array.Empty<SigmaGraphNodeDto>(), Array.Empty<SigmaGraphEdgeDto>());
 
-            var nodes = new List<SigmaGraphNodeDto> { CreateNodeDto(node) };
+            var nodes = new List<SigmaGraphNodeDto> { CreateNodeDto(node, graphingSettings) };
             var edges = new List<SigmaGraphEdgeDto>();
             var seenEdges = new HashSet<string>();
 
@@ -49,13 +50,13 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
         }
 
 
-        private static SigmaGraphNodeDto CreateNodeDto(Node node) => 
+        private static SigmaGraphNodeDto CreateNodeDto(Node node, GraphingSettings graphingSettings) => 
             new SigmaGraphNodeDto
             {
                 Id = node.Url,
                 Label = node.Title,
                 PopularityScore = node.PopularityScore,
-                Size = CalculateNodeSize(node.PopularityScore),
+                Size = CalculateNodeSize(node.PopularityScore, graphingSettings),
                 State = node.State.ToString(), 
                 Summary = node.Summary,
                 Image = node.ImageUrl,
@@ -74,10 +75,10 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
             };
         }
 
-        private static double CalculateNodeSize(int popularityScore)
+        private static double CalculateNodeSize(int popularityScore, GraphingSettings graphingSettings)
         {
-            const double minSize = 10;
-            const double maxSize = 100;
+            var minSize = graphingSettings.WebGraph.SigmaJsGraph.MinNodeSize;
+            var maxSize = graphingSettings.WebGraph.SigmaJsGraph.MaxNodeSize;
 
             // Logarithmic scaling: keeps huge counts from exploding
             return minSize +

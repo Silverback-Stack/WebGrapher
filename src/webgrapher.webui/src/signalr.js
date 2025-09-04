@@ -1,6 +1,7 @@
 import { ref } from "vue"
 import * as signalR from "@microsoft/signalr"
 import { addOrUpdateNode, addEdge } from "./sigma.js"
+import appConfig from "./config/app-config.js"
 
 // Create Controller
 export async function initSignalRController(graphId, { sigmaGraph, runFA2, hubUrl, activityLogs }) {
@@ -74,8 +75,7 @@ async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval
     // push new log to array
     activityLogs.value.unshift(payload)
 
-    const MAX_LOGS = 1000
-    if (activityLogs.value.length > MAX_LOGS) {
+    if (activityLogs.value.length > appConfig.maxLogEntries) {
       activityLogs.value.pop() // drop oldest
     }
   })
@@ -89,7 +89,7 @@ async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval
       nodeBuffer = []
       edgeBuffer = []
 
-      runFA2(500)
+      runFA2(appConfig.fa2DurationSlow_MS)
     }
   }, flushInterval)
 

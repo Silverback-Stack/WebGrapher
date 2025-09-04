@@ -1,6 +1,7 @@
 ﻿using System;
 using Caching.Core;
 using Events.Core.Bus;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Scraper.Core;
@@ -14,31 +15,53 @@ namespace WebGrapher.Cli.Service.Scraper
     {
         public async static Task InitializeAsync(IEventBus eventBus)
         {
-            var serviceName = typeof(ScraperService).Name;
-            var logFilePath = $"logs/{serviceName}.log";
+            //Setup Configuration using appsettings overrides
+            var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("Service.Scraper/appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
 
+            //bind appsettings overrides to default settings objects
+            var scraperSettings = configuration.BindSection<ScraperSettings>("Scraper");
+            var metaCacheSettings = configuration.BindSection<CacheSettings>("MetaCache");
+            var blobCacheSettings = configuration.BindSection<CacheSettings>("BlobCache");
+            var requestSenderSettings = configuration.BindSection<RequestSenderSettings>("RequestSender");
+
+
+            //Setup Logging
+            var logFilePath = $"logs/{scraperSettings.ServiceName}.log";
             var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
                 .WriteTo.Console(LogEventLevel.Information)
                 .CreateLogger();
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
-
             var logger = loggerFactory.CreateLogger<IRequestSender>();
 
+
+            //Create Meta Cache for Request Sender
             var metaCache = CacheFactory.CreateCache(
-                serviceName,
-                CacheOptions.InMemory,
-                logger);
+                scraperSettings.ServiceName,
+                logger,
+                metaCacheSettings);
 
+
+            //Create Blob Cache for Request Sender
             var blobCache = CacheFactory.CreateCache(
-                serviceName,
-                CacheOptions.InStorage,
-                logger);
+                scraperSettings.ServiceName,
+                logger,
+                blobCacheSettings);
 
-            var requestSender = RequestFactory.CreateRequestSender(logger, metaCache, blobCache);
 
-            ScraperFactory.Create(logger, eventBus, requestSender);
+            //Create Request Sender
+            var requestSender = RequestFactory.CreateRequestSender(
+                logger, 
+                metaCache, 
+                blobCache,
+                requestSenderSettings);
+
+            ScraperFactory.Create(logger, eventBus, requestSender, scraperSettings);
 
             logger.LogInformation("Scraper service started.");
         }

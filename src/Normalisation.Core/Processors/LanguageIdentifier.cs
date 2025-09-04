@@ -6,18 +6,15 @@ namespace Normalisation.Core.Processors
 {
     public static class LanguageIdentifier
     {
-        public const string DEFAULT_LANGUAGE_ISO2_CODE = "en";
-        public const string DEFAULT_LANGUAGE_ISO3_CODE = "eng";
-
         /// <summary>
         /// Retruns ISO 639-3 language code
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        public static string DetectLanguage(string input)
+        public static string DetectLanguage(string input, NormalisationSettings normalisationSettings)
         {
             if (string.IsNullOrWhiteSpace(input))
-                return DEFAULT_LANGUAGE_ISO3_CODE;
+                return normalisationSettings.Processors.DefaultLanguageIso3Code;
 
             var detector = new LanguageDetector();
             detector.AddAllLanguages();
@@ -27,26 +24,26 @@ namespace Normalisation.Core.Processors
                 var result = detector.Detect(input);
 
                 if (result is null)
-                    result = DEFAULT_LANGUAGE_ISO3_CODE;
+                    result = normalisationSettings.Processors.DefaultLanguageIso3Code;
 
                 return result;
             }
             catch (Exception)
             {
-                return DEFAULT_LANGUAGE_ISO3_CODE;
+                return normalisationSettings.Processors.DefaultLanguageIso3Code;
             }
         }
 
-        public static string ConvertLanguageIso3ToIso2(string iso3LanagugeCode)
+        public static string ConvertLanguageIso3ToIso2(string iso3LanagugeCode, NormalisationSettings normalisationSettings)
         {
             if (string.IsNullOrWhiteSpace(iso3LanagugeCode))
-                return DEFAULT_LANGUAGE_ISO2_CODE;
+                return normalisationSettings.Processors.DefaultLanguageIso2Code;
 
             var culture = CultureInfo
                 .GetCultures(CultureTypes.NeutralCultures)
                 .FirstOrDefault(c => c.ThreeLetterISOLanguageName.Equals(iso3LanagugeCode, StringComparison.OrdinalIgnoreCase));
 
-            return culture?.TwoLetterISOLanguageName ?? DEFAULT_LANGUAGE_ISO2_CODE;
+            return culture?.TwoLetterISOLanguageName ?? normalisationSettings.Processors.DefaultLanguageIso2Code;
 
         }
     }

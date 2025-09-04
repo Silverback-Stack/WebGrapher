@@ -40,7 +40,9 @@ namespace Shared.Requests
             var retryAfter = new 
                 RetryConditionHeaderValue(DateTimeOffset.UtcNow.AddMinutes(1));
 
-            var results = RequestTransformer.GetRetryAfterOffset(
+            var requestTransformer = new RequestTransformer(new RequestSenderSettings());
+
+            var results = requestTransformer.GetRetryAfterOffset(
                 statusCode, retryAfter);
 
             Assert.IsNotNull(results);

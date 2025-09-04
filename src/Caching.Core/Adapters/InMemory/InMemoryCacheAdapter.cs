@@ -4,7 +4,6 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Caching.Core.Adapters.InMemory
 {
-#pragma warning disable CS1998
     public class InMemoryCacheAdapter : ICache
     {
         private readonly ILogger _logger;
@@ -81,5 +80,4 @@ namespace Caching.Core.Adapters.InMemory
             }
         }
     }
-#pragma warning restore CS1998
 }

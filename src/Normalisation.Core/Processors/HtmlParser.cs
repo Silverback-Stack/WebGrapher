@@ -6,16 +6,15 @@ namespace Normalisation.Core.Processors
 {
     public class HtmlParser
     {
-        private const string TITLE_XPATH = ".//title";
-        private const string LINKS_XPATH = ".//a[@href]";
-
         private readonly HtmlDocument _htmlDocument;
+        private readonly NormalisationSettings _normalisationSettings;
 
-        public HtmlParser(string htmlDocument) {
+        public HtmlParser(string htmlDocument, NormalisationSettings normalisationSettings) {
 
             _htmlDocument = new HtmlDocument();
             _htmlDocument.OptionFixNestedTags = true;
             _htmlDocument.LoadHtml(htmlDocument);
+            _normalisationSettings = normalisationSettings;
         }
 
         /// <summary>
@@ -35,7 +34,7 @@ namespace Normalisation.Core.Processors
             }
 
             // Fallback to <title>
-            var titleNode = _htmlDocument.DocumentNode.SelectSingleNode(TITLE_XPATH);
+            var titleNode = _htmlDocument.DocumentNode.SelectSingleNode(_normalisationSettings.Processors.TitleXPath);
             return titleNode?.InnerText.Trim() ?? string.Empty;
         }
 
@@ -74,7 +73,7 @@ namespace Normalisation.Core.Processors
                 : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
 
             var links = nodes
-                .SelectMany(node => node.SelectNodes(LINKS_XPATH) ?? Enumerable.Empty<HtmlNode>())
+                .SelectMany(node => node.SelectNodes(_normalisationSettings.Processors.LinksXPath) ?? Enumerable.Empty<HtmlNode>())
                 .Select(tag => WebUtility.HtmlDecode(tag.GetAttributeValue("href", "")))
                 .Where(href => !string.IsNullOrEmpty(href))
                 .ToHashSet();

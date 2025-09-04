@@ -16,21 +16,14 @@ namespace Normalisation.Core
         private readonly ILogger _logger;
         private readonly ICache _blobCache;
         private readonly IEventBus _eventBus;
+        private readonly NormalisationSettings _normalisationSettings;
 
-        protected const string SERVICE_NAME = "NORMALISATION";
-        private const int MAX_TITLE_LENGTH = 100;
-        private const int MAX_SUMMARY_WORDS = 100;
-        private const int MAX_KEYWORDS = 300; // one page of text
-        private const int MAX_KEYWORD_TAGS = 10;
-        private const int MAX_LINKS_PER_PAGE = 100;
-
-        private static readonly string[] ALLOWABLE_LINK_SCHEMAS = ["http", "https"];
-
-        public PageNormaliser(ILogger logger, ICache blobCache, IEventBus eventBus)
+        public PageNormaliser(ILogger logger, ICache blobCache, IEventBus eventBus, NormalisationSettings normalisationSettings)
         {
             _logger = logger;
             _blobCache = blobCache;
             _eventBus = eventBus;
+            _normalisationSettings = normalisationSettings;
         }
 
         public void SubscribeAll()
@@ -43,13 +36,35 @@ namespace Normalisation.Core
             _eventBus.Unsubscribe<NormalisePageEvent>(NormalisePageContentAsync);
         }
 
+        public async Task PublishClientLogEventAsync(
+            Guid graphId,
+            Guid? correlationId,
+            LogType type,
+            string message,
+            string? code = null,
+            Object? context = null)
+        {
+            var clientLogEvent = new ClientLogEvent
+            {
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = _normalisationSettings.ServiceName,
+                Context = context
+            };
+
+            await _eventBus.PublishAsync(clientLogEvent);
+        }
+
         private async Task PublishGraphEvent(
             NormalisePageEvent evt,
-            string? title, 
+            string? title,
             string? summary,
-            string? keywords, 
-            IEnumerable<string>? tags, 
-            IEnumerable<Uri>? links, 
+            string? keywords,
+            IEnumerable<string>? tags,
+            IEnumerable<Uri>? links,
             Uri? imageUrl,
             string? languageIso3)
         {
@@ -76,15 +91,32 @@ namespace Normalisation.Core
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
-            await _eventBus.PublishAsync(new GraphPageEvent
+            // Check if request is Preview of Normalised data
+            LogContextPreview? preview = null;
+            if (request.Preview) {
+                preview = new LogContextPreview
+                {
+                    Title = normalisedPageResult.Title,
+                    Summary = normalisedPageResult.Summary,
+                    Keywords = normalisedPageResult.Keywords,
+                    Tags = normalisedPageResult.Tags,
+                    Links = normalisedPageResult.Links?.Select(l => l.AbsoluteUri),
+                    ImageUrl = normalisedPageResult.ImageUrl?.AbsoluteUri,
+                    DetectedLanguageIso3 = normalisedPageResult.DetectedLanguageIso3
+                };
+            }
+            else
             {
-                CrawlPageRequest = request,
-                NormalisePageResult = normalisedPageResult,
-                CreatedAt = DateTimeOffset.UtcNow
-            }, priority: request.Depth);
+                // Not a Preview - continue to Publish GraphPageEvent
+                await _eventBus.PublishAsync(new GraphPageEvent
+                {
+                    CrawlPageRequest = request,
+                    NormalisePageResult = normalisedPageResult,
+                    CreatedAt = DateTimeOffset.UtcNow
+                }, priority: request.Depth);
+            }
 
-
-            var logMessage = $"Normalisation Success: {result.Url} scheduled for graphing. Links: {links?.Count()} Keywords: {keywords?.Count()}";
+            var logMessage = $"Normalisation Completed: {result.Url} Links: {links?.Count()} Keywords: {keywords?.Count()}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
@@ -96,9 +128,9 @@ namespace Normalisation.Core
                 new LogContext
                 {
                     Url = request.Url.AbsoluteUri,
-                    Title = title ?? string.Empty,
-                    TotalLinks = links?.Count() ?? 0,
-                    TotalKeywords = keywords?.Count() ?? 0
+                    TotalLinks = normalisedPageResult.Links?.Count() ?? 0,
+                    TotalKeywords = normalisedPageResult.Keywords?.Count() ?? 0,
+                    Preview = preview
                 });
         }
 
@@ -145,18 +177,18 @@ namespace Normalisation.Core
                 return;
             }
 
-            var htmlParser = new HtmlParser(htmlDocument);
+            var htmlParser = new HtmlParser(htmlDocument, _normalisationSettings);
             var extractedTitle = htmlParser.ExtractTitle(request.Options.TitleElementXPath);
             var extractedSummary = htmlParser.ExtractContentAsPlainText(request.Options.SummaryElementXPath);
             var extractedContent = htmlParser.ExtractContentAsPlainText(request.Options.ContentElementXPath);
-            var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent);
+            var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent, _normalisationSettings);
             var extractedLinks = htmlParser.ExtractLinks(request.Options.RelatedLinksElementXPath);
             var extractedImageUrl = htmlParser.ExtractImageUrl(request.Options.ImageElementXPath);   
 
             var normalisedTitle = NormaliseTitle(extractedTitle);
             var normalisedSummary = NormaliseSummary(extractedSummary);
             var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
-            var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, MAX_KEYWORD_TAGS);
+            var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, _normalisationSettings.MaxKeywordTags);
             var normalisedLinks = NormaliseLinks(
                 extractedLinks,
                 request.Url,
@@ -199,7 +231,7 @@ namespace Normalisation.Core
             text = TextNormaliser.DecodeHtml(text);
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
-            text = TextNormaliser.Truncate(text, MAX_TITLE_LENGTH);
+            text = TextNormaliser.Truncate(text, _normalisationSettings.MaxTitleLength);
 
             return text;
         }
@@ -209,7 +241,7 @@ namespace Normalisation.Core
             if (text == null) return string.Empty;
 
             text = TextNormaliser.DecodeHtml(text);
-            text = TextNormaliser.TruncateToWords(text, MAX_SUMMARY_WORDS);
+            text = TextNormaliser.TruncateToWords(text, _normalisationSettings.MaxSummaryWords);
 
             return text;
         }
@@ -234,9 +266,9 @@ namespace Normalisation.Core
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
             if (languageIso3 != null)
-                text = StopWordFilter.RemoveStopWords(text, languageIso3);
+                text = StopWordFilter.RemoveStopWords(text, languageIso3, _normalisationSettings);
             text = TextNormaliser.RemoveDuplicateWords(text);
-            text = TextNormaliser.TruncateToWords(text, MAX_KEYWORDS);
+            text = TextNormaliser.TruncateToWords(text, _normalisationSettings.MaxKeywords);
 
             return text;
         }
@@ -251,7 +283,7 @@ namespace Normalisation.Core
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
             if (languageIso3 != null)
-                text = StopWordFilter.RemoveStopWords(text, languageIso3);
+                text = StopWordFilter.RemoveStopWords(text, languageIso3, _normalisationSettings);
             text = TextNormaliser.RemoveNumericalWords(text);
 
             return TextNormaliser.ExtractTags(text, maxTags);
@@ -271,7 +303,7 @@ namespace Normalisation.Core
 
             //uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
 
-            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, ALLOWABLE_LINK_SCHEMAS);
+            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _normalisationSettings.AllowableLinkSchemas);
 
             if (excludeExternalLinks)
                 uniqueUrls = UrlNormaliser.RemoveExternalLinks(uniqueUrls, baseUrl);
@@ -297,7 +329,7 @@ namespace Normalisation.Core
 
             var uniqueUrls = UrlNormaliser.MakeAbsolute(new List<string> { imageUrl }, baseUrl);
 
-            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, ALLOWABLE_LINK_SCHEMAS);
+            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _normalisationSettings.AllowableLinkSchemas);
 
             return uniqueUrls.FirstOrDefault();
         }
@@ -305,30 +337,8 @@ namespace Normalisation.Core
         private int GetLinkLimit(int maxLinks)
         {
             if (maxLinks <= 0) return 0;
-            if (maxLinks > MAX_LINKS_PER_PAGE) return MAX_LINKS_PER_PAGE;
+            if (maxLinks > _normalisationSettings.MaxLinksPerPage) return _normalisationSettings.MaxLinksPerPage;
             return maxLinks;
-        }
-
-        public async Task PublishClientLogEventAsync(
-            Guid graphId, 
-            Guid correlationId, 
-            LogType type, 
-            string message, 
-            string? code = null,
-            Object? context = null)
-        {
-            var clientLogEvent = new ClientLogEvent
-            {
-                GraphId = graphId,
-                CorrelationId = correlationId,
-                Type = type,
-                Message = message,
-                Code = code,
-                Service = SERVICE_NAME,
-                Context = context
-            };
-
-            await _eventBus.PublishAsync(clientLogEvent);
         }
     }
 }

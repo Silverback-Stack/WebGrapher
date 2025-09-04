@@ -11,7 +11,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
         private readonly Dictionary<Guid, Graph> _graphTable = new();
         private readonly Dictionary<Guid, Dictionary<string, Node>> _nodeTable = new();
 
-        public InMemoryWebGraphAdapter(ILogger logger) : base(logger) { }
+        public InMemoryWebGraphAdapter(ILogger logger, GraphingSettings graphingSettings) : base(logger, graphingSettings) { }
 
         public async override Task<Node?> GetNodeAsync(Guid graphId, string url)
         {
@@ -193,7 +193,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
                 Id = Guid.NewGuid(),
                 Name = options.Name,
                 Description = options.Description,
-                Url = options.Url.AbsoluteUri,
+                Url = options.Url?.AbsoluteUri ?? "https://",
                 MaxDepth = options.MaxDepth,
                 MaxLinks = options.MaxLinks,
                 ExcludeExternalLinks = options.ExcludeExternalLinks,

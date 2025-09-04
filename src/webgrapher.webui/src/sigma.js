@@ -1,14 +1,8 @@
 import Sigma from "sigma"
 import { createNodeImageProgram } from "@sigma/node-image"
 import FA2Layout from "graphology-layout-forceatlas2/worker"
+import appConfig from "./config/app-config.js"
 
-// --- Colors ---
-export const GraphColors = {
-  Node: "#E0E0E0",
-  NodeSelected: "#888888",
-  Edge: "#E0E0E0",
-  EdgeSelected: "#888888"
-}
 
 // --- Sigma setup ---
 export function setupSigma(sigmaGraph, container) {
@@ -76,13 +70,13 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlighted
 
     if (highlightedNode.value === node) return
 
-    if (highlightedNode.value) resetHighlight(sigmaGraph, sigmaInstance)
+    if (highlightedNode.value) resetHighlightNodeNeighborhood(sigmaGraph, sigmaInstance)
 
     highlightedNode.value = node
 
-    highlightNeighbors(sigmaGraph, sigmaInstance, node)
+    highlightNodeNeighborhood(sigmaGraph, sigmaInstance, node)
 
-    runFA2(250)
+    runFA2(appConfig.fa2DurationFast_MS)
 
     // --- fetch subgraph for clicked node ---
     if (typeof nodeSubGraph === "function" && graphId.value) {
@@ -96,13 +90,14 @@ export function setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlighted
 
   sigmaInstance.on("clickStage", () => {
     if (highlightedNode.value) {
-      resetHighlight(sigmaGraph, sigmaInstance)
+      resetHighlightNodeNeighborhood(sigmaGraph, sigmaInstance)
       highlightedNode.value = null
     }
   })
 }
 
 // --- Node sizing ---
+// Dynamically adjusts node size based on incoming/outgoing edges
 export function setupNodeSizing(sigmaGraph, sigmaInstance) {
   function updateNodeSize(nodeId) {
     const incoming = sigmaGraph.inEdges(nodeId).length
@@ -111,8 +106,10 @@ export function setupNodeSizing(sigmaGraph, sigmaInstance) {
 
     sigmaGraph.updateNodeAttributes(nodeId, oldAttr => ({
       ...oldAttr,
-      _baseSize: baseSize,
-      size: oldAttr._highlighted ? baseSize * 2 : baseSize
+      _baseSize: baseSize,                  // update dynamic base size
+      size: oldAttr._highlighted            // only enlarge if currently highlighted
+        ? baseSize * appConfig.nodeSizeSelectedRatio //eg: 150%
+        : baseSize
     }))
     sigmaInstance.refresh()
   }
@@ -131,7 +128,7 @@ export function setupReducer(sigmaGraph, sigmaInstance, highlightedNodeRef) {
     sigmaGraph.forEachNode((node, attr) => {
       if (attr._originalType === "image") {
         const screenSize = attr.size / zoom
-        const newType = screenSize < 10 ? "circle" : "image"                
+        const newType = screenSize < appConfig.minNodeSize ? "circle" : "image"                
         if (attr.type !== newType) {
           sigmaGraph.updateNodeAttributes(node, oldAttr => ({ ...oldAttr, type: newType }))
         }
@@ -149,8 +146,10 @@ export function addOrUpdateNode(sigmaGraph, n) {
   if (sigmaGraph.hasNode(n.id)) {
     sigmaGraph.updateNodeAttributes(n.id, oldAttr => ({
       _originalType: n.type, //used for reducer
+      _originalSize: oldAttr._originalSize ?? oldAttr.size, // preserve highlight base
+      _baseSize: oldAttr._baseSize ?? n.size,               // preserve dynamic base
+      size: oldAttr.size,
       label: n.label,        
-      size: oldAttr.size,    // preserve current size
       color: oldAttr.color,  // preserve current color (highlighted or not)
       image: n.image,        
       type: n.type,
@@ -163,10 +162,12 @@ export function addOrUpdateNode(sigmaGraph, n) {
     }))
   } else {
     sigmaGraph.addNode(n.id, {
-      _originalType: n.type, //used for reducer
+      _originalType: n.type,   // for reducer
+      _originalSize: n.size,   // for highlight reset
+      _baseSize: n.size,       // for dynamic base size
       label: n.label,
       size: n.size,
-      color: GraphColors.Node,
+      color: appConfig.nodeColor,
       image: n.image,
       opacity: 1,
       type: n.type,
@@ -190,58 +191,68 @@ export function addEdge(sigmaGraph, e) {
   }
 }
 
-export function highlightNeighbors(sigmaGraph, sigmaInstance, hoveredNode) {
-  const neighbors = new Set(sigmaGraph.neighbors(hoveredNode));
-  neighbors.add(hoveredNode);
+
+// Highlights the given node and its neighbors by:
+// - Enlarging and emphasizing the selected node
+// - Highlighting its direct neighbors
+// - Visually de-emphasizing unrelated nodes (shrinking them and removing images)
+// - Updating edges so that only those within the neighborhood are emphasized
+export function highlightNodeNeighborhood(sigmaGraph, sigmaInstance, selectedNode) {
+  const neighbors = new Set(sigmaGraph.neighbors(selectedNode));
+  neighbors.add(selectedNode);
 
   // Update nodes
   sigmaGraph.forEachNode(n => {
     const isNeighbor = neighbors.has(n);
 
     sigmaGraph.updateNodeAttributes(n, oldAttr => {
-      // Ensure _originalSize exists
-      const baseSize = oldAttr._originalSize ?? oldAttr.size;
-      let newSize = baseSize;
+      // Use dynamic base size for scaling
+      const baseSize = oldAttr._baseSize ?? oldAttr.size;
 
-      if (n === hoveredNode) {
-        newSize = baseSize * 1.5; // enlarge selected node
-      } else if (!isNeighbor) {
-        newSize = 10; // shrink non-neighbors
+      let newSize;
+      if (n === selectedNode) {
+        newSize = baseSize * appConfig.nodeSizeSelectedRatio // enlarge selected node
+      } else if (isNeighbor) {
+        newSize = baseSize;                    // keep neighbor size
+      } else {
+        newSize = appConfig.minNodeSize        // shrink non-neighbors
       }
 
       return {
         ...oldAttr,
-        _originalSize: baseSize, // keep base size for future updates
         size: newSize,
         type: isNeighbor ? "image" : "circle",
-        color: isNeighbor ? GraphColors.NodeSelected : GraphColors.Node
-      };
-    });
-  });
+        color: isNeighbor ? appConfig.nodeSelectedColor : appConfig.nodeColor
+      }
+    })
+  })
 
   // Update edges
   sigmaGraph.forEachEdge((edge, attr, source, target) => {
     const isConnected = neighbors.has(source) && neighbors.has(target);
     sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
       ...oldAttr,
-      color: isConnected ? GraphColors.EdgeSelected : GraphColors.Edge,
-      size: isConnected ? 2 : 1
-    }));
-  });
+      color: isConnected ? appConfig.nodeEdgeSelectedSize : appConfig.nodeEdgeColor,
+      size: isConnected ? appConfig.nodeEdgeSelectedSize : appConfig.nodeEdgeSize
+    }))
+  })
 
   sigmaInstance.refresh();
 }
 
-export function resetHighlight(sigmaGraph, sigmaInstance) {
+
+// Restores all nodes and edges to their default
+// visual state, removing any highlighting applied
+// by highlightNodeNeighborhood.
+export function resetHighlightNodeNeighborhood(sigmaGraph, sigmaInstance) {
   // Reset all nodes to default image type, color, and original size
   sigmaGraph.forEachNode(n => {
     sigmaGraph.updateNodeAttributes(n, oldAttr => {
-      const baseSize = oldAttr._originalSize ?? oldAttr.size; // fallback if _originalSize missing
       return {
         ...oldAttr,
         type: "image",
-        size: baseSize,
-        color: GraphColors.Node
+        size: oldAttr._baseSize,  // restore to dynamic base size
+        color: appConfig.nodeColor
       };
     });
   });
@@ -250,7 +261,7 @@ export function resetHighlight(sigmaGraph, sigmaInstance) {
   sigmaGraph.forEachEdge((edge, attr) => {
     sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
       ...oldAttr,
-      color: GraphColors.Edge,
+      color: appConfig.nodeEdgeColor,
       size: 1
     }));
   });
@@ -260,7 +271,9 @@ export function resetHighlight(sigmaGraph, sigmaInstance) {
 
 // Pan/zoom Sigma camera to a node or the center of the graph.
 export function panTo(sigmaGraph, sigmaInstance, node = null, options = {}) {
-  const { duration = 300, ratio } = options;
+  const {
+    duration = appConfig.panDuration_MS,
+    ratio } = options;
 
   const camera = sigmaInstance.getCamera();
 
@@ -305,12 +318,12 @@ function getRandomPosition(maxRange = 100) {
 }
 
 function calculateNodeSize(incoming, outgoing) {
+  const minNodeSize = appConfig.minNodeSize
+  const maxNodeSize = appConfig.maxNodeSize
   const total = incoming + outgoing
-  const minSize = 10
-  const maxSize = 100
 
   return (
-    minSize +
-    (Math.log10(total + 1) * (maxSize - minSize)) / Math.log10(1000)
+    minNodeSize +
+    (Math.log10(total + 1) * (maxNodeSize - minNodeSize)) / Math.log10(1000)
   )
 }

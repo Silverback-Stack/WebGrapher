@@ -7,9 +7,9 @@ namespace Graphing.Core
 {
     public class GraphingFactory
     {
-        public static IPageGrapher Create(ILogger logger, IEventBus eventBus, IWebGraph webGraph)
+        public static IPageGrapher Create(ILogger logger, IEventBus eventBus, IWebGraph webGraph, GraphingSettings graphingSettings)
         {
-            var service = new PageGrapher(logger, eventBus, webGraph);
+            var service = new PageGrapher(logger, eventBus, webGraph, graphingSettings);
             service.SubscribeAll();
             return service;
         }

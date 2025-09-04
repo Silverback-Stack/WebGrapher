@@ -2,15 +2,14 @@
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
-using Scraper.Core;
 
 namespace Scraper.Core
 {
     public static class ScraperFactory
     {
-        public static IPageScraper Create(ILogger logger, IEventBus eventbus, IRequestSender requestSender)
+        public static IPageScraper Create(ILogger logger, IEventBus eventbus, IRequestSender requestSender, ScraperSettings scraperSettings)
         {
-            var service = new PageScraper(logger, eventbus, requestSender);
+            var service = new PageScraper(logger, eventbus, requestSender, scraperSettings);
             service.SubscribeAll();
             return service;
         }

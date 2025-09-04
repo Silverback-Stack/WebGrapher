@@ -12,20 +12,19 @@ namespace Crawler.Core.SitePolicy
         private readonly ILogger _logger;
         private readonly ICache _policyCache;
         private readonly IRequestSender _requestSender;
+        private readonly CrawlerSettings _crawlerSettings;
 
-        private const string OVERRIDE_USER_ACCEPTS = "text/plain, text/html"; //Robots.txt format
-        protected const int SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES = 20;
-
-        public SitePolicyResolver(ILogger logger, ICache policyCache, IRequestSender requestSender)
+        public SitePolicyResolver(ILogger logger, ICache policyCache, IRequestSender requestSender, CrawlerSettings crawlerSettings)
         {
             _logger = logger;
             _policyCache = policyCache;
             _requestSender = requestSender;
+            _crawlerSettings = crawlerSettings;
         }
 
         public async Task<SitePolicyItem> GetOrCreateSitePolicyAsync(Uri url, string userAgent, DateTimeOffset? retryAfter = null)
         {
-            var compositeKey = $"{url.Authority}|{userAgent}|{OVERRIDE_USER_ACCEPTS}";
+            var compositeKey = $"{url.Authority}|{userAgent}|{_crawlerSettings.SitePolicy.UserAccepts}";
             var cacheKey = CacheKeyHelper.ComputeCacheKey(compositeKey);
 
             var sitePolicy = await _policyCache.GetAsync<SitePolicyItem>(cacheKey);
@@ -46,7 +45,7 @@ namespace Crawler.Core.SitePolicy
                     UrlAuthority = url.Authority,
                     CreatedAt = DateTimeOffset.UtcNow,
                     ModifiedAt = DateTimeOffset.UtcNow,
-                    ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES),
+                    ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_crawlerSettings.SitePolicy.AbsoluteExpiryMinutes),
                     RetryAfter = retryAfter,
                     RobotsTxt = robotsTxt ?? string.Empty
                 };
@@ -66,7 +65,7 @@ namespace Crawler.Core.SitePolicy
             var httpResponseEnvelope = await _requestSender.FetchAsync(
                 robotsTxtUrl,
                 userAgent,
-                OVERRIDE_USER_ACCEPTS);
+                _crawlerSettings.SitePolicy.UserAccepts);
 
             var encoding = httpResponseEnvelope?.Metadata?.ResponseData?.Encoding;
             return httpResponseEnvelope?.Data?.DecodeAsString(encoding);
@@ -81,9 +80,9 @@ namespace Crawler.Core.SitePolicy
         {
             if (sitePolicy is null) return;
 
-            var compositeKey = $"{url.Authority}|{userAgent}|{OVERRIDE_USER_ACCEPTS}";
+            var compositeKey = $"{url.Authority}|{userAgent}|{_crawlerSettings.SitePolicy.UserAccepts}";
             var cacheKey = CacheKeyHelper.ComputeCacheKey(compositeKey);
-            var expiryDuration = TimeSpan.FromMinutes(SITE_POLICY_ABSOLUTE_EXPIRY_MINUTES);
+            var expiryDuration = TimeSpan.FromMinutes(_crawlerSettings.SitePolicy.AbsoluteExpiryMinutes);
 
             var existingSitePolicy = await _policyCache.GetAsync<SitePolicyItem>(cacheKey);
 

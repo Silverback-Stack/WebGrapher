@@ -20,8 +20,8 @@ namespace Graphing.Core
 
         Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null);
 
-        Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl);
+        Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl, int maxDepth = 1, int? maxNodes = null);
 
-        Task CrawlPageAsync(Guid graphId, GraphOptions options);
+        Task<CrawlPageRequestDto> CrawlPageAsync(Guid graphId, GraphOptions options);
     }
 }

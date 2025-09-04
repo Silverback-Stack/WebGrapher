@@ -16,21 +16,20 @@ namespace Crawler.Core
         protected readonly ILogger _logger;
         protected readonly IRequestSender _requestSender;
         protected readonly ISitePolicyResolver _sitePolicyResolver;
-
-        protected const string SERVICE_NAME = "CRAWLER";
-        protected const int MAX_CRAWL_ATTEMPTS = 3;
-        protected const int MAX_CRAWL_DEPTH = 3;
+        protected readonly CrawlerSettings _crawlerSettings;
 
         public PageCrawler(
             ILogger logger,
             IEventBus eventBus,
             IRequestSender requestSender,
-            ISitePolicyResolver sitePolicyResolver)
+            ISitePolicyResolver sitePolicyResolver,
+            CrawlerSettings crawlerSettings)
         {
             _eventBus = eventBus;
             _logger = logger;
             _requestSender = requestSender;
             _sitePolicyResolver = sitePolicyResolver;
+            _crawlerSettings = crawlerSettings;
         }
 
         public void SubscribeAll()
@@ -47,7 +46,7 @@ namespace Crawler.Core
 
         public async Task PublishClientLogEventAsync(
             Guid graphId,
-            Guid correlationId,
+            Guid? correlationId,
             LogType type,
             string message,
             string? code = null,
@@ -60,7 +59,7 @@ namespace Crawler.Core
                 Type = type,
                 Message = message,
                 Code = code,
-                Service = SERVICE_NAME,
+                Service = _crawlerSettings.ServiceName,
                 Context = context
             };
 
@@ -78,9 +77,9 @@ namespace Crawler.Core
             var logMessage = $"Crawl requested: {request.Url} Depth: {request.Depth} Attempt: {request.Attempt}";
             _logger.LogDebug(logMessage);
 
-            if (HasExhaustedRetries(request.Attempt))
+            if (HasExhaustedRetries(request.Attempt, _crawlerSettings.MaxCrawlAttemptLimit))
             {
-                logMessage = $"Crawl Abandoned: {request.Url} Max retries reached: {request.Attempt})";
+                logMessage = $"Crawl Abandoned: {request.Url} Current retry attempt {request.Attempt} exceeded maximum allowed {_crawlerSettings.MaxCrawlAttemptLimit}";
                 _logger.LogWarning(logMessage);
 
                 await PublishClientLogEventAsync(
@@ -98,9 +97,9 @@ namespace Crawler.Core
                 return;
             }
 
-            if (HasReachedMaxDepth(request.Depth, request.Options.MaxDepth))
+            if (HasReachedMaxDepth(request.Depth, request.Options.MaxDepth, _crawlerSettings.MaxCrawlDepthLimit))
             {
-                logMessage = $"Crawl Stopped: {request.Url} Max depth reached: {request.Depth}";
+                logMessage = $"Crawl Stopped: {request.Url} Current depth {request.Depth} exceeded maximum allowed {_crawlerSettings.MaxCrawlDepthLimit}.";
                 _logger.LogWarning(logMessage);
 
                 await PublishClientLogEventAsync(
@@ -163,11 +162,11 @@ namespace Crawler.Core
             await PublishScheduledCrawlPageEvent(request, sitePolicy.RetryAfter);
         }
 
-        private static bool HasExhaustedRetries(int currentAttempt) =>
-            currentAttempt >= MAX_CRAWL_ATTEMPTS;
+        private static bool HasExhaustedRetries(int currentAttempt, int maxCrawlAttemptLimit) =>
+            currentAttempt > maxCrawlAttemptLimit;
 
-        private static bool HasReachedMaxDepth(int currentDepth, int maxDepth) =>
-            currentDepth > Math.Min(maxDepth, MAX_CRAWL_DEPTH);
+        private static bool HasReachedMaxDepth(int currentDepth, int maxDepth, int maxCrawlDepthLimit) =>
+            currentDepth > Math.Min(maxDepth, maxCrawlDepthLimit);
 
         private async Task PublishScrapePageEvent(CrawlPageEvent evt)
         {
@@ -179,7 +178,7 @@ namespace Crawler.Core
                 CreatedAt = DateTimeOffset.UtcNow
             }, priority: request.Depth);
 
-            var logMessage = $"Crawl Permitted: {request.Url} scheduled for scraping. Depth: {request.Depth}";
+            var logMessage = $"Crawl Permitted: {request.Url} Depth: {request.Depth}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
@@ -199,7 +198,10 @@ namespace Crawler.Core
         private async Task PublishScheduledCrawlPageEvent(CrawlPageRequestDto request, DateTimeOffset? retryAfter)
         {
             var attempt = request.Attempt + 1;
-            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(retryAfter);
+            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(
+                retryAfter,
+                _crawlerSettings.ScheduleCrawlDelayMinSeconds,
+                _crawlerSettings.ScheduleCrawlDelayMaxSeconds);
 
             var crawlPageRequest = request with
             {

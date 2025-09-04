@@ -16,16 +16,14 @@ namespace Graphing.Core
         private readonly ILogger _logger;
         private readonly IEventBus _eventBus;
         private readonly IWebGraph _webGraph;
+        private readonly GraphingSettings _graphingSettings;
 
-        protected const string SERVICE_NAME = "GRAPHING";
-        private const int MAX_REQUEST_DEPTH = 3;
-        private const int MAX_REQUEST_NODES = 300;
-
-        public PageGrapher(ILogger logger, IEventBus eventBus, IWebGraph webGraph)
+        public PageGrapher(ILogger logger, IEventBus eventBus, IWebGraph webGraph, GraphingSettings graphingSettings)
         {
             _logger = logger;
             _eventBus = eventBus;
             _webGraph = webGraph;
+            _graphingSettings = graphingSettings;
         }
         public void SubscribeAll()
         {
@@ -39,7 +37,7 @@ namespace Graphing.Core
 
         public async Task PublishClientLogEventAsync(
             Guid graphId,
-            Guid correlationId,
+            Guid? correlationId,
             LogType type,
             string message,
             string? code = null,
@@ -52,7 +50,7 @@ namespace Graphing.Core
                 Type = type,
                 Message = message,
                 Code = code,
-                Service = SERVICE_NAME,
+                Service = _graphingSettings.ServiceName,
                 Context = context
             };
 
@@ -61,7 +59,8 @@ namespace Graphing.Core
 
         private async Task PublishGraphNodeAddedEvent(CrawlPageRequestDto request, Node node)
         {
-            var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node);
+            var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node, _graphingSettings);
+            payload.CorrolationId = request.CorrelationId;
 
             if (!payload.Nodes.Any() && !payload.Edges.Any())
                 return;
@@ -71,7 +70,7 @@ namespace Graphing.Core
                 SigmaGraphPayload = payload
             });
 
-            var logMessage = $"Graphing Node Populated: {node.Url} scheduled for streaming. Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}";
+            var logMessage = $"Graphing Node Populated: {node.Url} Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
@@ -105,14 +104,17 @@ namespace Graphing.Core
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
-            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(DateTimeOffset.UtcNow);
+            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(
+                DateTimeOffset.UtcNow,
+                _graphingSettings.ScheduleCrawlDelayMinSeconds,
+                _graphingSettings.ScheduleCrawlDelayMaxSeconds);
 
             await _eventBus.PublishAsync(
                 crawlPageEvent,
                 priority: depth,
                 scheduledOffset);
 
-            var logMessage = $"Graphing Edge Discovered: {node.Url} scheduled for crawling. Depth {depth} Attempt: {crawlPageRequest.Attempt}";
+            var logMessage = $"Graphing Edge Discovered: {node.Url} Depth {depth} Attempt: {crawlPageRequest.Attempt}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
@@ -184,40 +186,7 @@ namespace Graphing.Core
 
         public async Task<Graph?> CreateGraphAsync(GraphOptions options)
         {
-            var newGraph = await _webGraph.CreateGraphAsync(options);
-
-            if (newGraph != null) {
-
-                //create a crawl page request
-                var crawlPageRequest = new CrawlPageRequestDto
-                {
-                    Url = options.Url,
-                    GraphId = newGraph.Id,
-                    CorrelationId = Guid.NewGuid(),
-                    Attempt = 1,
-                    Depth = 0,
-                    Options = new CrawlPageRequestOptionsDto
-                    {
-                        MaxDepth = options.MaxDepth,
-                        MaxLinks = options.MaxLinks,
-                        ExcludeExternalLinks = options.ExcludeExternalLinks,
-                        ExcludeQueryStrings = options.ExcludeQueryStrings,
-                        UrlMatchRegex = options.UrlMatchRegex,
-                        TitleElementXPath = options.TitleElementXPath,
-                        ContentElementXPath = options.ContentElementXPath,
-                        SummaryElementXPath = options.SummaryElementXPath,
-                        ImageElementXPath = options.ImageElementXPath,
-                        RelatedLinksElementXPath = options.RelatedLinksElementXPath,
-                        UserAgent = options.UserAgent,
-                        UserAccepts = options.UserAccepts
-                    },
-                    RequestedAt = DateTimeOffset.UtcNow
-                };
-
-                await PublishCrawlPageEvent(crawlPageRequest);
-            }
-
-            return newGraph;
+            return await _webGraph.CreateGraphAsync(options);
         }
 
         public async Task<Graph> UpdateGraphAsync(Graph graph)
@@ -235,7 +204,7 @@ namespace Graphing.Core
             return await _webGraph.ListGraphsAsync(page, pageSize);
         }
 
-        public async Task CrawlPageAsync(Guid graphId, GraphOptions options)
+        public async Task<CrawlPageRequestDto> CrawlPageAsync(Guid graphId, GraphOptions options)
         {
             //create a crawl page request
             var crawlPageRequest = new CrawlPageRequestDto
@@ -245,6 +214,7 @@ namespace Graphing.Core
                 CorrelationId = Guid.NewGuid(),
                 Attempt = 1,
                 Depth = 0,
+                Preview = options.Preview,
                 Options = new CrawlPageRequestOptionsDto
                 {
                     MaxDepth = options.MaxDepth,
@@ -264,13 +234,15 @@ namespace Graphing.Core
             };
 
             await PublishCrawlPageEvent(crawlPageRequest);
+
+            return crawlPageRequest;
         }
 
         public async Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
         {
-            maxDepth = Math.Clamp(maxDepth, 1, MAX_REQUEST_DEPTH);
+            maxDepth = Math.Clamp(maxDepth, 1, _graphingSettings.MaxRequestDepthLimit);
             if (maxNodes.HasValue)
-                maxNodes = Math.Clamp(maxNodes.Value, 1, MAX_REQUEST_NODES);
+                maxNodes = Math.Clamp(maxNodes.Value, 1, _graphingSettings.MaxRequestNodeLimit);
 
             var popularNodes = await _webGraph.GetMostPopularNodes(graphId, 1);
             var startNode = popularNodes.FirstOrDefault();
@@ -292,13 +264,17 @@ namespace Graphing.Core
             }
 
             // 4. Build and return payload
-            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId);
+            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId, _graphingSettings);
         }
 
-        public async Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl)
+        public async Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl, int maxDepth = 1, int? maxNodes = null)
         {
+            maxDepth = Math.Clamp(maxDepth, 1, _graphingSettings.MaxRequestDepthLimit);
+            if (maxNodes.HasValue)
+                maxNodes = Math.Clamp(maxNodes.Value, 1, _graphingSettings.MaxRequestNodeLimit);
+
             var nodes = nodeUrl != null
-                ? await _webGraph.TraverseGraphAsync(graphId, nodeUrl.AbsoluteUri, 1)
+                ? await _webGraph.TraverseGraphAsync(graphId, nodeUrl.AbsoluteUri, maxDepth, maxNodes)
                 : Enumerable.Empty<Node>();
 
             if (!nodes.Any())
@@ -311,7 +287,7 @@ namespace Graphing.Core
                 };
             }
 
-            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId);
+            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId, _graphingSettings);
         }
 
         private async Task PublishCrawlPageEvent(CrawlPageRequestDto crawlPageRequest)

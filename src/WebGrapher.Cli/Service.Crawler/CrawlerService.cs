@@ -3,6 +3,7 @@ using Caching.Core;
 using Crawler.Core;
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Serilog;
@@ -15,9 +16,23 @@ namespace WebGrapher.Cli.Service.Crawler
     {
         public async static Task<IPageCrawler> InitializeAsync(IEventBus eventBus)
         {
-            //SETUP LOGGING:
-            var serviceName = typeof(CrawlerService).Name;
-            var logFilePath = $"logs/{serviceName}.log";
+            //Setup Configuration using appsettings overrides
+            var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("Service.Crawler/appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+            //bind appsettings overrides to default settings objects
+            var crawlerSettings = configuration.BindSection<CrawlerSettings>("Crawler");
+            var metaCacheSettings = configuration.BindSection<CacheSettings>("MetaCache");
+            var blobCacheSettings = configuration.BindSection<CacheSettings>("BlobCache");
+            var requestSenderSettings = configuration.BindSection<RequestSenderSettings>("RequestSender");
+            var policyCacheSettings = configuration.BindSection<CacheSettings>("PolicyCache");
+
+
+            //Setup Logging
+            var logFilePath = $"logs/{crawlerSettings.ServiceName}.log";
 
             var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -28,37 +43,46 @@ namespace WebGrapher.Cli.Service.Crawler
             var logger = loggerFactory.CreateLogger<IPageCrawler>();
 
 
-            //Create Request Sender:
+            //Create Meta Cache for Request Sender
             var metaCache = CacheFactory.CreateCache(
-                serviceName,
-                CacheOptions.InMemory, //fastest - only good for small data
-                logger);
+                crawlerSettings.ServiceName,
+                logger,
+                metaCacheSettings);
 
+
+            //Create Blob Cache for Request Sender
             var blobCache = CacheFactory.CreateCache(
-                serviceName,
-                CacheOptions.InStorage, //slower - good for large data
-                logger);
+                crawlerSettings.ServiceName,
+                logger,
+                blobCacheSettings);
+
+
+            //Create Request Sender
 
             var requestSender = RequestFactory.CreateRequestSender(
-                logger, metaCache, blobCache);
+                logger, 
+                metaCache, 
+                blobCache,
+                requestSenderSettings);
 
 
-            //Create Policy Resolver:
+            //Create Policy Cache for Site Policy Resolver
             var policyCache = CacheFactory.CreateCache(
-                serviceName,
-                CacheOptions.InMemory,
-                logger);
+                crawlerSettings.ServiceName,
+                logger,
+                policyCacheSettings);
 
+
+            //Create Site Policy Resolver
             var sitePolicyResolver = new SitePolicyResolver(
-                logger, policyCache, requestSender);
+                logger, policyCache, requestSender, crawlerSettings);
 
 
-            //Create Crawler:
+            //Create Crawler
             var crawler = CrawlerFactory.CreateCrawler(
-                logger, eventBus, requestSender, sitePolicyResolver);
+                logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
             logger.LogInformation($"Crawler service started.");
-
             return crawler;
         }
     }

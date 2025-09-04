@@ -59,7 +59,9 @@ namespace Service.Scraper.Tests
                 _url, _userAgent, _userAccepts, contentMaxBytes, null, CancellationToken.None))
                 .ReturnsAsync(responseEnvelope);
 
-            _scraper = new PageScraper(_logger.Object, _eventBus.Object, _requestSender.Object);
+            var scraperSettings = new ScraperSettings();
+
+            _scraper = new PageScraper(_logger.Object, _eventBus.Object, _requestSender.Object, scraperSettings);
         }
 
         [Test]

@@ -1,6 +1,8 @@
 ﻿using System;
 using Caching.Core;
+using Crawler.Core;
 using Events.Core.Bus;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core;
 using Serilog;
@@ -13,9 +15,19 @@ namespace WebGrapher.Cli.Service.Normalisation
     {
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            //SETUP LOGGING:
-            var serviceName = typeof(NormalisationService).Name;
-            var logFilePath = $"logs/{serviceName}.log";
+            //Setup Configuration using appsettings overrides
+            var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("Service.Normalisation/appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+            //bind appsettings overrides to default settings objects
+            var normalisationSettings = configuration.BindSection<NormalisationSettings>("Normalisation");
+
+
+            //Setup Logging
+            var logFilePath = $"logs/{normalisationSettings.ServiceName}.log";
 
             var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -25,12 +37,18 @@ namespace WebGrapher.Cli.Service.Normalisation
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageNormaliser>();
 
-            var cache = CacheFactory.CreateCache(
-                serviceName,
-                CacheOptions.InStorage,
-                logger);
 
-            NormalisationFactory.CreateNormaliser(logger, cache, eventBus);
+            //Create Blob Cache
+            var blobCacheSettings = new CacheSettings();
+            configuration.GetSection("BlobCache").Bind(blobCacheSettings);
+            var cache = CacheFactory.CreateCache(
+                normalisationSettings.ServiceName,
+                logger,
+                blobCacheSettings);
+
+
+            //Create Normalisation
+            NormalisationFactory.CreateNormaliser(logger, cache, eventBus, normalisationSettings);
 
             logger.LogInformation("Normalisation service started.");
         }

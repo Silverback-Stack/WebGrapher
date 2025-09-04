@@ -5,12 +5,12 @@ namespace Normalisation.Core.Processors
     public static class StopWordFilter
     {
 
-        public static string RemoveStopWords(string input, string iso3LanguageCode)
+        public static string RemoveStopWords(string input, string iso3LanguageCode, NormalisationSettings normalisationSettings)
         {
             if (string.IsNullOrEmpty(iso3LanguageCode) || string.IsNullOrEmpty(input))
                 return input;
 
-            var iso2 = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3LanguageCode);
+            var iso2 = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3LanguageCode, normalisationSettings);
 
             try
             {

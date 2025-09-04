@@ -1,6 +1,6 @@
 ﻿namespace Caching.Core
 {
-    public enum CacheOptions
+    public enum CacheType
     {
         InMemory,
         InStorage,
