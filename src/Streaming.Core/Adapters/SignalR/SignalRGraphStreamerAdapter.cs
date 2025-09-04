@@ -13,7 +13,8 @@ namespace Streaming.Core.Adapters.SignalR
         public SignalRGraphStreamerAdapter(
             ILogger logger,
             IEventBus eventBus,
-            IHubContext<GraphStreamerHub> hubContext) : base(logger, eventBus)
+            IHubContext<GraphStreamerHub> hubContext,
+            StreamingSettings streamingSettings) : base(logger, eventBus, streamingSettings)
         {
             _hubContext = hubContext;
         }

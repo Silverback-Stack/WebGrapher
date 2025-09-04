@@ -1,4 +1,6 @@
 ﻿
+using Normalisation.Core.Processors;
+
 namespace Normalisation.Core
 {
     public class NormalisationSettings
@@ -11,5 +13,6 @@ namespace Normalisation.Core
         public int MaxLinksPerPage { get; set; } = 100;
 
         public string[] AllowableLinkSchemas = ["http", "https"];
-    }
+        public ProcessorSettings Processors { get; set; } = new ProcessorSettings();
+}
 }

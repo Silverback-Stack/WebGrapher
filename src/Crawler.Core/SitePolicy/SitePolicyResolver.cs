@@ -9,17 +9,17 @@ namespace Crawler.Core.SitePolicy
 {
     public class SitePolicyResolver : ISitePolicyResolver
     {
-        private readonly CrawlerSettings _crawlerSettings;
         private readonly ILogger _logger;
         private readonly ICache _policyCache;
         private readonly IRequestSender _requestSender;
+        private readonly CrawlerSettings _crawlerSettings;
 
-        public SitePolicyResolver(CrawlerSettings crawlerSettings, ILogger logger, ICache policyCache, IRequestSender requestSender)
+        public SitePolicyResolver(ILogger logger, ICache policyCache, IRequestSender requestSender, CrawlerSettings crawlerSettings)
         {
-            _crawlerSettings = crawlerSettings;
             _logger = logger;
             _policyCache = policyCache;
             _requestSender = requestSender;
+            _crawlerSettings = crawlerSettings;
         }
 
         public async Task<SitePolicyItem> GetOrCreateSitePolicyAsync(Uri url, string userAgent, DateTimeOffset? retryAfter = null)

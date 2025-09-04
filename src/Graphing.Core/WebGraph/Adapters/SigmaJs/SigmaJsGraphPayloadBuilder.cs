@@ -5,7 +5,7 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
 {
     public class SigmaJsGraphPayloadBuilder
     {
-        public static SigmaGraphPayloadDto BuildPayload(IEnumerable<Node> nodes, Guid graphId)
+        public static SigmaGraphPayloadDto BuildPayload(IEnumerable<Node> nodes, Guid graphId, GraphingSettings graphingSettings)
         {
             var sigmaNodes = new List<SigmaGraphNodeDto>();
             var edgeSet = new HashSet<string>();
@@ -13,7 +13,7 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
 
             foreach (var node in nodes)
             {
-                var (nodesToSend, edgesToSend) = SigmaJsGraphSerializer.GetPopulationDelta(node);
+                var (nodesToSend, edgesToSend) = SigmaJsGraphSerializer.GetPopulationDelta(node, graphingSettings);
 
                 // Add nodes directly
                 sigmaNodes.AddRange(nodesToSend);
@@ -35,7 +35,7 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
         }
 
         // Overload for a single node
-        public static SigmaGraphPayloadDto BuildPayload(Node node)
-            => BuildPayload(new[] { node }, node.GraphId);
+        public static SigmaGraphPayloadDto BuildPayload(Node node, GraphingSettings graphingSettings)
+            => BuildPayload(new[] { node }, node.GraphId, graphingSettings);
     }
 }

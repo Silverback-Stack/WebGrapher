@@ -6,17 +6,17 @@ namespace Caching.Core.Adapters.InStorage
 {
     public partial class InStorageCacheAdapter : ICache
     {
-        private readonly CacheSettings _settings;
         private readonly ILogger _logger;
+        private readonly CacheSettings _cacheSettings;
 
         /// <summary>
         /// In-storage cache adapter for local development.
         /// </summary>
-        public InStorageCacheAdapter(CacheSettings settings, string serviceName, ILogger logger)
+        public InStorageCacheAdapter(string serviceName, ILogger logger, CacheSettings cacheSettings)
         {
-            _settings = settings;
             _logger = logger;
-            Container = CreateContainer(serviceName, _settings.InStorage.ContainerName);
+            _cacheSettings = cacheSettings;
+            Container = CreateContainer(serviceName, _cacheSettings.InStorage.ContainerName);
 
             ClearCacheAsync();
         }
@@ -130,7 +130,7 @@ namespace Caching.Core.Adapters.InStorage
 
         private void ClearCacheAsync()
         {
-            var cutoff = DateTime.UtcNow.AddHours(-_settings.InStorage.AbsoluteExpirationHours);
+            var cutoff = DateTime.UtcNow.AddHours(-_cacheSettings.InStorage.AbsoluteExpirationHours);
             var filePath = GetFilePath(string.Empty);
 
             foreach (var file in Directory.GetFiles(filePath))

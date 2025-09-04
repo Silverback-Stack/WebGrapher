@@ -1,7 +1,9 @@
-﻿using Events.Core.Bus;
+﻿using Crawler.Core;
+using Events.Core.Bus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -20,7 +22,10 @@ namespace WebGrapher.Cli.Service.Streaming
 // Microsoft.Extensions.Hosting
 // Microsoft.Extensions.DependencyInjection
 
-// NOTE:
+// I!!! IMPORTANT !!!
+// THESE STEPS ARE NO LONGER REQUIRED
+// PROJECT HAS BEEN REVERTED BACK TO Project Sdk="Microsoft.NET.Sdk
+// !!! IMPORTANT !!!
 // Need to allow console app to support Web hosting
 // Close Visual Studio and edit WebGrapher.Cli.csproj
 // CHANGE LINE: <Project Sdk="Microsoft.NET.Sdk">
@@ -30,13 +35,23 @@ namespace WebGrapher.Cli.Service.Streaming
 {
     public class StreamingService
     {
-        private const string HOST = "http://localhost:5001";
         private static IHost? _host;
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            var serviceName = typeof(StreamingService).Name;
-            var logFilePath = $"logs/{serviceName}.log";
+            //Setup Configuration using appsettings overrides
+            var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("Service.Streaming/appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+            //bind appsettings overrides to default settings objects
+            var streamingSettings = configuration.BindSection<StreamingSettings>("Streaming");
+            var signalRSettings = configuration.BindSection<SignalRSettings>("SignalR");
+
+            //Setup Logging
+            var logFilePath = $"logs/{streamingSettings.ServiceName}.log";
 
             var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -48,15 +63,16 @@ namespace WebGrapher.Cli.Service.Streaming
             var logger = loggerFactory.CreateLogger<IGraphStreamer>();
 
 
-            var (host, hubContext) = await StartHubServerAsync();
+            //Create and Start Streaming Hub
+            var (host, hubContext) = await StartHubServerAsync(signalRSettings);
             _host = host;
 
-            StreamerFactory.Create(logger, eventBus, hubContext);
+            StreamerFactory.Create(logger, eventBus, hubContext, streamingSettings);
 
-            logger.LogInformation($"Streaming service started on {HOST}");
+            logger.LogInformation($"Streaming service started on {signalRSettings.Host}");
         }
 
-        private async static Task<(IHost host, IHubContext<GraphStreamerHub>)> StartHubServerAsync()
+        private async static Task<(IHost host, IHubContext<GraphStreamerHub>)> StartHubServerAsync(SignalRSettings signalRSettings)
         {
             // Create and build web host to get hubContext and host SignalR
             var host = Host.CreateDefaultBuilder()
@@ -85,11 +101,11 @@ namespace WebGrapher.Cli.Service.Streaming
                         app.UseRouting();
                         app.UseEndpoints(endpoints =>
                         {
-                            endpoints.MapHub<GraphStreamerHub>("/graphstreamerhub");
+                            endpoints.MapHub<GraphStreamerHub>(signalRSettings.HubPath);
                             endpoints.MapGet("/", () => "SignalR server is running!");
                         });
                     })
-                    .UseUrls(HOST);
+                    .UseUrls(signalRSettings.Host);
                 })
                 .ConfigureLogging(logging =>
                 {

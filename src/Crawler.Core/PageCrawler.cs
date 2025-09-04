@@ -6,31 +6,30 @@ using Events.Core.Events;
 using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Requests.Core;
 
 namespace Crawler.Core
 {
     public class PageCrawler : IPageCrawler, IEventBusLifecycle
     {
-        protected readonly CrawlerSettings _crawlerSettings;
         protected readonly IEventBus _eventBus;
         protected readonly ILogger _logger;
         protected readonly IRequestSender _requestSender;
         protected readonly ISitePolicyResolver _sitePolicyResolver;
+        protected readonly CrawlerSettings _crawlerSettings;
 
         public PageCrawler(
-            CrawlerSettings crawlerSettings,
             ILogger logger,
             IEventBus eventBus,
             IRequestSender requestSender,
-            ISitePolicyResolver sitePolicyResolver)
+            ISitePolicyResolver sitePolicyResolver,
+            CrawlerSettings crawlerSettings)
         {
-            _crawlerSettings = crawlerSettings;
             _eventBus = eventBus;
             _logger = logger;
             _requestSender = requestSender;
             _sitePolicyResolver = sitePolicyResolver;
+            _crawlerSettings = crawlerSettings;
         }
 
         public void SubscribeAll()
@@ -199,7 +198,10 @@ namespace Crawler.Core
         private async Task PublishScheduledCrawlPageEvent(CrawlPageRequestDto request, DateTimeOffset? retryAfter)
         {
             var attempt = request.Attempt + 1;
-            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(retryAfter);
+            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(
+                retryAfter,
+                _crawlerSettings.ScheduleCrawlDelayMinSeconds,
+                _crawlerSettings.ScheduleCrawlDelayMaxSeconds);
 
             var crawlPageRequest = request with
             {

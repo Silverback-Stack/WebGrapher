@@ -8,22 +8,22 @@ namespace Requests.Core
 {
     public class RequestSender : IRequestSender
     {
-        private readonly RequestSenderSettings _settings;
         private readonly ILogger _logger;
         private readonly ICache _metaCache;
         private readonly ICache _blobCache;
         private readonly IHttpRequester _httpRequester;
         private readonly IRequestTransformer _requestTransformer;
+        private readonly RequestSenderSettings _requestSenderSettings;
 
         public RequestSender(
-            RequestSenderSettings settings,
             ILogger logger, 
             ICache metaCache, 
             ICache blobCache, 
             IHttpRequester httpRequester, 
-            IRequestTransformer requestTransformer)
+            IRequestTransformer requestTransformer,
+            RequestSenderSettings requestSenderSettings)
         {
-            _settings = settings;
+            _requestSenderSettings = requestSenderSettings;
             _logger = logger;
             _metaCache = metaCache;
             _blobCache = blobCache;
@@ -92,9 +92,9 @@ namespace Requests.Core
                 if (IsCachable(responseEnvelope.Metadata.StatusCode))
                 {
                     var expiry = CacheDurationHelper.Clamp(
-                        responseEnvelope.Metadata?.Expires, 
-                        _settings.MinAbsoluteExpiryMinutes, 
-                        _settings.MaxAbsoluteExpiryMinutes);
+                        responseEnvelope.Metadata?.Expires,
+                        _requestSenderSettings.MinAbsoluteExpiryMinutes,
+                        _requestSenderSettings.MaxAbsoluteExpiryMinutes);
                     var metaTask = _metaCache.SetAsync(key, responseEnvelope.Metadata, expiry);
                     var blobTask = _blobCache.SetAsync(key, responseEnvelope.Data?.Payload, expiry);
                     await Task.WhenAll(metaTask, blobTask);

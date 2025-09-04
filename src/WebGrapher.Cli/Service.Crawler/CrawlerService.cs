@@ -4,7 +4,6 @@ using Crawler.Core;
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Serilog;
@@ -25,8 +24,11 @@ namespace WebGrapher.Cli.Service.Crawler
             .Build();
 
             //bind appsettings overrides to default settings objects
-            var crawlerSettings = new CrawlerSettings();
-            configuration.GetSection("Crawler").Bind(crawlerSettings);
+            var crawlerSettings = configuration.BindSection<CrawlerSettings>("Crawler");
+            var metaCacheSettings = configuration.BindSection<CacheSettings>("MetaCache");
+            var blobCacheSettings = configuration.BindSection<CacheSettings>("BlobCache");
+            var requestSenderSettings = configuration.BindSection<RequestSenderSettings>("RequestSender");
+            var policyCacheSettings = configuration.BindSection<CacheSettings>("PolicyCache");
 
 
             //Setup Logging
@@ -42,50 +44,43 @@ namespace WebGrapher.Cli.Service.Crawler
 
 
             //Create Meta Cache for Request Sender
-            var metaCacheSettings = new CacheSettings();
-            configuration.GetSection("MetaCache").Bind(metaCacheSettings);
             var metaCache = CacheFactory.CreateCache(
-                metaCacheSettings,
                 crawlerSettings.ServiceName,
-                logger);
+                logger,
+                metaCacheSettings);
 
 
             //Create Blob Cache for Request Sender
-            var blobCacheSettings = new CacheSettings();
-            configuration.GetSection("BlobCache").Bind(blobCacheSettings);
             var blobCache = CacheFactory.CreateCache(
-                blobCacheSettings,
                 crawlerSettings.ServiceName,
-                logger);
+                logger,
+                blobCacheSettings);
 
 
             //Create Request Sender
-            var requestSenderSettings = new RequestSenderSettings();
-            configuration.GetSection("RequestSender").Bind(requestSenderSettings);
+
             var requestSender = RequestFactory.CreateRequestSender(
-                requestSenderSettings, 
                 logger, 
                 metaCache, 
-                blobCache);
+                blobCache,
+                requestSenderSettings);
 
 
             //Create Policy Cache for Site Policy Resolver
-            var policyCacheSettings = new CacheSettings();
-            configuration.GetSection("PolicyCache").Bind(policyCacheSettings);
             var policyCache = CacheFactory.CreateCache(
-                policyCacheSettings,
                 crawlerSettings.ServiceName,
-                logger);
+                logger,
+                policyCacheSettings);
 
 
             //Create Site Policy Resolver
             var sitePolicyResolver = new SitePolicyResolver(
-                crawlerSettings, logger, policyCache, requestSender);
+                logger, policyCache, requestSender, crawlerSettings);
 
 
             //Create Crawler
             var crawler = CrawlerFactory.CreateCrawler(
-                crawlerSettings, logger, eventBus, requestSender, sitePolicyResolver);
+                logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
             logger.LogInformation($"Crawler service started.");
             return crawler;

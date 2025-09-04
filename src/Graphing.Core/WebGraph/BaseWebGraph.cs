@@ -7,12 +7,12 @@ namespace Graphing.Core.WebGraph
     public abstract class BaseWebGraph : IWebGraph
     {
         protected readonly ILogger _logger;
-
-        private const int SCHEDULE_THROTTLE_SECONDS = 60;
-
-        protected BaseWebGraph(ILogger logger)
+        protected readonly GraphingSettings _graphingSettings;
+        
+        protected BaseWebGraph(ILogger logger, GraphingSettings graphingSettings)
         {
             _logger = logger;
+            _graphingSettings = graphingSettings;
         }
 
         public async Task AddWebPageAsync(
@@ -20,7 +20,7 @@ namespace Graphing.Core.WebGraph
             bool forceRefresh,
             Func<Node, Task> nodePopulatedCallback, 
             Func<Node, Task> linkDiscoveredCallback,
-            LinkUpdateMode linkUpdateMode = LinkUpdateMode.Append)
+            NodeEdgesUpdateMode linkUpdateMode = NodeEdgesUpdateMode.Append)
         {
             _logger.LogDebug($"AddWebPageAsync started for {webPage.Url}");
 
@@ -35,7 +35,7 @@ namespace Graphing.Core.WebGraph
 
             await PopulateNodeFromWebPageAsync(node, webPage);
 
-            if (linkUpdateMode == LinkUpdateMode.Replace)
+            if (linkUpdateMode == NodeEdgesUpdateMode.Replace)
             {
                 await ClearOutgoingLinksAsync(node);
             }
@@ -178,7 +178,7 @@ namespace Graphing.Core.WebGraph
         protected bool CanScheduleCrawl(Node node)
         {
             var now = DateTimeOffset.UtcNow;
-            var backoff = TimeSpan.FromSeconds(SCHEDULE_THROTTLE_SECONDS);
+            var backoff = TimeSpan.FromSeconds(_graphingSettings.WebGraph.ScheduleCrawlThrottleSeconds);
 
             if (node.LastScheduledAt == null ||
                 now >= node.LastScheduledAt.Value + backoff)
@@ -187,7 +187,7 @@ namespace Graphing.Core.WebGraph
             }
 
             //Discard policy: node recently crawled - dont crawl again during the throttle period
-            var nextTime = node.LastScheduledAt?.AddSeconds(SCHEDULE_THROTTLE_SECONDS);
+            var nextTime = node.LastScheduledAt?.AddSeconds(_graphingSettings.WebGraph.ScheduleCrawlThrottleSeconds);
             _logger.LogDebug($"Scheduled crawl for {node.Url} throttled. Next eligible time: {nextTime}");
             return false;
         }

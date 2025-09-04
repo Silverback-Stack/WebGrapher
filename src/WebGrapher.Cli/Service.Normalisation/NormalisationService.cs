@@ -1,5 +1,6 @@
 ﻿using System;
 using Caching.Core;
+using Crawler.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -22,8 +23,7 @@ namespace WebGrapher.Cli.Service.Normalisation
             .Build();
 
             //bind appsettings overrides to default settings objects
-            var normalisationSettings = new NormalisationSettings();
-            configuration.GetSection("Normalisation").Bind(normalisationSettings);
+            var normalisationSettings = configuration.BindSection<NormalisationSettings>("Normalisation");
 
 
             //Setup Logging
@@ -42,11 +42,13 @@ namespace WebGrapher.Cli.Service.Normalisation
             var blobCacheSettings = new CacheSettings();
             configuration.GetSection("BlobCache").Bind(blobCacheSettings);
             var cache = CacheFactory.CreateCache(
-                blobCacheSettings,
                 normalisationSettings.ServiceName,
-                logger);
+                logger,
+                blobCacheSettings);
 
-            NormalisationFactory.CreateNormaliser(normalisationSettings, logger, cache, eventBus);
+
+            //Create Normalisation
+            NormalisationFactory.CreateNormaliser(logger, cache, eventBus, normalisationSettings);
 
             logger.LogInformation("Normalisation service started.");
         }

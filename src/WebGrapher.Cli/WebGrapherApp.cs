@@ -30,9 +30,9 @@ namespace WebGrapher.Cli
             .Build();
 
             //bind appsettings overrides to default settings objects
-            var eventBusSettings = new EventBusSettings();
-            configuration.GetSection("EventBus").Bind(eventBusSettings);
+            var eventBusSettings = configuration.BindSection<EventBusSettings>("EventBus");
 
+            //Create and Start Event Bus
             _eventBus = await EventBusService.StartAsync(eventBusSettings);
 
             var crawlerTask = Task.Run(async () 

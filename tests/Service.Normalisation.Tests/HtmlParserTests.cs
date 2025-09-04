@@ -1,3 +1,4 @@
+using Normalisation.Core;
 using Normalisation.Core.Processors;
 
 namespace Service.Normalisation.Tests
@@ -22,7 +23,8 @@ namespace Service.Normalisation.Tests
                 </body>
             </html>";
 
-            _htmlParser = new HtmlParser(htmlDocument);
+            var normalisationSettings = new NormalisationSettings();
+            _htmlParser = new HtmlParser(htmlDocument, normalisationSettings);
         }
 
         [Test]

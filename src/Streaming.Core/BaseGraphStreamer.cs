@@ -11,15 +11,16 @@ namespace Streaming.Core
     {
         protected readonly ILogger _logger;
         protected readonly IEventBus _eventBus;
-
-        protected const string SERVICE_NAME = "STREAMING";
+        protected readonly StreamingSettings _streamingSettings;
 
         public BaseGraphStreamer(
             ILogger logger, 
-            IEventBus eventBus)
+            IEventBus eventBus,
+            StreamingSettings streamingSettings)
         {
             _logger = logger;
             _eventBus = eventBus;
+            _streamingSettings = streamingSettings;
         }
 
         public void SubscribeAll()
@@ -49,7 +50,7 @@ namespace Streaming.Core
                 Type = type,
                 Message = message,
                 Code = code,
-                Service = SERVICE_NAME,
+                Service = _streamingSettings.ServiceName,
                 Context = context
             };
 

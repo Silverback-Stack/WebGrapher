@@ -1,6 +1,8 @@
 ﻿using System;
+using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Events;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
@@ -10,10 +12,10 @@ namespace WebGrapher.Cli.Service.Events
 {
     internal class EventBusService
     {
-        public async static Task<IEventBus> StartAsync(EventBusSettings settings)
+        public async static Task<IEventBus> StartAsync(EventBusSettings eventBusSettings)
         {
             //configure logging:
-            var serviceName = settings.ServiceName;
+            var serviceName = eventBusSettings.ServiceName;
             var logFilePath = $"logs/{serviceName}.log";
 
             var serilogLogger = new LoggerConfiguration()

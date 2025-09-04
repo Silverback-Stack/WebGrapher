@@ -2,7 +2,6 @@
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Requests.Core;
 
 namespace Crawler.Core
@@ -10,14 +9,14 @@ namespace Crawler.Core
     public class CrawlerFactory
     {
         public static IPageCrawler CreateCrawler(
-            CrawlerSettings crawlerSettings,
             ILogger logger,
             IEventBus eventBus,
             IRequestSender requestSender,
-            ISitePolicyResolver sitePolicyResolver)
+            ISitePolicyResolver sitePolicyResolver,
+            CrawlerSettings crawlerSettings)
         {
             var service = new PageCrawler(
-                crawlerSettings, logger, eventBus, requestSender, sitePolicyResolver);
+                logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
             service.SubscribeAll();
             return service;

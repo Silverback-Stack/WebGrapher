@@ -11,17 +11,17 @@ namespace Scraper.Core
 {
     public class PageScraper : IPageScraper, IEventBusLifecycle
     {
-        protected readonly ScraperSettings _settings;
         protected readonly ILogger _logger;
         protected readonly IEventBus _eventBus;
         protected readonly IRequestSender _requestSender;
+        protected readonly ScraperSettings _scraperSettings;
 
-        public PageScraper(ScraperSettings settings, ILogger logger, IEventBus eventBus, IRequestSender requestSender)
+        public PageScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender, ScraperSettings scraperSettings)
         {
-            _settings = settings;
             _logger = logger;
             _eventBus = eventBus;
             _requestSender = requestSender;
+            _scraperSettings = scraperSettings;
         }
 
         public void SubscribeAll()
@@ -49,7 +49,7 @@ namespace Scraper.Core
                 Type = type,
                 Message = message,
                 Code = code,
-                Service = _settings.ServiceName,
+                Service = _scraperSettings.ServiceName,
                 Context = context
             };
 
@@ -180,7 +180,7 @@ namespace Scraper.Core
                 url,
                 userAgent,
                 clientAccept,
-                _settings.ContentMaxBytes,
+                _scraperSettings.ContentMaxBytes,
                 compositeKey,
                 cancellationToken);
         }

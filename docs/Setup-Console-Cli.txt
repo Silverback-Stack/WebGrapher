@@ -41,3 +41,9 @@ You need to add the `Microsoft.Extensions.Hosting` package explicitly.
 </ItemGroup>
 
 Close and restart VS application.
+
+
+appsettings.json
+----------------
+Be sure each appsettings.json is copied to output directory: Copy if newer
+This will make sure the files exist in the bin folder and can be read at runtime.

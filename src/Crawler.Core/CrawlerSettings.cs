@@ -9,6 +9,9 @@ namespace Crawler.Core
         public int MaxCrawlAttemptLimit { get; set; } = 3;
         public int MaxCrawlDepthLimit { get; set; } = 3;
 
+        public int ScheduleCrawlDelayMinSeconds = 1;
+        public int ScheduleCrawlDelayMaxSeconds = 3;
+
         public SitePolicySettings SitePolicy { get; set; } = new SitePolicySettings();
     }
 }

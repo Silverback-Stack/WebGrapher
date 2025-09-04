@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Text.RegularExpressions;
-using System.Xml.XPath;
-using HtmlAgilityPack;
 
 namespace Normalisation.Core.Processors
 {
@@ -144,26 +142,6 @@ namespace Normalisation.Core.Processors
         {
             return urls.Where(u => !u.Equals(baseUrl)).ToHashSet();
         }
-
-        //DO NOT USE - CAUSING UNEXPECTED REDIRECTS - ALWAYS STAY TRUE TO SOURCE PAGE URLS
-        //public static HashSet<Uri> RemoveTrailingSlash(HashSet<Uri> urls)
-        //{
-        //    var results = new HashSet<Uri>();
-
-        //    foreach (var url in urls)
-        //    {
-        //        var path = url.AbsolutePath;
-        //        var builder = new UriBuilder(url)
-        //        {
-        //            Path = path == "/" ? path : path.TrimEnd('/')
-        //        };
-
-        //        results.Add(builder.Uri);
-        //    }
-
-        //    return results;
-        //}
-
 
         public static HashSet<Uri> Truncate(HashSet<Uri> urls, int size)
         {

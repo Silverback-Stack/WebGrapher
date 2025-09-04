@@ -1,8 +1,10 @@
-﻿using Moq;
-using Microsoft.Extensions.Logging;
-using Graphing.Core.WebGraph.Models;
+﻿using System.Runtime;
+using Graphing.Core;
 using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.InMemory;
+using Graphing.Core.WebGraph.Models;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Service.Graphing.Tests
 {
@@ -11,6 +13,8 @@ namespace Service.Graphing.Tests
     {
         private Mock<ILogger> _logger;
         private IWebGraph _webGraph;
+        private GraphingSettings _graphingSettings;
+
         private static readonly Func<Node, Task> NodePopulatedCallbackNoAction = _ => Task.CompletedTask;
         private static readonly Func<Node, Task> LinkDiscoveredCallbackNoAction = _ => Task.CompletedTask;
 
@@ -18,7 +22,8 @@ namespace Service.Graphing.Tests
         public void Setup()
         {
             _logger = new Mock<ILogger>();
-            _webGraph = new InMemoryWebGraphAdapter(_logger.Object);
+            _graphingSettings = new GraphingSettings();
+            _webGraph = new InMemoryWebGraphAdapter(_logger.Object, _graphingSettings);
         }
 
         [Test]

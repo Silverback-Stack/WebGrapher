@@ -13,17 +13,17 @@ namespace Normalisation.Core
 {
     public class PageNormaliser : IPageNormaliser, IEventBusLifecycle
     {
-        private readonly NormalisationSettings _settings;
         private readonly ILogger _logger;
         private readonly ICache _blobCache;
         private readonly IEventBus _eventBus;
+        private readonly NormalisationSettings _normalisationSettings;
 
-        public PageNormaliser(NormalisationSettings settings, ILogger logger, ICache blobCache, IEventBus eventBus)
+        public PageNormaliser(ILogger logger, ICache blobCache, IEventBus eventBus, NormalisationSettings normalisationSettings)
         {
-            _settings = settings;
             _logger = logger;
             _blobCache = blobCache;
             _eventBus = eventBus;
+            _normalisationSettings = normalisationSettings;
         }
 
         public void SubscribeAll()
@@ -51,7 +51,7 @@ namespace Normalisation.Core
                 Type = type,
                 Message = message,
                 Code = code,
-                Service = _settings.ServiceName,
+                Service = _normalisationSettings.ServiceName,
                 Context = context
             };
 
@@ -177,18 +177,18 @@ namespace Normalisation.Core
                 return;
             }
 
-            var htmlParser = new HtmlParser(htmlDocument);
+            var htmlParser = new HtmlParser(htmlDocument, _normalisationSettings);
             var extractedTitle = htmlParser.ExtractTitle(request.Options.TitleElementXPath);
             var extractedSummary = htmlParser.ExtractContentAsPlainText(request.Options.SummaryElementXPath);
             var extractedContent = htmlParser.ExtractContentAsPlainText(request.Options.ContentElementXPath);
-            var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent);
+            var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent, _normalisationSettings);
             var extractedLinks = htmlParser.ExtractLinks(request.Options.RelatedLinksElementXPath);
             var extractedImageUrl = htmlParser.ExtractImageUrl(request.Options.ImageElementXPath);   
 
             var normalisedTitle = NormaliseTitle(extractedTitle);
             var normalisedSummary = NormaliseSummary(extractedSummary);
             var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
-            var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, _settings.MaxKeywordTags);
+            var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, _normalisationSettings.MaxKeywordTags);
             var normalisedLinks = NormaliseLinks(
                 extractedLinks,
                 request.Url,
@@ -231,7 +231,7 @@ namespace Normalisation.Core
             text = TextNormaliser.DecodeHtml(text);
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
-            text = TextNormaliser.Truncate(text, _settings.MaxTitleLength);
+            text = TextNormaliser.Truncate(text, _normalisationSettings.MaxTitleLength);
 
             return text;
         }
@@ -241,7 +241,7 @@ namespace Normalisation.Core
             if (text == null) return string.Empty;
 
             text = TextNormaliser.DecodeHtml(text);
-            text = TextNormaliser.TruncateToWords(text, _settings.MaxSummaryWords);
+            text = TextNormaliser.TruncateToWords(text, _normalisationSettings.MaxSummaryWords);
 
             return text;
         }
@@ -266,9 +266,9 @@ namespace Normalisation.Core
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
             if (languageIso3 != null)
-                text = StopWordFilter.RemoveStopWords(text, languageIso3);
+                text = StopWordFilter.RemoveStopWords(text, languageIso3, _normalisationSettings);
             text = TextNormaliser.RemoveDuplicateWords(text);
-            text = TextNormaliser.TruncateToWords(text, _settings.MaxKeywords);
+            text = TextNormaliser.TruncateToWords(text, _normalisationSettings.MaxKeywords);
 
             return text;
         }
@@ -283,7 +283,7 @@ namespace Normalisation.Core
             text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
             if (languageIso3 != null)
-                text = StopWordFilter.RemoveStopWords(text, languageIso3);
+                text = StopWordFilter.RemoveStopWords(text, languageIso3, _normalisationSettings);
             text = TextNormaliser.RemoveNumericalWords(text);
 
             return TextNormaliser.ExtractTags(text, maxTags);
@@ -303,7 +303,7 @@ namespace Normalisation.Core
 
             //uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
 
-            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _settings.AllowableLinkSchemas);
+            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _normalisationSettings.AllowableLinkSchemas);
 
             if (excludeExternalLinks)
                 uniqueUrls = UrlNormaliser.RemoveExternalLinks(uniqueUrls, baseUrl);
@@ -329,7 +329,7 @@ namespace Normalisation.Core
 
             var uniqueUrls = UrlNormaliser.MakeAbsolute(new List<string> { imageUrl }, baseUrl);
 
-            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _settings.AllowableLinkSchemas);
+            uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _normalisationSettings.AllowableLinkSchemas);
 
             return uniqueUrls.FirstOrDefault();
         }
@@ -337,7 +337,7 @@ namespace Normalisation.Core
         private int GetLinkLimit(int maxLinks)
         {
             if (maxLinks <= 0) return 0;
-            if (maxLinks > _settings.MaxLinksPerPage) return _settings.MaxLinksPerPage;
+            if (maxLinks > _normalisationSettings.MaxLinksPerPage) return _normalisationSettings.MaxLinksPerPage;
             return maxLinks;
         }
     }

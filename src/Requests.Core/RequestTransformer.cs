@@ -7,11 +7,11 @@ namespace Requests.Core
 {
     public class RequestTransformer : IRequestTransformer
     {
-        private readonly RequestSenderSettings _settings;
+        private readonly RequestSenderSettings _requestSenderSettings;
 
-        public RequestTransformer(RequestSenderSettings settings)
+        public RequestTransformer(RequestSenderSettings requestSenderSettings)
         {
-            _settings = settings;
+            _requestSenderSettings = requestSenderSettings;
         }
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace Requests.Core
                     or HttpStatusCode.ServiceUnavailable)
                 {
                     return DateTimeOffset.UtcNow.Add(
-                        TimeSpan.FromMinutes(_settings.RetryAfterFallbackMinutes));
+                        TimeSpan.FromMinutes(_requestSenderSettings.RetryAfterFallbackMinutes));
                 }
                 return null;
             }

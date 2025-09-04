@@ -1,4 +1,5 @@
-﻿using Normalisation.Core.Processors;
+﻿using Normalisation.Core;
+using Normalisation.Core.Processors;
 
 namespace Service.Normalisation.Tests
 {
@@ -23,7 +24,8 @@ namespace Service.Normalisation.Tests
         [TestCase("یہ ایک اردو میں لکھا گیا متن ہے۔", "urd")] // Urdu
         public void DetectLanguage_FromText_ReturnsISO3Code(string input, string expectedOutput)
         {
-            var iso3Code = LanguageIdentifier.DetectLanguage(input);
+            var normalisationSettings = new NormalisationSettings();
+            var iso3Code = LanguageIdentifier.DetectLanguage(input, normalisationSettings);
 
             Assert.That(iso3Code, Is.EqualTo(expectedOutput.ToLower()));
         }
@@ -35,8 +37,9 @@ namespace Service.Normalisation.Tests
         [TestCase("😃😃😃😃😃")]
         public void DetectLanguage_InvalidOrEmptyInput_ReturnsDefault(string input)
         {
-            var defaultIso3 = LanguageIdentifier.DEFAULT_LANGUAGE_ISO3_CODE;
-            var result = LanguageIdentifier.DetectLanguage(input);
+            var normalisationSettings = new NormalisationSettings();
+            var defaultIso3 = normalisationSettings.Processors.DefaultLanguageIso3Code;
+            var result = LanguageIdentifier.DetectLanguage(input, normalisationSettings);
 
             Assert.That(result, Is.EqualTo(defaultIso3));
         }
@@ -57,7 +60,8 @@ namespace Service.Normalisation.Tests
             [TestCase("urd", "ur")] // Urdu
             public void ConvertLanguageIso3ToIso2_ReturnsExpectedIso2Code(string iso3, string expectedIso2)
             {
-                var result = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3);
+                var normalisationSettings = new NormalisationSettings();
+                var result = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3, normalisationSettings);
                 Assert.That(result, Is.EqualTo(expectedIso2));
             }
 
@@ -66,8 +70,9 @@ namespace Service.Normalisation.Tests
             [TestCase("XXX")] // Invalid code
             public void ConvertLanguageIso3ToIso2_ReturnsDefault_ForInvalidOrEmpty(string iso3)
             {
-                var defaultIso2 = LanguageIdentifier.DEFAULT_LANGUAGE_ISO2_CODE;
-                var result = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3);
+                var normalisationSettings = new NormalisationSettings();
+                var defaultIso2 = normalisationSettings.Processors.DefaultLanguageIso2Code;
+                var result = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3, normalisationSettings);
                 Assert.That(result, Is.EqualTo(defaultIso2));
             }
         }

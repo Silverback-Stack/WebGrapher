@@ -4,6 +4,7 @@ using Graphing.Core;
 using Graphing.Core.WebGraph.Adapters.InMemory;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,18 +17,24 @@ namespace WebGrapher.Cli.Service.Graphing
 {
     internal class GraphingService
     {
-        private const string HOST = "http://localhost:5000";
-        private const string SWAGGER_ENDPOINT_URL = "/swagger/v1/swagger.json";
-        private const string SWAGGER_ENDPOINT_NAME = "Grapher API V1";
-        private const string SWAGGER_ROUTE_PREFIX = "swagger";
-
         private static IHost? _host;
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            //SETUP LOGGING:
-            var serviceName = typeof(GraphingService).Name;
-            var logFilePath = $"logs/{serviceName}.log";
+            //Setup Configuration using appsettings overrides
+            var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("Service.Graphing/appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+            //bind appsettings overrides to default settings objects
+            var webApiSettings = configuration.BindSection<WebApiSettings>("WebApi");
+            var graphingSettings = configuration.BindSection<GraphingSettings>("Graphing");
+
+
+            //Setup Logging
+            var logFilePath = $"logs/{graphingSettings.ServiceName}.log";
 
             var serilogLogger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -37,20 +44,23 @@ namespace WebGrapher.Cli.Service.Graphing
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
-            //SETUP WEBGRAPH:
-            var webGraph = new InMemoryWebGraphAdapter(logger);
 
-            //CREATE SERVICE:
-            var pageGrapher = GraphingFactory.Create(logger, eventBus, webGraph);
+            //Create WebGraph
+            var webGraph = new InMemoryWebGraphAdapter(logger, graphingSettings);
 
-            //START WEB API:
-            var host = await StartWebApiServerAsync(pageGrapher);
+
+            //Create PageGrapher service
+            var pageGrapher = GraphingFactory.Create(logger, eventBus, webGraph, graphingSettings);
+
+
+            //Start WEB.API:
+            var host = await StartWebApiServerAsync(pageGrapher, webApiSettings);
             _host = host;
 
-            logger.LogInformation($"Graphing service started on {HOST}/{SWAGGER_ROUTE_PREFIX}");
+            logger.LogInformation($"Graphing service started on {webApiSettings.Host}/{webApiSettings.SwaggerRoutePrefix}");
         }
 
-        private async static Task<IHost> StartWebApiServerAsync(IPageGrapher pageGrapher)
+        private async static Task<IHost> StartWebApiServerAsync(IPageGrapher pageGrapher, WebApiSettings webApiSettings)
         {
             // Create and build web host
             var host = Host.CreateDefaultBuilder()
@@ -91,15 +101,15 @@ namespace WebGrapher.Cli.Service.Graphing
                         app.UseSwagger();
                         app.UseSwaggerUI(options =>
                         {
-                            options.SwaggerEndpoint(SWAGGER_ENDPOINT_URL, SWAGGER_ENDPOINT_NAME);
-                            options.RoutePrefix = SWAGGER_ROUTE_PREFIX;
+                            options.SwaggerEndpoint(webApiSettings.SwaggerEndpointUrl, webApiSettings.SwaggerEndpointName);
+                            options.RoutePrefix = webApiSettings.SwaggerRoutePrefix;
                         });
                         app.UseEndpoints(endpoints =>
                         {
                             endpoints.MapControllers();
                         });
                     })
-                    .UseUrls(HOST);
+                    .UseUrls(webApiSettings.Host);
                 })
                 .ConfigureLogging(logging =>
                 {

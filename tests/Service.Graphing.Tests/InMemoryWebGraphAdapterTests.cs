@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Runtime;
+using Graphing.Core;
 using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.InMemory;
 using Graphing.Core.WebGraph.Models;
@@ -13,12 +15,14 @@ namespace Service.Graphing.Tests
         private InMemoryWebGraphAdapter _adapter;
         private Mock<ILogger> _logger;
         private bool _includeImmediateNeighborhood;
+        private GraphingSettings _graphingSettings;
 
         [SetUp]
         public void Setup()
         {
             _logger = new Mock<ILogger>();
-            _adapter = new InMemoryWebGraphAdapter(_logger.Object);
+            _graphingSettings = new GraphingSettings();
+            _adapter = new InMemoryWebGraphAdapter(_logger.Object, _graphingSettings);
             _includeImmediateNeighborhood = true; //true when current link depth < 2
         }
 
@@ -146,7 +150,7 @@ namespace Service.Graphing.Tests
         public async Task UpdatingNodeOutgoingLinks_AppendMode_DoesNotRemoveExistingIncomingLinks()
         {
             Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
-            var linkUpdateMode = LinkUpdateMode.Append;
+            var linkUpdateMode = NodeEdgesUpdateMode.Append;
 
             var webPageA = new WebPageItem
             {
@@ -197,7 +201,7 @@ namespace Service.Graphing.Tests
         public async Task UpdatingNodeOutgoingLinks_ReplaceMode_RemovesOldIncomingLinks()
         {
             Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
-            var linkUpdateMode = LinkUpdateMode.Replace;
+            var linkUpdateMode = NodeEdgesUpdateMode.Replace;
 
             var webPageA = new WebPageItem
             {

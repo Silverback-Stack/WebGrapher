@@ -61,7 +61,7 @@ namespace Service.Scraper.Tests
 
             var scraperSettings = new ScraperSettings();
 
-            _scraper = new PageScraper(scraperSettings, _logger.Object, _eventBus.Object, _requestSender.Object);
+            _scraper = new PageScraper(_logger.Object, _eventBus.Object, _requestSender.Object, scraperSettings);
         }
 
         [Test]

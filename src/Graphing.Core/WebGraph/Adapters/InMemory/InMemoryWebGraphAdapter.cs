@@ -11,7 +11,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
         private readonly Dictionary<Guid, Graph> _graphTable = new();
         private readonly Dictionary<Guid, Dictionary<string, Node>> _nodeTable = new();
 
-        public InMemoryWebGraphAdapter(ILogger logger) : base(logger) { }
+        public InMemoryWebGraphAdapter(ILogger logger, GraphingSettings graphingSettings) : base(logger, graphingSettings) { }
 
         public async override Task<Node?> GetNodeAsync(Guid graphId, string url)
         {
