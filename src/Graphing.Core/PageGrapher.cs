@@ -57,7 +57,7 @@ namespace Graphing.Core
             await _eventBus.PublishAsync(clientLogEvent);
         }
 
-        private async Task PublishGraphNodeAddedEvent(CrawlPageRequestDto request, Node node)
+        private async Task PublishGraphNodeAddedEventAsync(CrawlPageRequestDto request, Node node)
         {
             var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node, _graphingSettings);
             payload.CorrolationId = request.CorrelationId;
@@ -87,7 +87,7 @@ namespace Graphing.Core
                     });
         }
 
-        private async Task PublishCrawlPageEvent(CrawlPageRequestDto request, Node node)
+        private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto request, Node node)
         {
             var depth = request.Depth + 1;
 
@@ -140,13 +140,13 @@ namespace Graphing.Core
             //Delegate : Called when Node is populated with data
             Func<Node, Task> nodePopulatedCallback = async (node) =>
             {
-                await PublishGraphNodeAddedEvent(request, node);
+                await PublishGraphNodeAddedEventAsync(request, node);
             };
 
             //Delegate : Called when Link is discovered
             Func<Node, Task> linkDiscoveredCallback = async (node) =>
             {
-                await PublishCrawlPageEvent(request, node);
+                await PublishCrawlPageEventAsync(request, node);
             };
 
             // when Depth is 0 the request was initiated by the user
@@ -233,7 +233,7 @@ namespace Graphing.Core
                 RequestedAt = DateTimeOffset.UtcNow
             };
 
-            await PublishCrawlPageEvent(crawlPageRequest);
+            await PublishCrawlPageEventAsync(crawlPageRequest);
 
             return crawlPageRequest;
         }
@@ -290,7 +290,7 @@ namespace Graphing.Core
             return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId, _graphingSettings);
         }
 
-        private async Task PublishCrawlPageEvent(CrawlPageRequestDto crawlPageRequest)
+        private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto crawlPageRequest)
         {
             //create a crawl page event
             var crawlPageEvent = new CrawlPageEvent

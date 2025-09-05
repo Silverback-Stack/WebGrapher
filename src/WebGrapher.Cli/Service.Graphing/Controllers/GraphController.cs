@@ -20,7 +20,7 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
 
         // GET existing graph
         [HttpGet("{graphId}", Name = "GetById")]
-        public async Task<IActionResult> GetById([FromRoute] Guid graphId)
+        public async Task<IActionResult> GetByIdAsync([FromRoute] Guid graphId)
         {
             var graph = await _pageGrapher.GetGraphByIdAsync(graphId);
             if (graph == null) return NotFound();
@@ -31,7 +31,7 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
 
         // POST create new graph
         [HttpPost("create", Name = "Create")]
-        public async Task<IActionResult> Create([FromBody] CreateGraphDto createGraph)
+        public async Task<IActionResult> CreateAsync([FromBody] CreateGraphDto createGraph)
         {
             if (createGraph == null)
                 return BadRequest("Request body cannot be empty.");

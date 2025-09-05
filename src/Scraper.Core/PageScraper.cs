@@ -26,12 +26,12 @@ namespace Scraper.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<ScrapePageEvent>(ScrapeContent);
+            _eventBus.Subscribe<ScrapePageEvent>(ScrapeContentAsync);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<ScrapePageEvent>(ScrapeContent);
+            _eventBus.Unsubscribe<ScrapePageEvent>(ScrapeContentAsync);
         }
 
         public async Task PublishClientLogEventAsync(
@@ -56,7 +56,7 @@ namespace Scraper.Core
             await _eventBus.PublishAsync(clientLogEvent);
         }
 
-        private async Task ScrapeContent(ScrapePageEvent evt)
+        private async Task ScrapeContentAsync(ScrapePageEvent evt)
         {
             string logMessage;
             var request = evt.CrawlPageRequest;
@@ -88,7 +88,7 @@ namespace Scraper.Core
 
             if (response.Metadata.StatusCode != HttpStatusCode.OK)
             {
-                await PublishScrapePageFailedEvent(request, response);
+                await PublishScrapePageFailedEventAsync(request, response);
 
                 logMessage = $"Scrape Failed: {request.Url} Status: {response.Metadata.StatusCode}. Attempt: {request.Attempt}";
                 _logger.LogError(logMessage);
@@ -108,7 +108,7 @@ namespace Scraper.Core
                 return;
             }
 
-            await PublishNormalisePageEvent(request, response);
+            await PublishNormalisePageEventAsync(request, response);
 
             var source = response.IsFromCache ? "Cache" : "Live";
             logMessage = $"Scrape Completed ({source}): {request.Url} Status: {response.Metadata.StatusCode}. Attempt {request.Attempt}";
@@ -128,7 +128,7 @@ namespace Scraper.Core
                     });
         }
 
-        private async Task PublishScrapePageFailedEvent(
+        private async Task PublishScrapePageFailedEventAsync(
             CrawlPageRequestDto request,
             HttpResponseEnvelope response)
         {
@@ -142,7 +142,7 @@ namespace Scraper.Core
             }, priority: request.Depth);
         }
 
-        private async Task PublishNormalisePageEvent(
+        private async Task PublishNormalisePageEventAsync(
             CrawlPageRequestDto request,
             HttpResponseEnvelope response)
         {

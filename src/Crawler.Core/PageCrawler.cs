@@ -99,7 +99,7 @@ namespace Crawler.Core
 
             if (HasReachedMaxDepth(request.Depth, request.Options.MaxDepth, _crawlerSettings.MaxCrawlDepthLimit))
             {
-                logMessage = $"Crawl Stopped: {request.Url} Current depth {request.Depth} exceeded maximum allowed {_crawlerSettings.MaxCrawlDepthLimit}.";
+                logMessage = $"Crawl Stopped: {request.Url} Current depth {request.Depth} exceeded maximum allowed {request.Options.MaxDepth}.";
                 _logger.LogWarning(logMessage);
 
                 await PublishClientLogEventAsync(
@@ -141,7 +141,7 @@ namespace Crawler.Core
 
             if (_sitePolicyResolver.IsRateLimited(sitePolicy))
             {
-                await PublishScheduledCrawlPageEvent(request, sitePolicy.RetryAfter);
+                await PublishScheduledCrawlPageEventAsync(request, sitePolicy.RetryAfter);
                 return;
             }
 
@@ -159,7 +159,7 @@ namespace Crawler.Core
                 request.Options.UserAgent,
                 evt.RetryAfter); //assigns RetryAfter interval
 
-            await PublishScheduledCrawlPageEvent(request, sitePolicy.RetryAfter);
+            await PublishScheduledCrawlPageEventAsync(request, sitePolicy.RetryAfter);
         }
 
         private static bool HasExhaustedRetries(int currentAttempt, int maxCrawlAttemptLimit) =>
@@ -195,7 +195,7 @@ namespace Crawler.Core
                     });
         }
 
-        private async Task PublishScheduledCrawlPageEvent(CrawlPageRequestDto request, DateTimeOffset? retryAfter)
+        private async Task PublishScheduledCrawlPageEventAsync(CrawlPageRequestDto request, DateTimeOffset? retryAfter)
         {
             var attempt = request.Attempt + 1;
             var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(

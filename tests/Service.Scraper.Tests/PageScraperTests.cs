@@ -29,7 +29,6 @@ namespace Service.Scraper.Tests
             _requestSender = new Mock<IRequestSender>();
 
             _url = new Uri("http://example.com/page.html");
-            var contentMaxBytes = 0;
 
             //Mock http response:
             var responseEnvelope = new HttpResponseEnvelope
@@ -56,7 +55,12 @@ namespace Service.Scraper.Tests
             };
 
             _requestSender.Setup(rs => rs.FetchAsync(
-                _url, _userAgent, _userAccepts, contentMaxBytes, null, CancellationToken.None))
+                _url, 
+                _userAgent, 
+                _userAccepts,
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
                 .ReturnsAsync(responseEnvelope);
 
             var scraperSettings = new ScraperSettings();
@@ -71,6 +75,23 @@ namespace Service.Scraper.Tests
 
             Assert.IsNotNull(responseEnvelope);
             Assert.That(responseEnvelope.Metadata.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        }
+
+        [Test]
+        public async Task FetchAsync_WhenRequestSenderReturnsNull_ReturnsNull()
+        {
+            _requestSender.Setup(rs => rs.FetchAsync(
+                It.IsAny<Uri>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+                .ReturnsAsync((HttpResponseEnvelope?)null);
+
+            var result = await _scraper.FetchAsync(_url, _userAgent, _userAccepts);
+
+            Assert.IsNull(result);
         }
 
     }

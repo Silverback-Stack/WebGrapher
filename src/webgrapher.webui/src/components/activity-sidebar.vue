@@ -115,7 +115,7 @@
     height: calc(100vh - 60px); /* full height minus navbar */
     background-color: rgba(236, 240, 241, .9);
     border-left: 1px solid #ddd;
-    box-shadow: -2px 0 6px rgba(0,0,0,0.2);
+    box-shadow: 2px 0 6px rgba(0,0,0,0.2);
     z-index: 1000; /* above graph but under modal */
     display: flex;
     flex-direction: column;

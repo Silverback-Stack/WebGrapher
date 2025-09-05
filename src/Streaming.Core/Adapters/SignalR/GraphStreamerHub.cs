@@ -4,7 +4,7 @@ namespace Streaming.Core.Adapters.SignalR
 {
     public class GraphStreamerHub : Hub
     {
-        public async Task JoinGraphGroup(string graphId)
+        public async Task JoinGraphGroupAsync(string graphId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, graphId);
         }
