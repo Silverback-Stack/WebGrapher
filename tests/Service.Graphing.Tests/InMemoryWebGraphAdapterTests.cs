@@ -147,7 +147,7 @@ namespace Service.Graphing.Tests
 
 
         [Test]
-        public async Task UpdatingNodeOutgoingLinks_AppendMode_DoesNotRemoveExistingIncomingLinks()
+        public async Task UpdatingNodeOutgoingLinksAsync_AppendMode_DoesNotRemoveExistingIncomingLinks()
         {
             Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
             var linkUpdateMode = NodeEdgesUpdateMode.Append;
@@ -198,7 +198,7 @@ namespace Service.Graphing.Tests
         }
 
         [Test]
-        public async Task UpdatingNodeOutgoingLinks_ReplaceMode_RemovesOldIncomingLinks()
+        public async Task UpdatingNodeOutgoingLinksAsync_ReplaceMode_RemovesOldIncomingLinks()
         {
             Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
             var linkUpdateMode = NodeEdgesUpdateMode.Replace;

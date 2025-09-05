@@ -25,14 +25,14 @@ namespace Streaming.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEvent);
-            _eventBus.Subscribe<ClientLogEvent>(ProcessGraphLogEvent);
+            _eventBus.Subscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEventAsync);
+            _eventBus.Subscribe<ClientLogEvent>(ProcessGraphLogEventAsync);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEvent);
-            _eventBus.Unsubscribe<ClientLogEvent>(ProcessGraphLogEvent);
+            _eventBus.Unsubscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEventAsync);
+            _eventBus.Unsubscribe<ClientLogEvent>(ProcessGraphLogEventAsync);
         }
 
         public async Task PublishClientLogEventAsync(
@@ -61,7 +61,7 @@ namespace Streaming.Core
 
         public abstract Task BroadcastGraphLogAsync(Guid graphId, ClientLogDto payload);
 
-        private async Task ProcessGraphNodeAddedEvent(GraphNodeAddedEvent evt)
+        private async Task ProcessGraphNodeAddedEventAsync(GraphNodeAddedEvent evt)
         {
             try
             {
@@ -90,7 +90,7 @@ namespace Streaming.Core
             }
         }
 
-        private async Task ProcessGraphLogEvent(ClientLogEvent evt)
+        private async Task ProcessGraphLogEventAsync(ClientLogEvent evt)
         {
             var clientLogDto = new ClientLogDto
             {

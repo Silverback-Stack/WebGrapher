@@ -45,7 +45,7 @@ async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval
   async function startConnection() {
     try {
       await connection.start()
-      await connection.invoke("JoinGraphGroup", graphId)
+      await connection.invoke("JoinGraphGroupAsync", graphId)
       console.log("SignalR connected")
       if (onStatus) onStatus("connected")
     } catch (err) {

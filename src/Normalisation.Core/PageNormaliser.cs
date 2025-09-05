@@ -58,7 +58,7 @@ namespace Normalisation.Core
             await _eventBus.PublishAsync(clientLogEvent);
         }
 
-        private async Task PublishGraphEvent(
+        private async Task PublishGraphEventAsync(
             NormalisePageEvent evt,
             string? title,
             string? summary,
@@ -198,7 +198,7 @@ namespace Normalisation.Core
                 request.Options.UrlMatchRegex);
             var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
 
-            await PublishGraphEvent(evt, normalisedTitle, normalisedSummary, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
+            await PublishGraphEventAsync(evt, normalisedTitle, normalisedSummary, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
         }
 
         private async Task<string?> GetHtmlDocumentAsync(string blobId, string? container, string encoding)

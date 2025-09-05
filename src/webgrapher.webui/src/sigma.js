@@ -232,7 +232,7 @@ export function highlightNodeNeighborhood(sigmaGraph, sigmaInstance, selectedNod
     const isConnected = neighbors.has(source) && neighbors.has(target);
     sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
       ...oldAttr,
-      color: isConnected ? appConfig.nodeEdgeSelectedSize : appConfig.nodeEdgeColor,
+      color: isConnected ? appConfig.nodeSelectedEdgeColor : appConfig.nodeEdgeColor,
       size: isConnected ? appConfig.nodeEdgeSelectedSize : appConfig.nodeEdgeSize
     }))
   })
