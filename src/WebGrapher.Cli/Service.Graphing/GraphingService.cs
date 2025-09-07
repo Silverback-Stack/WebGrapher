@@ -1,7 +1,6 @@
 ﻿using System;
 using Events.Core.Bus;
 using Graphing.Core;
-using Graphing.Core.WebGraph.Adapters.InMemory;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -21,10 +20,13 @@ namespace WebGrapher.Cli.Service.Graphing
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
+            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+
             //Setup Configuration using appsettings overrides
             var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("Service.Graphing/appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"Service.Graphing/appsettings.{environment}.json", optional: true, reloadOnChange: true) // local overrides
             .AddEnvironmentVariables()
             .Build();
 
@@ -44,13 +46,8 @@ namespace WebGrapher.Cli.Service.Graphing
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
-
-            //Create WebGraph
-            var webGraph = new InMemoryWebGraphAdapter(logger, graphingSettings);
-
-
             //Create PageGrapher service
-            var pageGrapher = GraphingFactory.Create(logger, eventBus, webGraph, graphingSettings);
+            var pageGrapher = GraphingFactory.Create(logger, eventBus, graphingSettings);
 
 
             //Start WEB.API:

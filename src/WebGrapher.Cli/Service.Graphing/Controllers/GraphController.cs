@@ -178,9 +178,9 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> ListGraphsAsync(int page = 1, int pageSize = 20)
+        public async Task<IActionResult> ListGraphsAsync(int page = 1, int pageSize = 8)
         {
-            if (pageSize > 100) pageSize = 100;
+            if (pageSize > 20) pageSize = 20;
 
             var result = await _pageGrapher.ListGraphsAsync(page, pageSize);
 

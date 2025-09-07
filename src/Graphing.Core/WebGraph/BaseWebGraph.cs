@@ -37,7 +37,7 @@ namespace Graphing.Core.WebGraph
 
             if (linkUpdateMode == NodeEdgesUpdateMode.Replace)
             {
-                await ClearOutgoingLinksAsync(node);
+                await ClearOutgoingLinksAsync(webPage.GraphId, node);
             }
 
             if (webPage.IsRedirect)
@@ -47,6 +47,10 @@ namespace Graphing.Core.WebGraph
             }
 
             var addedLinks = await AddLinksAsync(webPage, forceRefresh);
+
+            //fetch updated node with added links from data source
+            node = await GetNodeAsync(webPage.GraphId, node.Url);
+            if (node is null) return;
 
             if (nodePopulatedCallback != null)
             {
@@ -142,19 +146,21 @@ namespace Graphing.Core.WebGraph
             var fromNode = await GetOrCreateNodeAsync(graphId, fromUrl, NodeState.Populated);
             var toNode = await GetOrCreateNodeAsync(graphId, toUrl, NodeState.Dummy);
 
-            var added = fromNode.OutgoingLinks.Add(toNode);
+            //var linkAdded = fromNode.OutgoingLinks.Add(toNode);
+            var linkAdded = await AddOutgoingLinkAsync(graphId, fromNode, toNode);
 
             //if the link was added (didnt already exist)
             //or link exists but this is a user-initiated request (forces refresh of data)
-            if (added || forceRefresh)
+            if (linkAdded || forceRefresh)
             {
                 _logger.LogDebug($"Adding outgoing/incoming links from {fromNode.Url} to {toNode.Url}.");
 
-                toNode.IncomingLinks.Add(fromNode);
+                //toNode.IncomingLinks.Add(fromNode);
+                await AddIncomingLinkAsync(graphId, toNode, fromNode);
 
                 // Update popularity scores
-                UpdatePopularityScore(fromNode);
-                UpdatePopularityScore(toNode);
+                fromNode.PopularityScore = await GetPopularityScoreAsync(graphId, fromNode);
+                toNode.PopularityScore = await GetPopularityScoreAsync(graphId, toNode);
 
                 await SaveNodeAsync(fromNode);
                 await SaveNodeAsync(toNode);
@@ -164,12 +170,6 @@ namespace Graphing.Core.WebGraph
 
             //link already exists
             return null;
-        }
-
-        private void UpdatePopularityScore(Node node)
-        {
-            // Simple metric: sum of incoming + outgoing links
-            node.PopularityScore = node.IncomingLinks.Count + node.OutgoingLinks.Count;
         }
 
         /// <summary>
@@ -220,31 +220,17 @@ namespace Graphing.Core.WebGraph
             fromNode.RedirectedToUrl = toUrl;
 
             // Maintain incoming/outgoing links
-            fromNode.OutgoingLinks.Add(toNode);
-            toNode.IncomingLinks.Add(fromNode);
-            
+            var outgoingAdded = await AddOutgoingLinkAsync(graphId, fromNode, toNode);
+            var incomingAdded = await AddIncomingLinkAsync(graphId, toNode, fromNode);
+
             _logger.LogDebug($"Marked node {fromUrl} as redirected to {toUrl} and updated links.");
 
             // Update popularity
-            UpdatePopularityScore(fromNode);
-            UpdatePopularityScore(toNode);
+            fromNode.PopularityScore = await GetPopularityScoreAsync(graphId, fromNode);
+            toNode.PopularityScore = await GetPopularityScoreAsync(graphId, toNode);
 
             await SaveNodeAsync(toNode);
             await SaveNodeAsync(fromNode);
-        }
-
-        protected async Task ClearOutgoingLinksAsync(Node node)
-        {
-            _logger?.LogDebug($"Clearing outgoing links for node {node.Url}");
-
-            foreach (var target in node.OutgoingLinks)
-            {
-                target.IncomingLinks.Remove(node);
-                await SaveNodeAsync(target);
-            }
-
-            node.OutgoingLinks.Clear();
-            await SaveNodeAsync(node);
         }
 
         /// <summary>
@@ -264,12 +250,16 @@ namespace Graphing.Core.WebGraph
                node.SourceLastModified != webPage.SourceLastModified;
         }
 
+        /// <summary>
+        /// Persists any changes to Node and sets ModifiedAt to now.
+        /// </summary>
         private async Task SaveNodeAsync(Node node)
         {
             node.ModifiedAt = DateTimeOffset.UtcNow;
             await SetNodeAsync(node);
         }
 
+        //Node Abstractions
 
         public abstract Task<Node?> GetNodeAsync(Guid graphId, string url);
 
@@ -279,11 +269,19 @@ namespace Graphing.Core.WebGraph
 
         public abstract Task CleanupOrphanedNodesAsync(Guid graphId);
 
+        protected abstract Task<bool> AddOutgoingLinkAsync(Guid graphId, Node fromNode, Node toNode);
+        protected abstract Task<bool> AddIncomingLinkAsync(Guid graphId, Node toNode, Node fromNode);
+        protected abstract Task ClearOutgoingLinksAsync(Guid graphId, Node node);
+        protected abstract Task<int> GetPopularityScoreAsync(Guid graphId, Node node);
+
+
+        //Graph Abstrations
+
         public abstract Task<Graph> CreateGraphAsync(GraphOptions options);
 
         public abstract Task<Graph?> GetGraphByIdAsync(Guid graphId);
 
-        public abstract Task<Graph> UpdateGraphAsync(Graph graph);
+        public abstract Task<Graph?> UpdateGraphAsync(Graph graph);
 
         public abstract Task<Graph?> DeleteGraphAsync(Guid graphId);
 

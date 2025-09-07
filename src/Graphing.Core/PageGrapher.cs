@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
@@ -85,6 +86,17 @@ namespace Graphing.Core
                         NodeCount = payload.NodeCount,
                         EdgeCount = payload.EdgeCount
                     });
+
+            var jsonPayload = JsonSerializer.Serialize(
+                payload,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+            // Log the serialized payload
+            _logger.LogInformation("Sigma Payload:\n{Payload}", jsonPayload);
         }
 
         private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto request, Node node)
@@ -189,7 +201,7 @@ namespace Graphing.Core
             return await _webGraph.CreateGraphAsync(options);
         }
 
-        public async Task<Graph> UpdateGraphAsync(Graph graph)
+        public async Task<Graph?> UpdateGraphAsync(Graph graph)
         {
             return await _webGraph.UpdateGraphAsync(graph);
         }
