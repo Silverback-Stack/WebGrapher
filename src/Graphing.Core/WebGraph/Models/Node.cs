@@ -2,6 +2,7 @@
 {
     public class Node
     {
+        public Guid Id { get; set; } = Guid.NewGuid();
         public Guid GraphId { get; set; }
         public string Url { get; set; }
         public string Title { get; set; } = string.Empty;

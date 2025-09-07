@@ -12,7 +12,7 @@ namespace Graphing.Core
 
         Task<Graph?> CreateGraphAsync(GraphOptions options);
 
-        Task<Graph> UpdateGraphAsync(Graph graph);
+        Task<Graph?> UpdateGraphAsync(Graph graph);
 
         Task<Graph?> DeleteGraphAsync(Guid graphId);
 

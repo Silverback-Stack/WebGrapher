@@ -1,0 +1,43 @@
+Azure Cosmos DB
+---------------
+
+From Azure portal:
+
+Search: Azure Cosmos DB -> Create
+
+Workload: Others
+
+Choose: Azure Cosmos DB for Apache Gremlin -> Create
+
+Workload type: Production
+
+Subscription: Your Subscription
+
+Respurce Group: webgrapher-resources
+
+Account Name: webgrapher-cosmos-db
+
+Locaion: (Europe) UK-South
+
+Capacity: Serverless
+
+Click: Review & Create
+
+
+
+Create a Databse Graph
+----------------------
+
+Go to your Cosmos DB account in the Azure portal.
+
+Open Data Explorer (left sidebar).
+
+Click New Graph.
+
+Database id : WebGrapherDb 
+
+Graph id : WebGraph
+
+Partition key : /graphId
+
+Click OK / Create.

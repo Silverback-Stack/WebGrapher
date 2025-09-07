@@ -7,12 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Events.Core\Events.Core.csproj" />
-    <ProjectReference Include="..\Requests.Core\Requests.Core.csproj" />
+    <PackageReference Include="Gremlin.Net" Version="3.7.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="WebGraph\Adapters\AzureCosmos\" />
+    <ProjectReference Include="..\Events.Core\Events.Core.csproj" />
+    <ProjectReference Include="..\Requests.Core\Requests.Core.csproj" />
   </ItemGroup>
 
 </Project>

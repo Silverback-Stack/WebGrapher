@@ -11,7 +11,8 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
         private readonly Dictionary<Guid, Graph> _graphTable = new();
         private readonly Dictionary<Guid, Dictionary<string, Node>> _nodeTable = new();
 
-        public InMemoryWebGraphAdapter(ILogger logger, GraphingSettings graphingSettings) : base(logger, graphingSettings) { }
+        public InMemoryWebGraphAdapter(ILogger logger, GraphingSettings graphingSettings) 
+            : base(logger, graphingSettings) { }
 
         public async override Task<Node?> GetNodeAsync(Guid graphId, string url)
         {
@@ -47,7 +48,47 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
 
             node.ModifiedAt = DateTimeOffset.UtcNow;
             nodes[node.Url] = node;
+
+            var output = await DumpGraphContents();
+            _logger.LogInformation(output);
+
             return await Task.FromResult(node);
+        }
+
+        protected override Task<bool> AddOutgoingLinkAsync(Guid graphId, Node fromNode, Node toNode)
+        {
+            if (fromNode.OutgoingLinks.Contains(toNode))
+                return Task.FromResult(false);
+
+            fromNode.OutgoingLinks.Add(toNode);
+            return Task.FromResult(true);
+        }
+
+        protected override Task<bool> AddIncomingLinkAsync(Guid graphId, Node toNode, Node fromNode)
+        {
+            if (toNode.IncomingLinks.Contains(fromNode))
+                return Task.FromResult(false);
+
+            toNode.IncomingLinks.Add(fromNode);
+            return Task.FromResult(true);
+        }
+
+        protected override Task ClearOutgoingLinksAsync(Guid graphId, Node node)
+        {
+            foreach (var target in node.OutgoingLinks.ToList()) // copy to avoid modifying while iterating
+            {
+                target.IncomingLinks.Remove(node);
+            }
+
+            node.OutgoingLinks.Clear();
+            return Task.CompletedTask;
+        }
+
+        protected override Task<int> GetPopularityScoreAsync(Guid graphId, Node node)
+        {
+            // Simple metric: sum of incoming + outgoing links
+            var score = node.IncomingLinks.Count + node.OutgoingLinks.Count;
+            return Task.FromResult(score);
         }
 
         public async override Task CleanupOrphanedNodesAsync(Guid graphId)
@@ -88,6 +129,22 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             await Task.CompletedTask;
         }
 
+
+        public override Task<IEnumerable<Node>> GetMostPopularNodes(Guid graphId, int topN)
+        {
+            if (!_nodeTable.TryGetValue(graphId, out var nodes))
+                return Task.FromResult(Enumerable.Empty<Node>());
+
+            var popularNodes = nodes.Values
+                .Where(n => n.State == NodeState.Populated)  // only populated nodes
+                .OrderByDescending(n => n.PopularityScore)   // sort by popularity
+                .ThenByDescending(n => n.ModifiedAt)         // then by latest modified
+                .Take(topN)                                  // take top N
+                .ToList();
+
+            return Task.FromResult<IEnumerable<Node>>(popularNodes);
+        }
+
         public override async Task<int> TotalPopulatedNodesAsync(Guid graphId)
         {
             if (_nodeTable.TryGetValue(graphId, out var nodes))
@@ -98,6 +155,9 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
 
             return await Task.FromResult(0);
         }
+
+
+
 
         public override async Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null)
         {
@@ -142,44 +202,6 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
         }
 
 
-        public string DumpGraphContents()
-        {
-            var sb = new System.Text.StringBuilder();
-
-            foreach (var (graphId, nodes) in _nodeTable)
-            {
-                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodes.Count}");
-                foreach (var node in nodes.Values.OrderBy(n => n.Url))
-                {
-                    sb.AppendLine($"  Node: {node.Url}");
-                    sb.AppendLine($"    State: {node.State}");
-                    sb.AppendLine($"    Title: {node.Title}");
-                    sb.AppendLine($"    Incoming: {node.IncomingLinkCount} | Outgoing: {node.OutgoingLinkCount}");
-
-                    if (node.OutgoingLinks.Any())
-                    {
-                        sb.AppendLine("    Outgoing Links:");
-                        foreach (var outNode in node.OutgoingLinks)
-                        {
-                            sb.AppendLine($"      -> {outNode.Url} [{outNode.State}]");
-                        }
-                    }
-
-                    if (node.IncomingLinks.Any())
-                    {
-                        sb.AppendLine("    Incoming Links:");
-                        foreach (var inNode in node.IncomingLinks)
-                        {
-                            sb.AppendLine($"      <- {inNode.Url} [{inNode.State}]");
-                        }
-                    }
-                }
-                sb.AppendLine(new string('-', 50));
-            }
-
-            return sb.ToString();
-        }
-
         public override async Task<Graph?> GetGraphByIdAsync(Guid graphId)
         {
             _graphTable.TryGetValue(graphId, out var graph);
@@ -193,7 +215,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
                 Id = Guid.NewGuid(),
                 Name = options.Name,
                 Description = options.Description,
-                Url = options.Url?.AbsoluteUri ?? "https://",
+                Url = options.Url?.AbsoluteUri ?? string.Empty,
                 MaxDepth = options.MaxDepth,
                 MaxLinks = options.MaxLinks,
                 ExcludeExternalLinks = options.ExcludeExternalLinks,
@@ -218,7 +240,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return graph;
         }
 
-        public override async Task<Graph> UpdateGraphAsync(Graph graph)
+        public override async Task<Graph?> UpdateGraphAsync(Graph graph)
         {
             if (!_graphTable.ContainsKey(graph.Id))
                 throw new KeyNotFoundException($"Graph {graph.Id} not found.");
@@ -247,6 +269,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
         public override async Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize)
         {
             if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 1;
 
             var items = _graphTable.Values
                 .OrderBy(g => g.CreatedAt)
@@ -263,20 +286,47 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return result;
         }
 
-        public override Task<IEnumerable<Node>> GetMostPopularNodes(Guid graphId, int topN)
+        public async Task<string> DumpGraphContents()
         {
-            if (!_nodeTable.TryGetValue(graphId, out var nodes))
-                return Task.FromResult(Enumerable.Empty<Node>());
+            var sb = new System.Text.StringBuilder();
 
-            var popularNodes = nodes.Values
-                .Where(n => n.State == NodeState.Populated)  // only populated nodes
-                .OrderByDescending(n => n.PopularityScore)   // sort by popularity
-                .ThenByDescending(n => n.ModifiedAt)         // then by latest modified
-                .Take(topN)                                  // take top N
-                .ToList();
+            foreach (var (graphId, nodes) in _nodeTable)
+            {
+                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodes.Count}");
+                foreach (var node in nodes.Values.OrderBy(n => n.Url))
+                {
+                    var popularity = await GetPopularityScoreAsync(graphId, node);
 
-            return Task.FromResult<IEnumerable<Node>>(popularNodes);
+                    sb.AppendLine($"  Node: {node.Url}");
+                    sb.AppendLine($"    State: {node.State}");
+                    sb.AppendLine($"    Title: {node.Title}");
+                    sb.AppendLine($"    Popularity: {popularity}");
+                    sb.AppendLine($"    Incoming: {node.IncomingLinks.Count} | Outgoing: {node.OutgoingLinks.Count}");
+
+                    if (node.OutgoingLinks.Any())
+                    {
+                        sb.AppendLine("    Outgoing Links:");
+                        foreach (var outNode in node.OutgoingLinks)
+                        {
+                            sb.AppendLine($"      -> {outNode.Url} [{outNode.State}]");
+                        }
+                    }
+
+                    if (node.IncomingLinks.Any())
+                    {
+                        sb.AppendLine("    Incoming Links:");
+                        foreach (var inNode in node.IncomingLinks)
+                        {
+                            sb.AppendLine($"      <- {inNode.Url} [{inNode.State}]");
+                        }
+                    }
+                }
+                sb.AppendLine(new string('-', 50));
+            }
+
+            return sb.ToString();
         }
+
 
     }
 }
