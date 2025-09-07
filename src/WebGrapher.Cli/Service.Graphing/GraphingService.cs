@@ -90,11 +90,16 @@ namespace WebGrapher.Cli.Service.Graphing
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
+                    webBuilder.UseWebRoot(Path.Combine(AppContext.BaseDirectory, "Service.Graphing", "wwwroot"));
+
                     webBuilder.Configure(app =>
                     {
                         app.UseRouting();
-                        app.UseCors("AllowLocalhost");
+                        app.UseCors("AllowLocalhost"); //must come before static files and swagger
 
+                        app.UseDefaultFiles();
+                        app.UseStaticFiles();
+                                                
                         app.UseSwagger();
                         app.UseSwaggerUI(options =>
                         {

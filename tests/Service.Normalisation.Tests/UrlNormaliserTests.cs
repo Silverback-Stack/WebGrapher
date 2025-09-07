@@ -46,6 +46,48 @@ namespace Service.Normalisation.Tests
             Assert.That(resultStrings, Has.Some.EqualTo("https://other.com/page4"));
             Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/images/page5"));
             Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/page6"));
+
+            //add a folder to the url with training slash
+            var musicBase = new Uri(_baseUrl.AbsoluteUri + "music");
+            var musicUrls = new List<string>
+            {
+                "coldplay.html",   // relative
+                "adel.html",       // relative
+                "/top.html",       // root-relative
+                "./local.html",    // current folder
+                "../up.html"       // parent folder
+            };
+
+            var musicResults = UrlNormaliser.MakeAbsolute(musicUrls, musicBase);
+            var musicResultStrings = musicResults.Select(u => u.ToString()).ToHashSet();
+
+            Assert.That(musicResultStrings.Count, Is.EqualTo(5));
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/coldplay.html"));
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/adel.html"));
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/top.html")); // root-relative
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/local.html")); // ./ resolves to same folder
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/up.html")); // ../ resolves to parent
+
+            //add a folder to the url without traiing slash
+            musicBase = new Uri(_baseUrl.AbsoluteUri + "music/");
+            musicUrls = new List<string>
+            {
+                "coldplay.html",   // relative
+                "adel.html",       // relative
+                "/top.html",       // root-relative
+                "./local.html",
+                "../up.html"
+            };
+
+            musicResults = UrlNormaliser.MakeAbsolute(musicUrls, musicBase);
+            musicResultStrings = musicResults.Select(u => u.ToString()).ToHashSet();
+
+            Assert.That(musicResultStrings.Count, Is.EqualTo(5));
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/coldplay.html"));
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/adel.html"));
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/top.html")); // root-relative
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/local.html"));
+            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/up.html"));
         }
 
         [Test]
@@ -130,25 +172,6 @@ namespace Service.Normalisation.Tests
             Assert.That(filtered.Contains(_baseUrl), Is.False);
             Assert.That(filtered.Count, Is.EqualTo(1));
         }
-
-
-        //DO NOT USE - CAUSING UNEXPECTED REDIRECTS - ALWAYS STAY TRUE TO SOURCE PAGE URLS
-        //[Test]
-        //public void RemoveTrailingSlash_RemovesTrailingSlashExceptRoot()
-        //{
-        //    var urls = new HashSet<Uri>
-        //{
-        //    new Uri("https://example.com/path/"),
-        //    new Uri("https://example.com/"),
-        //    new Uri("https://example.com/path/sub/")
-        //};
-
-        //    var cleaned = UrlNormaliser.RemoveTrailingSlash(urls);
-
-        //    Assert.That(cleaned.Any(u => u.ToString().EndsWith("/path")), Is.True);
-        //    Assert.That(cleaned.Any(u => u.ToString().EndsWith("/")), Is.True); // root remains with slash
-        //    Assert.That(cleaned.Any(u => u.ToString().EndsWith("/sub")), Is.True);
-        //}
 
         [Test]
         public void Truncate_ReturnsOnlySpecifiedNumberOfUrls()

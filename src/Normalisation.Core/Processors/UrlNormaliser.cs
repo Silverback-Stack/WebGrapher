@@ -5,21 +5,37 @@ namespace Normalisation.Core.Processors
 {
     public static class UrlNormaliser
     {
-        private static Uri GetBaseUrl(Uri url)
-        {
-            var baseUrl = $"{url.Scheme}://{url.Authority}";
 
-            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri))
+        /// <summary>
+        /// Returns a base folder URI suitable for resolving relative URLs.
+        /// If the URL is a file (does not end with /), returns the parent folder.
+        /// If it already ends with /, returns it as-is.
+        /// </summary>
+        private static Uri GetBaseFolderUri(Uri pageUrl)
+        {
+            if (pageUrl.AbsoluteUri.EndsWith("/"))
             {
-                throw new ArgumentException(nameof(baseUrl), $"Invalid Url: {url}");
+                // Already a folder URL
+                return pageUrl;
             }
 
-            return baseUri;
+            // Last segment of path
+            var lastSegment = pageUrl.Segments.LastOrDefault() ?? "";
+
+            if (!lastSegment.Contains("."))
+            {
+                // No dot → likely a folder URL missing trailing slash, add it
+                return new Uri(pageUrl.AbsoluteUri + "/");
+            }
+
+            // Resolve relative to parent folder
+            return new Uri(pageUrl, "."); // the "." trick gives parent folder
         }
+
 
         public static HashSet<Uri> MakeAbsolute(IEnumerable<string> urls, Uri baseUrl)
         {
-            var baseUri = GetBaseUrl(baseUrl);
+            var baseUri = GetBaseFolderUri(baseUrl);
             var uniqueUrls = new HashSet<Uri>();
 
             foreach (var url in urls)

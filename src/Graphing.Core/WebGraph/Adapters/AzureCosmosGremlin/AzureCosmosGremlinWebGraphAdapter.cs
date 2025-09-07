@@ -47,44 +47,6 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             }
         }
 
-        private Node HydrateVertex(dynamic vertex, Guid graphId)
-        {
-            if (vertex == null) throw new ArgumentNullException(nameof(vertex));
-
-            if ((string)vertex["label"] != "node")
-                throw new InvalidOperationException("Vertex is not a Node");
-
-            var props = vertex["properties"] as IDictionary<string, object>;
-
-            Enum.TryParse<NodeState>(GremlinHelpers.GetPropString(props, "state"), out NodeState nodeState);
-            
-
-            //TODO: consider using Nullable types in Node instead of default values here!
-
-            return new Node
-            {
-                Id = Guid.Parse(vertex["id"].ToString()),
-                GraphId = graphId,
-                Url = GremlinHelpers.GetPropString(props, "url")!,
-                Title = GremlinHelpers.GetPropString(props, "title") ?? string.Empty,
-                Summary = GremlinHelpers.GetPropString(props, "summary") ?? string.Empty,
-                ImageUrl = GremlinHelpers.GetPropString(props, "imageUrl") ?? string.Empty,
-                Keywords = GremlinHelpers.GetPropString(props, "keywords") ?? string.Empty,
-                Tags = GremlinHelpers.GetPropStringList(props, "tags"),
-                State = nodeState,
-                RedirectedToUrl = GremlinHelpers.GetPropString(props, "redirectedToUrl") ?? string.Empty,
-                PopularityScore = GremlinHelpers.GetPropInt(props, "popularityScore") ?? 0,
-                CreatedAt = GremlinHelpers.GetPropDateTimeOffset(props, "createdAt") ?? DateTimeOffset.UtcNow,
-                ModifiedAt = GremlinHelpers.GetPropDateTimeOffset(props, "modifiedAt") ?? DateTimeOffset.UtcNow,
-                LastScheduledAt = GremlinHelpers.GetPropDateTimeOffset(props, "lastScheduledAt"),
-                SourceLastModified = GremlinHelpers.GetPropDateTimeOffset(props, "sourceLastModified"),
-                ContentFingerprint = GremlinHelpers.GetPropString(props, "contentFingerprint") ?? string.Empty,
-                OutgoingLinks = new HashSet<Node>(),
-                IncomingLinks = new HashSet<Node>()
-            };
-        }
-
-
         public override async Task<Node?> GetNodeAsync(Guid graphId, string url)
         {
             //Gremlin doesnt allow special chars in Id field,
@@ -235,6 +197,43 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
         }
 
+        private Node HydrateVertex(dynamic vertex, Guid graphId)
+        {
+            if (vertex == null) throw new ArgumentNullException(nameof(vertex));
+
+            if ((string)vertex["label"] != "node")
+                throw new InvalidOperationException("Vertex is not a Node");
+
+            var props = vertex["properties"] as IDictionary<string, object>;
+
+            Enum.TryParse<NodeState>(GremlinHelpers.GetPropString(props, "state"), out NodeState nodeState);
+
+
+            //TODO: consider using Nullable types in Node instead of default values here!
+
+            return new Node
+            {
+                Id = Guid.Parse(vertex["id"].ToString()),
+                GraphId = graphId,
+                Url = GremlinHelpers.GetPropString(props, "url")!,
+                Title = GremlinHelpers.GetPropString(props, "title") ?? string.Empty,
+                Summary = GremlinHelpers.GetPropString(props, "summary") ?? string.Empty,
+                ImageUrl = GremlinHelpers.GetPropString(props, "imageUrl") ?? string.Empty,
+                Keywords = GremlinHelpers.GetPropString(props, "keywords") ?? string.Empty,
+                Tags = GremlinHelpers.GetPropStringList(props, "tags"),
+                State = nodeState,
+                RedirectedToUrl = GremlinHelpers.GetPropString(props, "redirectedToUrl") ?? string.Empty,
+                PopularityScore = GremlinHelpers.GetPropInt(props, "popularityScore") ?? 0,
+                CreatedAt = GremlinHelpers.GetPropDateTimeOffset(props, "createdAt") ?? DateTimeOffset.UtcNow,
+                ModifiedAt = GremlinHelpers.GetPropDateTimeOffset(props, "modifiedAt") ?? DateTimeOffset.UtcNow,
+                LastScheduledAt = GremlinHelpers.GetPropDateTimeOffset(props, "lastScheduledAt"),
+                SourceLastModified = GremlinHelpers.GetPropDateTimeOffset(props, "sourceLastModified"),
+                ContentFingerprint = GremlinHelpers.GetPropString(props, "contentFingerprint") ?? string.Empty,
+                OutgoingLinks = new HashSet<Node>(),
+                IncomingLinks = new HashSet<Node>()
+            };
+        }
+
         protected async override Task<bool> AddOutgoingLinkAsync(Guid graphId, Node fromNode, Node toNode)
         {
             try
@@ -278,7 +277,6 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 return false;
             }
         }
-
 
         protected async override Task<bool> AddIncomingLinkAsync(Guid graphId, Node toNode, Node fromNode)
         {

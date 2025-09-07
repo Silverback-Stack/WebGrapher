@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime;
 using Graphing.Core;
 using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.InMemory;

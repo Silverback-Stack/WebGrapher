@@ -2,7 +2,6 @@
 using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Events;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;

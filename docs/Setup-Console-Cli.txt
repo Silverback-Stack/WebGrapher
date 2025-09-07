@@ -47,3 +47,18 @@ appsettings.json
 ----------------
 Be sure each appsettings.json is copied to output directory: Copy if newer
 This will make sure the files exist in the bin folder and can be read at runtime.
+
+Create: appsettings.Development.json
+
+
+Setup Environment
+-----------------
+Right click project: WebGrapher.Cli
+
+Open Properties -> Debug -> General
+
+Create Environment variable:
+Name:   DOTNET_ENVIRONMENT
+Value:  Development
+
+Close settings.

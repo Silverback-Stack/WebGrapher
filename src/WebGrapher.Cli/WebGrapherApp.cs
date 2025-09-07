@@ -22,10 +22,13 @@ namespace WebGrapher.Cli
 
         public async Task InitializeAsync()
         {
+            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+
             //Setup Configuration using appsettings overrides
             var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("Service.Events/appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"Service.Events/appsettings.{environment}.json", optional: true, reloadOnChange: true) // local overrides
             .AddEnvironmentVariables()
             .Build();
 

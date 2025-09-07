@@ -259,6 +259,8 @@ namespace Graphing.Core.WebGraph
             await SetNodeAsync(node);
         }
 
+
+
         //Node Abstractions
 
         public abstract Task<Node?> GetNodeAsync(Guid graphId, string url);
@@ -273,6 +275,7 @@ namespace Graphing.Core.WebGraph
         protected abstract Task<bool> AddIncomingLinkAsync(Guid graphId, Node toNode, Node fromNode);
         protected abstract Task ClearOutgoingLinksAsync(Guid graphId, Node node);
         protected abstract Task<int> GetPopularityScoreAsync(Guid graphId, Node node);
+
 
 
         //Graph Abstrations
