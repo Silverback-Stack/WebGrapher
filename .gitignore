@@ -8,7 +8,10 @@
 *.user
 *.userosscache
 *.sln.docstates
-Service.Graphing/appsettings.Development.json
+
+# Ignore local environment settings
+**/appsettings.Development.json
+**/appsettings.Local.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
