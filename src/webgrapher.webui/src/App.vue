@@ -278,7 +278,7 @@
         apiConfig.GRAPH_NODESUBGRAPH(graphId.value),
         {
           nodeUrl: nodeId,
-          maxDepth: appConfig.subGraphDepth
+          maxDepth: appConfig.subGraphMaxDepth
         },
         { signal: controller.signal }
       )

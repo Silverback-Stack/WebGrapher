@@ -1,8 +1,8 @@
 export default {
   //Graph Connect
   defaultPageSize: 8,
-  populateGraphMaxDepth: 3,
-  populateGraphMaxNodes: 5000,
+  populateGraphMaxDepth: 2,
+  populateGraphMaxNodes: 1000,
 
   //SubGraph Requests
   subGraphThrottle_MS: 10_000, //10 Seconds
@@ -19,7 +19,7 @@ export default {
   nodeEdgeColor: "#E0E0E0",
   nodeSelectedEdgeColor: "#888888",
   minNodeSize: 10,
-  maxNodeSize: 50,
+  maxNodeSize: 60,
   nodeSizeSelectedRatio: 1.5, //150%
   nodeEdgeSize: 1,
   nodeEdgeSelectedSize: 2,

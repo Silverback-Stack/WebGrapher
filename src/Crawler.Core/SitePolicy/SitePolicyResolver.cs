@@ -60,7 +60,7 @@ namespace Crawler.Core.SitePolicy
 
         private async Task<string?> FetchRobotsTxtAsync(Uri url, string userAgent)
         {
-            var robotsTxtUrl = new Uri($"{url.Scheme}://{url.Host}/robots.txt");
+            var robotsTxtUrl = new Uri($"{url.Scheme}://{url.Authority}/robots.txt");
 
             var httpResponseEnvelope = await _requestSender.FetchAsync(
                 robotsTxtUrl,

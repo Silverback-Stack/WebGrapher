@@ -49,9 +49,6 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             node.ModifiedAt = DateTimeOffset.UtcNow;
             nodes[node.Url] = node;
 
-            var output = await DumpGraphContents();
-            _logger.LogInformation(output);
-
             return await Task.FromResult(node);
         }
 
@@ -130,7 +127,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
         }
 
 
-        public override Task<IEnumerable<Node>> GetMostPopularNodes(Guid graphId, int topN)
+        public override Task<IEnumerable<Node>> GetInitialGraphNodes(Guid graphId, int topN)
         {
             if (!_nodeTable.TryGetValue(graphId, out var nodes))
                 return Task.FromResult(Enumerable.Empty<Node>());
@@ -145,7 +142,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return Task.FromResult<IEnumerable<Node>>(popularNodes);
         }
 
-        public override async Task<int> TotalPopulatedNodesAsync(Guid graphId)
+        public override async Task<long> TotalPopulatedNodesAsync(Guid graphId)
         {
             if (_nodeTable.TryGetValue(graphId, out var nodes))
             {
@@ -159,7 +156,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
 
 
 
-        public override async Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null)
+        public override async Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null)
         {
             if (!_nodeTable.TryGetValue(graphId, out var nodes) || !nodes.TryGetValue(startUrl, out var startNode))
             {
@@ -202,7 +199,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
         }
 
 
-        public override async Task<Graph?> GetGraphByIdAsync(Guid graphId)
+        public override async Task<Graph?> GetGraphAsync(Guid graphId)
         {
             _graphTable.TryGetValue(graphId, out var graph);
             return graph;
@@ -286,7 +283,7 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return result;
         }
 
-        public async Task<string> DumpGraphContents()
+        public async Task<string> DumpGraphContentsAsync()
         {
             var sb = new System.Text.StringBuilder();
 
@@ -295,12 +292,10 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
                 sb.AppendLine($"Graph {graphId} — Total Nodes: {nodes.Count}");
                 foreach (var node in nodes.Values.OrderBy(n => n.Url))
                 {
-                    var popularity = await GetPopularityScoreAsync(graphId, node);
-
                     sb.AppendLine($"  Node: {node.Url}");
                     sb.AppendLine($"    State: {node.State}");
                     sb.AppendLine($"    Title: {node.Title}");
-                    sb.AppendLine($"    Popularity: {popularity}");
+                    sb.AppendLine($"    Popularity: {node.PopularityScore}");
                     sb.AppendLine($"    Incoming: {node.IncomingLinks.Count} | Outgoing: {node.OutgoingLinks.Count}");
 
                     if (node.OutgoingLinks.Any())

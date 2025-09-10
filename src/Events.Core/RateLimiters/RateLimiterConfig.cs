@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace Events.Core.RateLimiters
 {
-    public class EventRateLimiterConfig
+    public class RateLimiterConfig
     {
         public Dictionary<Type, int> Limits { get; } = new();
 
-        public EventRateLimiterConfig Limit<TEvent>(int maxConcurrency) where TEvent : class
+        public RateLimiterConfig Limit<TEvent>(int maxConcurrency) where TEvent : class
         {
             Limits[typeof(TEvent)] = maxConcurrency;
             return this;

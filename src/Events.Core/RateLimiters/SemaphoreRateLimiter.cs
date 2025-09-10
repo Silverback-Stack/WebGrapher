@@ -2,11 +2,11 @@
 
 namespace Events.Core.RateLimiters
 {
-    public class SemaphoreEventRateLimiter : IEventRateLimiter
+    public class SemaphoreRateLimiter : IRateLimiter
     {
         private readonly SemaphoreSlim _semaphore;
 
-        public SemaphoreEventRateLimiter(int maxConcurrency)
+        public SemaphoreRateLimiter(int maxConcurrency)
         {
             if (maxConcurrency <= 0) throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
             _semaphore = new SemaphoreSlim(maxConcurrency, maxConcurrency);

@@ -136,19 +136,19 @@
 
             <div v-for="log in previewLogs" :key="log.id">
               <p>
-                <i v-if="log.service === 'CRAWLER'"
+                <i v-if="log.service === 'Crawler'"
                    :class="[
                    'mdi mdi-spider icon',
                    log.type === 'Error' ? 'has-text-danger' : '',
                    log.type === 'Warning' ? 'has-text-warning' : ''
                  ]"></i>
-                <i v-if="log.service === 'SCRAPER'"
+                <i v-if="log.service === 'Scraper'"
                    :class="[
                    'mdi mdi-cloud-download icon',
                    log.type === 'Error' ? 'has-text-danger' : '',
                    log.type === 'Warning' ? 'has-text-warning' : ''
                  ]"></i>
-                <i v-if="log.service === 'NORMALISATION'"
+                <i v-if="log.service === 'Normalisation'"
                    :class="[
                      'mdi mdi-text-box icon',
                      log.type === 'Error' ? 'has-text-danger' : '',

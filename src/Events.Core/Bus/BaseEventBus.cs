@@ -9,7 +9,7 @@ namespace Events.Core.Bus
     {
         internal readonly ILogger _logger;
 
-        private readonly ConcurrentDictionary<Type, IEventRateLimiter> _rateLimiters = new();
+        private readonly ConcurrentDictionary<Type, IRateLimiter> _rateLimiters = new();
 
         public BaseEventBus(ILogger logger, Dictionary<Type, int>? concurrencyLimits = null)
         {
@@ -19,7 +19,7 @@ namespace Events.Core.Bus
             {
                 foreach (var kvp in concurrencyLimits)
                 {
-                    _rateLimiters[kvp.Key] = new SemaphoreEventRateLimiter(kvp.Value);
+                    _rateLimiters[kvp.Key] = new SemaphoreRateLimiter(kvp.Value);
                 }
             }
         }
