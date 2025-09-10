@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Normalisation.Core.Processors;
+﻿using Normalisation.Core.Processors;
 
 namespace Service.Normalisation.Tests
 {
@@ -19,7 +14,7 @@ namespace Service.Normalisation.Tests
         }
 
         [Test]
-        public void MakeAbsolute_ConvertsRelativeUrls_ReturnsAbsoluteUrls()
+        public void MakeAbsolute_FromBase_ReturnsAbsoluteUrls()
         {
             var urls = new List<string>
             {
@@ -34,43 +29,24 @@ namespace Service.Normalisation.Tests
             };
 
             var results = UrlNormaliser.MakeAbsolute(urls, _baseUrl);
+            var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
 
-            // Remove fragments for comparison
-            var resultStrings = results.Select(u => u.ToString()).ToHashSet();
+            Assert.That(resultsStrings.Count, Is.EqualTo(6));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page1"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page2"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://other.com/page3"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://other.com/page4"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/images/page5"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page6"));
+        }
 
-            Assert.That(resultStrings.Count, Is.EqualTo(6));
+        [Test]
+        public void MakeAbsolute_FromPathWithTrailingSlash_ReturnsAbsoluteUrls()
+        {
+            //add a path to the url with trailing slash
+            var baseUrl = new Uri(_baseUrl.AbsoluteUri + "path/");
 
-            Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/page1"));
-            Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/page2"));
-            Assert.That(resultStrings, Has.Some.EqualTo("https://other.com/page3"));
-            Assert.That(resultStrings, Has.Some.EqualTo("https://other.com/page4"));
-            Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/images/page5"));
-            Assert.That(resultStrings, Has.Some.EqualTo("https://example.com/page6"));
-
-            //add a folder to the url with training slash
-            var musicBase = new Uri(_baseUrl.AbsoluteUri + "music");
-            var musicUrls = new List<string>
-            {
-                "coldplay.html",   // relative
-                "adel.html",       // relative
-                "/top.html",       // root-relative
-                "./local.html",    // current folder
-                "../up.html"       // parent folder
-            };
-
-            var musicResults = UrlNormaliser.MakeAbsolute(musicUrls, musicBase);
-            var musicResultStrings = musicResults.Select(u => u.ToString()).ToHashSet();
-
-            Assert.That(musicResultStrings.Count, Is.EqualTo(5));
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/coldplay.html"));
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/adel.html"));
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/top.html")); // root-relative
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/local.html")); // ./ resolves to same folder
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/up.html")); // ../ resolves to parent
-
-            //add a folder to the url without traiing slash
-            musicBase = new Uri(_baseUrl.AbsoluteUri + "music/");
-            musicUrls = new List<string>
+            var urls = new List<string>
             {
                 "coldplay.html",   // relative
                 "adel.html",       // relative
@@ -79,15 +55,42 @@ namespace Service.Normalisation.Tests
                 "../up.html"
             };
 
-            musicResults = UrlNormaliser.MakeAbsolute(musicUrls, musicBase);
-            musicResultStrings = musicResults.Select(u => u.ToString()).ToHashSet();
+            var results = UrlNormaliser.MakeAbsolute(urls, baseUrl);
+            var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
 
-            Assert.That(musicResultStrings.Count, Is.EqualTo(5));
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/coldplay.html"));
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/adel.html"));
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/top.html")); // root-relative
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/music/local.html"));
-            Assert.That(musicResultStrings, Has.Some.EqualTo("https://example.com/up.html"));
+            Assert.That(resultsStrings.Count, Is.EqualTo(5));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/coldplay.html"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/adel.html"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/top.html")); // root-relative
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/local.html")); // ./ resolves to same folder
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/up.html")); // ../ resolves to parent
+        }
+
+
+        [Test]
+        public void MakeAbsolute_FromPathWithoutTrailingSlash_ReturnsAbsoluteUrls()
+        {
+            //add a path to the url without trailing slash
+            var baseUrl = new Uri(_baseUrl.AbsoluteUri + "path");
+
+            var urls = new  List<string>
+            {
+                "coldplay.html",   // relative
+                "adel.html",       // relative
+                "/top.html",       // root-relative
+                "./local.html",    // current folder
+                "../up.html"       // parent folder
+            };
+
+            var results = UrlNormaliser.MakeAbsolute(urls, baseUrl);
+            var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
+
+            Assert.That(resultsStrings.Count, Is.EqualTo(5));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/coldplay.html"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/adel.html"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/top.html"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/local.html"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/up.html"));
         }
 
         [Test]

@@ -222,10 +222,8 @@ namespace WebGrapher.Cli.Service.Graphing.Controllers
 
             var data = await _pageGrapher.GetNodeSubgraphAsync(graphId, subGraphRequest.NodeUrl, subGraphRequest.MaxDepth, subGraphRequest.MaxNodes);
 
-            if (data == null || !data.Nodes.Any())
-            {
+            if (data == null)
                 return NotFound(new { message = $"No data found for graph {graphId}" });
-            }
 
             return Ok(data);
         }

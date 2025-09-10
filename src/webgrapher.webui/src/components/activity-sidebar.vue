@@ -30,7 +30,7 @@
               <a class="has-text-link is-clickable is-size-6"
                  @click="toggleExpand(log.id)">
 
-                <i v-if="log.service === 'CRAWLER'"
+                <i v-if="log.service === 'Crawler'"
                    :class="[
                      'mdi mdi-spider icon',
                      log.type === 'Error' ? 'has-text-danger' : '',
@@ -38,7 +38,7 @@
                    ]">
                 </i>
 
-                <i v-if="log.service === 'SCRAPER'"
+                <i v-if="log.service === 'Scraper'"
                    :class="[
                      'mdi mdi-cloud-download icon',
                      log.type === 'Error' ? 'has-text-danger' : '',
@@ -46,7 +46,7 @@
                    ]">
                 </i>
 
-                <i v-if="log.service === 'NORMALISATION'"
+                <i v-if="log.service === 'Normalisation'"
                    :class="[
                      'mdi mdi-text-box icon',
                      log.type === 'Error' ? 'has-text-danger' : '',
@@ -54,7 +54,7 @@
                    ]">
                 </i>
 
-                <i v-if="log.service === 'GRAPHING'"
+                <i v-if="log.service === 'Graphing'"
                    :class="[
                      'mdi mdi-graph icon',
                      log.type === 'Error' ? 'has-text-danger' : '',
@@ -62,7 +62,7 @@
                    ]">
                 </i>
 
-                <i v-if="log.service === 'STREAMING'"
+                <i v-if="log.service === 'Streaming'"
                    :class="[
                      'mdi mdi-broadcast icon',
                      log.type === 'Error' ? 'has-text-danger' : '',

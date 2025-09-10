@@ -2,7 +2,7 @@
 
 namespace Events.Core.RateLimiters
 {
-    public interface IEventRateLimiter : IDisposable
+    public interface IRateLimiter : IDisposable
     {
         Task WaitAsync(CancellationToken cancellationToken = default);
         void Release();

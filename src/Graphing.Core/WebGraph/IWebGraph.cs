@@ -11,7 +11,7 @@ namespace Graphing.Core.WebGraph
             Func<Node, Task> linkDiscoveredCallback,
             NodeEdgesUpdateMode linkUpdateMode = NodeEdgesUpdateMode.Append);
 
-        Task<Graph?> GetGraphByIdAsync(Guid graphId);
+        Task<Graph?> GetGraphAsync(Guid graphId);
 
         Task<Graph> CreateGraphAsync(GraphOptions options);
 
@@ -24,13 +24,13 @@ namespace Graphing.Core.WebGraph
 
         Task<Node?> GetNodeAsync(Guid graphId, string url);
 
-        Task<IEnumerable<Node>> TraverseGraphAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
+        Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
 
-        Task<int> TotalPopulatedNodesAsync(Guid graphId);
+        Task<long> TotalPopulatedNodesAsync(Guid graphId);
         
         Task CleanupOrphanedNodesAsync(Guid graphId);
 
-        Task<IEnumerable<Node>> GetMostPopularNodes(Guid graphId, int topN);
+        Task<IEnumerable<Node>> GetInitialGraphNodes(Guid graphId, int topN);
 
         // IDEAS FOR FUNCTIONS:
         // AverageLinksPerNode()

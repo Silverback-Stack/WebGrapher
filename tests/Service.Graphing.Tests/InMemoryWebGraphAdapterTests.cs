@@ -64,7 +64,7 @@ namespace Service.Graphing.Tests
             await _adapter.SetNodeAsync(node3);
             await _adapter.SetNodeAsync(node4);
 
-            var result = await _adapter.GetMostPopularNodes(graphId, 2);
+            var result = await _adapter.GetInitialGraphNodes(graphId, 2);
 
             Assert.That(result.Count(), Is.EqualTo(2));
 
@@ -95,19 +95,19 @@ namespace Service.Graphing.Tests
             await _adapter.SetNodeAsync(nodeD);
 
             // Depth 0 = only A
-            var resultDepth0 = await _adapter.TraverseGraphAsync(graphId, "A", maxDepth: 0);
+            var resultDepth0 = await _adapter.GetNodeNeighborhoodAsync(graphId, "A", maxDepth: 0);
             Assert.That(resultDepth0.Select(n => n.Url), Is.EquivalentTo(new[] { "A" }));
 
             // Depth 1 = A, B
-            var resultDepth1 = await _adapter.TraverseGraphAsync(graphId, "A", maxDepth: 1);
+            var resultDepth1 = await _adapter.GetNodeNeighborhoodAsync(graphId, "A", maxDepth: 1);
             Assert.That(resultDepth1.Select(n => n.Url), Is.EquivalentTo(new[] { "A", "B" }));
 
             // Depth 2 = A, B, C
-            var resultDepth2 = await _adapter.TraverseGraphAsync(graphId, "A", maxDepth: 2);
+            var resultDepth2 = await _adapter.GetNodeNeighborhoodAsync(graphId, "A", maxDepth: 2);
             Assert.That(resultDepth2.Select(n => n.Url), Is.EquivalentTo(new[] { "A", "B", "C" }));
 
             // Depth 3 = A, B, C, D
-            var resultDepth3 = await _adapter.TraverseGraphAsync(graphId, "A", maxDepth: 3);
+            var resultDepth3 = await _adapter.GetNodeNeighborhoodAsync(graphId, "A", maxDepth: 3);
             Assert.That(resultDepth3.Select(n => n.Url), Is.EquivalentTo(new[] { "A", "B", "C", "D" }));
         }
 
@@ -139,7 +139,7 @@ namespace Service.Graphing.Tests
             await _adapter.SetNodeAsync(nodeF);
 
             // maxNodes = 3 should only return A plus two others
-            var result = await _adapter.TraverseGraphAsync(graphId, "A", maxDepth: 1, maxNodes: 3);
+            var result = await _adapter.GetNodeNeighborhoodAsync(graphId, "A", maxDepth: 1, maxNodes: 3);
             Assert.That(result.Count(), Is.EqualTo(3));
             Assert.That(result, Has.Some.Matches<Node>(n => n.Url == "A"));
         }

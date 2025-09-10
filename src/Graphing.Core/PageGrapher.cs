@@ -94,9 +94,6 @@ namespace Graphing.Core
                     WriteIndented = true,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
-
-            // Log the serialized payload
-            _logger.LogInformation("Sigma Payload:\n{Payload}", jsonPayload);
         }
 
         private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto request, Node node)
@@ -193,7 +190,7 @@ namespace Graphing.Core
 
         public async Task<Graph?> GetGraphByIdAsync(Guid graphId)
         {
-            return await _webGraph.GetGraphByIdAsync(graphId);
+            return await _webGraph.GetGraphAsync(graphId);
         }
 
         public async Task<Graph?> CreateGraphAsync(GraphOptions options)
@@ -252,16 +249,17 @@ namespace Graphing.Core
 
         public async Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
         {
-            maxDepth = Math.Clamp(maxDepth, 1, _graphingSettings.MaxRequestDepthLimit);
+            //Clamp values
+            maxDepth = Math.Clamp(maxDepth, 0, _graphingSettings.MaxRequestDepthLimit);
             if (maxNodes.HasValue)
                 maxNodes = Math.Clamp(maxNodes.Value, 1, _graphingSettings.MaxRequestNodeLimit);
 
-            var popularNodes = await _webGraph.GetMostPopularNodes(graphId, 1);
-            var startNode = popularNodes.FirstOrDefault();
+            var initalNodes = await _webGraph.GetInitialGraphNodes(graphId, 1);
+            var startNode = initalNodes.FirstOrDefault();
 
             // 2. Traverse the graph if a start node exists
             var nodes = startNode != null
-                ? await _webGraph.TraverseGraphAsync(graphId, startNode.Url, maxDepth, maxNodes)
+                ? await _webGraph.GetNodeNeighborhoodAsync(graphId, startNode.Url, maxDepth, maxNodes)
                 : Enumerable.Empty<Node>();
 
             // 3. If no nodes found, return empty payload
@@ -286,7 +284,7 @@ namespace Graphing.Core
                 maxNodes = Math.Clamp(maxNodes.Value, 1, _graphingSettings.MaxRequestNodeLimit);
 
             var nodes = nodeUrl != null
-                ? await _webGraph.TraverseGraphAsync(graphId, nodeUrl.AbsoluteUri, maxDepth, maxNodes)
+                ? await _webGraph.GetNodeNeighborhoodAsync(graphId, nodeUrl.AbsoluteUri, maxDepth, maxNodes)
                 : Enumerable.Empty<Node>();
 
             if (!nodes.Any())
