@@ -235,10 +235,9 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             var vertexId = vertex["id"].ToString();
 
-            var results = await _gremlinQueryProvider.GetNodeVertexSubgraphAsync(graphId, vertexId, maxDepth, maxNodes);
-            if (results.Count == 0) return Enumerable.Empty<Node>();
+            var vertexArray = await _gremlinQueryProvider.GetNodeVertexSubgraphAsync(graphId, vertexId, maxDepth, maxNodes);
+            if (vertexArray.Count == 0) return Enumerable.Empty<Node>();
 
-            var vertexArray = results; // each item is a vertex
             var nodeMap = new Dictionary<string, Node>();
 
             // Hydrate nodes first
@@ -294,85 +293,29 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
 
 
-
-
-        public async Task<string> DumpGraphContentsAsync(Guid graphId)
+        public override async Task<string> DumpGraphContentsAsync(Guid graphId)
         {
             var sb = new System.Text.StringBuilder();
 
             try
             {
-                // Fetch all Node vertices for the graph
-                const string allNodesQuery = "g.V().has('graphId', gId).hasLabel('node')";
-                var parameters = new Dictionary<string, object>
+                // Get initial node (seed for traversal)
+                var initialNodes = await GetInitialGraphNodes(graphId, 1);
+                var startNode = initialNodes.FirstOrDefault();
+                if (startNode == null)
                 {
-                    ["gId"] = graphId.ToString()
-                };
-
-                var results = await _gremlinClient.SubmitAsync<dynamic>(allNodesQuery, parameters);
-
-                var nodes = new Dictionary<Guid, Node>();
-
-                foreach (var vertex in results)
-                {
-                    var node = GremlinQueryHelper.HydrateNodeFromVertex(vertex, graphId);
-                    nodes[node.Id] = node;
+                    sb.AppendLine($"Graph {graphId} — No nodes found.");
+                    return sb.ToString();
                 }
 
-                // Hydrate edges (outgoing)
-                foreach (var node in nodes.Values)
-                {
-                    const string outgoingQuery = @"
-                g.V(vId)
-                 .outE('linksTo')
-                 .inV()
-                 .has('graphId', gId)
-                 .hasLabel('node')
-            ";
-                    var outgoingResults = await _gremlinClient.SubmitAsync<dynamic>(outgoingQuery, new Dictionary<string, object>
-                    {
-                        ["vId"] = node.Id.ToString(),
-                        ["gId"] = graphId.ToString()
-                    });
+                // Hydrate neighborhood
+                var nodes = await GetNodeNeighborhoodAsync(graphId, startNode.Url, maxDepth: 3, maxNodes: null);
+                var nodeList = nodes.ToList();
 
-                    foreach (var targetVertex in outgoingResults)
-                    {
-                        var targetNodeId = Guid.Parse(targetVertex["id"].ToString());
-                        Node targetNode;
-                        if (nodes.TryGetValue(targetNodeId, out targetNode))
-                            node.OutgoingLinks.Add(targetNode);
-                    }
-                }
+                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodeList.Count}");
+                sb.AppendLine($"Neighborhood start: {startNode.Url}");
 
-                // Hydrate edges (incoming)
-                foreach (var node in nodes.Values)
-                {
-                    const string incomingQuery = @"
-                g.V(vId)
-                 .inE('linksTo')
-                 .outV()
-                 .has('graphId', gId)
-                 .hasLabel('node')
-            ";
-                    var incomingResults = await _gremlinClient.SubmitAsync<dynamic>(incomingQuery, new Dictionary<string, object>
-                    {
-                        ["vId"] = node.Id.ToString(),
-                        ["gId"] = graphId.ToString()
-                    });
-
-                    foreach (var sourceVertex in incomingResults)
-                    {
-                        var sourceNodeId = Guid.Parse(sourceVertex["id"].ToString());
-                        Node sourceNode;
-                        if (nodes.TryGetValue(sourceNodeId, out sourceNode))
-                            node.IncomingLinks.Add(sourceNode);
-                    }
-                }
-
-                // Build output string, ordered by URL
-                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodes.Count}");
-
-                foreach (var node in nodes.Values.OrderBy(n => n.Url))
+                foreach (var node in nodeList.OrderBy(n => n.Url))
                 {
                     sb.AppendLine($"  Node: {node.Url}");
                     sb.AppendLine($"    State: {node.State}");
