@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Net;
 using System.Text.Json;
 using Graphing.Core.WebGraph.Models;
 using Gremlin.Net.Driver;
+using Gremlin.Net.Driver.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
@@ -263,6 +265,10 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
         public async Task<IEnumerable<(dynamic source, dynamic target, bool isOutgoing)>> 
             GetNodeVerticesEdgesAsync(Guid graphId, IEnumerable<string> urls)
         {
+            // 1. Find all vertices (nodes) in the given graph with the given URLs.
+            // 2. From each node, traverse both incoming and outgoing 'linksTo' edges.
+            // 3. For each edge, also capture the "other" vertex at the far end.
+            // 4. Select (node, edge, other) triples for mapping
             var query = @"
                 g.V().hasLabel('node').has('graphId', graphId).has('url', within(urls))
                   .as('node')
@@ -281,21 +287,45 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             {
                 var edges = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
 
+                // Map results into (source, target, isOutgoing) tuples.
                 var results = edges.Select(e =>
                 {
+                    // Extract the projected elements from the query.
                     dynamic node = e["node"];
                     dynamic other = e["other"];
                     dynamic edge = e["edge"];
 
-                    bool isOutgoing = true; // default fallback
+                    // Get edge details: outV = source vertex id, inV = target vertex id.
+                    var edgeDict = (IDictionary<string, object>)edge;
+                    var outV = edgeDict["outV"].ToString();
+                    var inV = edgeDict["inV"].ToString();
 
-                    if (edge is IDictionary<string, object> edgeDict && edgeDict.TryGetValue("outV", out var outVObj))
+                    // The start node id
+                    var nodeId = ((IDictionary<string, object>)node)["id"].ToString();
+
+                    bool isOutgoing;
+                    dynamic source;
+                    dynamic target;
+
+                    if (nodeId == outV)
                     {
-                        var outV = outVObj.ToString();
-                        isOutgoing = outV == ((IDictionary<string, object>)node)["id"].ToString();
+                        // If the current node is the edge's "outV", the edge goes outwards:
+                        // node → other
+                        isOutgoing = true;
+                        source = node;
+                        target = other;
+                    }
+                    else
+                    {
+                        // Otherwise, the edge comes into the current node:
+                        // other → node
+                        isOutgoing = false;
+                        source = other;
+                        target = node;
                     }
 
-                    return (source: node, target: other, isOutgoing);
+                    // Return tuple describing this relationship.
+                    return (source, target, isOutgoing);
                 });
 
                 return results;
@@ -360,6 +390,30 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
                 // Cosmos Gremlin mutation returns an empty result set,
                 // so success = no exception
+            }
+            catch (ResponseException ex) when ((int)ex.StatusCode == (int)HttpStatusCode.PreconditionFailed)
+            {
+                _logger.LogWarning("Conflict on node {id}, checking ModifiedAt", node.Id);
+
+                // Fetch latest node from DB
+                var latest = await GetNodeVertexAsync(node.GraphId, node.Url);
+                if (latest == null)
+                {
+                    _logger.LogWarning("Conflict on {id} but no record found; retrying insert", node.Id);
+                    await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                    return;
+                }
+
+                // If DB record is newer, discard update
+                if (latest.ModifiedAt >= node.ModifiedAt)
+                {
+                    _logger.LogWarning("Discarding update for node {id}, data is stale.", node.Id);
+                    return;
+                }
+
+                // Otherwise retry update (our node is fresher)
+                _logger.LogWarning("Retrying update for node {id}, data is fresher.", node.Id);
+                await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
             }
             catch (Exception ex)
             {
@@ -533,10 +587,11 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             var query = $@"
                 g.V(vertexId)
                  .has('graphId', graphId)
+                 .emit()
                  .repeat(bothE('linksTo').subgraph('sg').otherV())
                    .times({maxDepth})
                  .cap('sg')
-";
+            ";
             if (maxNodes.HasValue)
                 query += $".limit({maxNodes.Value})";
 

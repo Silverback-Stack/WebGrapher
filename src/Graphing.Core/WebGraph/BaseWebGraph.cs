@@ -61,6 +61,9 @@ namespace Graphing.Core.WebGraph
             {
                 await ScheduleAddedLinksAsync(addedLinks, linkDiscoveredCallback, forceRefresh);
             }
+
+            var dataDump = await DumpGraphContentsAsync(webPage.GraphId);
+            _logger.LogInformation(dataDump);
         }
 
         private async Task<IEnumerable<Node>> AddLinksAsync(WebPageItem webPage, bool forceRefresh)
@@ -290,6 +293,8 @@ namespace Graphing.Core.WebGraph
         public abstract Task<long> TotalPopulatedNodesAsync(Guid graphID);
 
         public abstract Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
+
+        public abstract Task<string> DumpGraphContentsAsync(Guid graphId);
 
     }
 }

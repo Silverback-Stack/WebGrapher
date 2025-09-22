@@ -283,14 +283,30 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
             return result;
         }
 
-        public async Task<string> DumpGraphContentsAsync()
+
+        public override async Task<string> DumpGraphContentsAsync(Guid graphId)
         {
             var sb = new System.Text.StringBuilder();
 
-            foreach (var (graphId, nodes) in _nodeTable)
+            try
             {
-                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodes.Count}");
-                foreach (var node in nodes.Values.OrderBy(n => n.Url))
+                // Get initial node (seed for traversal)
+                var initialNodes = await GetInitialGraphNodes(graphId, 1);
+                var startNode = initialNodes.FirstOrDefault();
+                if (startNode == null)
+                {
+                    sb.AppendLine($"Graph {graphId} — No nodes found.");
+                    return sb.ToString();
+                }
+
+                // Hydrate neighborhood
+                var nodes = await GetNodeNeighborhoodAsync(graphId, startNode.Url, maxDepth: 3, maxNodes: null);
+                var nodeList = nodes.ToList();
+
+                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodeList.Count}");
+                sb.AppendLine($"Neighborhood start: {startNode.Url}");
+
+                foreach (var node in nodeList.OrderBy(n => n.Url))
                 {
                     sb.AppendLine($"  Node: {node.Url}");
                     sb.AppendLine($"    State: {node.State}");
@@ -301,22 +317,24 @@ namespace Graphing.Core.WebGraph.Adapters.InMemory
                     if (node.OutgoingLinks.Any())
                     {
                         sb.AppendLine("    Outgoing Links:");
-                        foreach (var outNode in node.OutgoingLinks)
-                        {
+                        foreach (var outNode in node.OutgoingLinks.OrderBy(n => n.Url))
                             sb.AppendLine($"      -> {outNode.Url} [{outNode.State}]");
-                        }
                     }
 
                     if (node.IncomingLinks.Any())
                     {
                         sb.AppendLine("    Incoming Links:");
-                        foreach (var inNode in node.IncomingLinks)
-                        {
+                        foreach (var inNode in node.IncomingLinks.OrderBy(n => n.Url))
                             sb.AppendLine($"      <- {inNode.Url} [{inNode.State}]");
-                        }
                     }
                 }
+
                 sb.AppendLine(new string('-', 50));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to dump graph contents for GraphId {GraphId}", graphId);
+                sb.AppendLine($"Error dumping graph {graphId}: {ex.Message}");
             }
 
             return sb.ToString();
