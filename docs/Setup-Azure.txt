@@ -41,3 +41,21 @@ Graph id : WebGraph
 Partition key : /graphId
 
 Click OK / Create.
+
+
+
+Create Azure SignalR Service
+----------------------------
+
+From Marketplace create a new resource: SignalR Service
+
+Subscription: Default
+Resource group: webgrapher-resources
+Resource name: webgrapher
+Region: UK South
+Pricing tier: Free
+Service mode: Default (Do not choose serverless - this only works with function app and special adapter - we can try this later when setting up the azure functions)
+
+Click review and create.
+
+Note connection string and add to app settings.

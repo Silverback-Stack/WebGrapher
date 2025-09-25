@@ -62,8 +62,9 @@ namespace Graphing.Core.WebGraph
                 await ScheduleAddedLinksAsync(addedLinks, linkDiscoveredCallback, forceRefresh);
             }
 
-            var dataDump = await DumpGraphContentsAsync(webPage.GraphId);
-            _logger.LogInformation(dataDump);
+            // Uncomment to outoput graph data dump for testing only (will incure performance hit)
+            //var dataDump = await DumpGraphContentsAsync(webPage.GraphId);
+            //_logger.LogInformation(dataDump);
         }
 
         private async Task<IEnumerable<Node>> AddLinksAsync(WebPageItem webPage, bool forceRefresh)
