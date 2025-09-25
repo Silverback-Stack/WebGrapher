@@ -72,9 +72,9 @@ async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval
 
   // Receive activity messages
   connection.on("ReceiveGraphLog", payload => {
-    // push new log to array
+    // push log entry to array
     activityLogs.value.unshift(payload)
-
+    // cull log entries
     if (activityLogs.value.length > appConfig.maxLogEntries) {
       activityLogs.value.pop() // drop oldest
     }
@@ -83,7 +83,6 @@ async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval
   // Periodic flush
   flushTimer = setInterval(() => {
     if (nodeBuffer.length > 0 || edgeBuffer.length > 0) {
-      console.log(`Flushing ${nodeBuffer.length} nodes and ${edgeBuffer.length} edges`)
       nodeBuffer.forEach(n => addOrUpdateNode(sigmaGraph, n))
       edgeBuffer.forEach(e => addEdge(sigmaGraph, e))
       nodeBuffer = []

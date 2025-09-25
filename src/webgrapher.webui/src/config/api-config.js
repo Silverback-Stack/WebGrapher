@@ -1,7 +1,7 @@
 const configs = {
   development: {
     graphUrl: "http://localhost:5000/api",
-    hubUrl: "http://localhost:5001/graphstreamerhub"
+    hubUrl: "http://localhost:5100/graphstreamerhub"
   },
   production: {
     graphUrl: "https://my-production-api.com/api",

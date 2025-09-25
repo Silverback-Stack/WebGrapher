@@ -1,8 +1,10 @@
-﻿using Crawler.Core;
+﻿using System;
 using Events.Core.Bus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Azure.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,7 +15,6 @@ using Serilog.Extensions.Logging;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
 
-namespace WebGrapher.Cli.Service.Streaming
 
 //NOTE:
 // YOU WILL NEED TO ADD PACKAGES:
@@ -21,17 +22,9 @@ namespace WebGrapher.Cli.Service.Streaming
 // Microsoft.AspNetCore.SignalR
 // Microsoft.Extensions.Hosting
 // Microsoft.Extensions.DependencyInjection
+// Microsoft.Azure.SignalR
 
-// I!!! IMPORTANT !!!
-// THESE STEPS ARE NO LONGER REQUIRED
-// PROJECT HAS BEEN REVERTED BACK TO Project Sdk="Microsoft.NET.Sdk
-// !!! IMPORTANT !!!
-// Need to allow console app to support Web hosting
-// Close Visual Studio and edit WebGrapher.Cli.csproj
-// CHANGE LINE: <Project Sdk="Microsoft.NET.Sdk">
-// TO: <Project Sdk="Microsoft.NET.Sdk.Web">
-// THIS MAKES THE Web.SDK avaiable and ConfigureWebHostDefaults option will now become available!
-
+namespace WebGrapher.Cli.Service.Streaming
 {
     public class StreamingService
     {
@@ -39,10 +32,13 @@ namespace WebGrapher.Cli.Service.Streaming
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
+            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+
             //Setup Configuration using appsettings overrides
             var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("Service.Streaming/appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"Service.Streaming/appsettings.{environment}.json", optional: true, reloadOnChange: true) // local overrides
             .AddEnvironmentVariables()
             .Build();
 
@@ -64,23 +60,30 @@ namespace WebGrapher.Cli.Service.Streaming
 
 
             //Create and Start Streaming Hub
-            var (host, hubContext) = await StartHubServerAsync(signalRSettings);
+            var (host, hubContext, hubUrl) = await StartHubServerAsync(signalRSettings);
             _host = host;
 
             StreamerFactory.Create(logger, eventBus, hubContext, streamingSettings);
 
-            logger.LogInformation($"Streaming service started on {signalRSettings.Host}");
+            logger.LogInformation($"Streaming service started on {hubUrl}");
         }
 
-        private async static Task<(IHost host, IHubContext<GraphStreamerHub>)> StartHubServerAsync(SignalRSettings signalRSettings)
+        private async static Task<(IHost host, IHubContext<GraphStreamerHub>, string hubUrl)> StartHubServerAsync(SignalRSettings signalRSettings)
         {
-            // Create and build web host to get hubContext and host SignalR
-            var host = Host.CreateDefaultBuilder()
-                .ConfigureServices(services =>
-                {
-                    services.AddSignalR();
+            string hubUrl = signalRSettings.Hosted.Host;
+            var hostBuilder = Host.CreateDefaultBuilder();
 
-                    services.AddCors(options => 
+            hostBuilder.ConfigureLogging(logging =>
+            {
+                logging.ClearProviders();
+                //logging.AddConsole();
+            });
+
+            hostBuilder.ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.ConfigureServices(services =>
+                {
+                    services.AddCors(options =>
                     {
                         options.AddDefaultPolicy(builder =>
                         {
@@ -88,38 +91,81 @@ namespace WebGrapher.Cli.Service.Streaming
                                 .AllowAnyHeader()
                                 .AllowAnyMethod()
                                 .AllowCredentials()
-                                .SetIsOriginAllowed(_ => true); // Allow all origins (or restrict as needed)
-                                //.WithOrigins("https://AddressOfUI:PORT")
+                                .SetIsOriginAllowed(_ => true);
                         });
                     });
-                })
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.Configure(app =>
-                    {
-                        app.UseCors();
-                        app.UseRouting();
-                        app.UseEndpoints(endpoints =>
-                        {
-                            endpoints.MapHub<GraphStreamerHub>(signalRSettings.HubPath);
-                            endpoints.MapGet("/", () => "SignalR server is running!");
-                        });
-                    })
-                    .UseUrls(signalRSettings.Host);
-                })
-                .ConfigureLogging(logging =>
-                {
-                    logging.ClearProviders();
-                    //logging.AddConsole();
-                })
-                .Build();
 
+                    switch (signalRSettings.Service)
+                    {
+                        case ServiceType.Hosted:
+                            services.AddSignalR();
+                            break;
+
+                        case ServiceType.AzureDefault:
+                            services.AddSignalR()
+                                .AddAzureSignalR(signalRSettings.Azure.ConnectionString);
+                            break;
+
+                        case ServiceType.AzureServerless:
+                            throw new NotSupportedException("Serverless mode only supported by serverless architecture such as Function apps.");
+
+                        default:
+                            throw new NotSupportedException($"SignalR mode '{signalRSettings.Service}' is not supported.");
+                    }
+                });
+
+                webBuilder.Configure(app =>
+                {
+                    app.UseCors();
+                    app.UseRouting();
+
+                    app.UseEndpoints(endpoints =>
+                    {
+                        endpoints.MapHub<GraphStreamerHub>(signalRSettings.HubPath);
+                        endpoints.MapGet("/", () => "SignalR streaming service is running.");
+                    });
+                });
+
+                switch (signalRSettings.Service)
+                {
+                    case ServiceType.Hosted:
+                        //bind explicit URL and PORT
+                        webBuilder.UseUrls(signalRSettings.Hosted.Host);
+                        break;
+
+                    case ServiceType.AzureDefault:
+                        var isProduction = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")?.ToLower() == "production";
+                        if (!isProduction)
+                        {
+                            //Bind explicit URL and PORT for local testing
+                            webBuilder.UseUrls(signalRSettings.Hosted.Host);
+                        }
+                        else
+                        {
+                            //Bind to random free port for production.
+                            //Azure handless connections and port when deployed to Azure
+                            webBuilder.UseUrls("http://127.0.0.1:0");
+                            hubUrl = $"{signalRSettings.Azure.Endpoint}{signalRSettings.HubPath}";
+                        }
+                        break;
+
+                    case ServiceType.AzureServerless:
+                        hubUrl = $"{signalRSettings.Azure.Endpoint}{signalRSettings.HubPath}";
+                        break;
+
+                    default:
+                        throw new NotSupportedException($"SignalR mode '{signalRSettings.Service}' is not supported.");
+                }
+            });
+
+            var host = hostBuilder.Build();
             var hubContext = host.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();
 
             await host.StartAsync();
 
-            return (host, hubContext);
+            return (host, hubContext, hubUrl);
         }
+
 
         public static async Task StopHubServerAsync()
         {
@@ -133,4 +179,5 @@ namespace WebGrapher.Cli.Service.Streaming
         }
 
     }
+
 }
