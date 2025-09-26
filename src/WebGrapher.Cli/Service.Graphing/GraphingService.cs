@@ -76,8 +76,11 @@ namespace WebGrapher.Cli.Service.Graphing
                             policy.SetIsOriginAllowed(origin =>
                             {
                                 // Allow all http/https localhost origins
-                                return Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
-                                       (uri.Host == "localhost" || uri.Host == "127.0.0.1");
+                                if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                                {
+                                    return uri.IsLoopback; // true for 127.0.0.1 or localhost
+                                }
+                                return false;
                             })
                             .AllowAnyHeader()
                             .AllowAnyMethod()
