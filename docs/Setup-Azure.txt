@@ -9,7 +9,7 @@ Workload: Others
 
 Choose: Azure Cosmos DB for Apache Gremlin -> Create
 
-Workload type: Production
+Workload type: Development/Testing
 
 Subscription: Your Subscription
 
@@ -17,9 +17,17 @@ Respurce Group: webgrapher-resources
 
 Account Name: webgrapher-cosmos-db
 
+Availability Zones: Disable
+
 Locaion: (Europe) UK-South
 
-Capacity: Serverless
+Capacity: Provisioned throughput
+
+Apply Free Tier Discount: Apply
+
+Limit the total amount of throughput that can be provisioned on this account: True
+
+
 
 Click: Review & Create
 
@@ -43,6 +51,15 @@ Partition key : /graphId
 Click OK / Create.
 
 
+From the left plane choose: Settings -> Keys
+
+Make a note of Gremlin endpoint and primary key.
+
+Insert these into the appsesstings file in the graphing service application.
+
+
+
+
 
 Create Azure SignalR Service
 ----------------------------
@@ -59,3 +76,42 @@ Service mode: Default (Do not choose serverless - this only works with function 
 Click review and create.
 
 Note connection string and add to app settings.
+
+
+
+Create Azure Redis Cache
+------------------------
+
+From Marketplace create a new resource: Azure Cache for Redis
+
+Subscription: Default
+
+Resource group: webgrapher-resources
+
+Resource name: webgrapher
+
+Region: UK South
+
+Cache: Basic (No SLA)
+
+Cache Size: C0 (250 MB Cache)
+
+	Networking:
+
+		Select: Public Endpoint (For dev/testing only)
+
+	Advanced:
+
+		Enable: Access Keys Authentication (For dev/testing only)
+
+Security Considerations:
+Later when deploying to producting we can restore Networking and disable Access Key settings.
+Right now we need these enabled to test the caceh from local.
+
+
+After Redis instance has been created:
+
+Go to Settings -> Authentication -> Access Keys tab
+
+Take note of the Primary Connection String and copy into AppSettings file.
+

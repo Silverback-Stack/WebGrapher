@@ -15,10 +15,13 @@ namespace WebGrapher.Cli.Service.Scraper
     {
         public async static Task InitializeAsync(IEventBus eventBus)
         {
+            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+
             //Setup Configuration using appsettings overrides
             var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("Service.Scraper/appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"Service.Scraper/appsettings.{environment}.json", optional: true, reloadOnChange: true) // local overrides
             .AddEnvironmentVariables()
             .Build();
 

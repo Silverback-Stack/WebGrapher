@@ -1,6 +1,7 @@
 ﻿using System;
 using Caching.Core.Adapters.InMemory;
 using Caching.Core.Adapters.InStorage;
+using Caching.Core.Adapters.Redis;
 using Microsoft.Extensions.Logging;
 
 namespace Caching.Core
@@ -18,7 +19,10 @@ namespace Caching.Core
                     return new InStorageCacheAdapter(serviceName, logger, cacheSettings);
 
                 case CacheType.Redis:
-                    throw new NotImplementedException();
+                    return new RedisCacheAdapter(serviceName, logger, cacheSettings);
+
+                case CacheType.AzureBlobStorage:
+                    throw new NotSupportedException($"Caching option '{cacheSettings.CacheType}' is not supported.");
 
                 default:
                     throw new NotSupportedException($"Caching option '{cacheSettings.CacheType}' is not supported.");

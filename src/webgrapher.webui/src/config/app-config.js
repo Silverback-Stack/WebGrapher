@@ -4,6 +4,10 @@ export default {
   populateGraphMaxDepth: 2,
   populateGraphMaxNodes: 1000,
 
+  //Crawl
+  crawlMaxLinks: 50,
+  crawlMaxDepth: 6,
+
   //SubGraph Requests
   subGraphThrottle_MS: 10_000, //10 Seconds
   subGraphMaxDepth: 1,

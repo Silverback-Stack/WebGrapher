@@ -39,10 +39,10 @@
             <b-input v-model="form.url" type="url" required></b-input>
           </b-field>
           <b-field label="Max Links">
-            <b-slider v-model="form.maxLinks" size="is-large" :min="1" :max="50"></b-slider>
+            <b-slider v-model="form.maxLinks" size="is-large" :min="1" :max="appConfig.crawlMaxLinks"></b-slider>
           </b-field>
           <b-field label="Max Depth">
-            <b-slider v-model="form.maxDepth" ticks size="is-large" :min="1" :max="3"></b-slider>
+            <b-slider v-model="form.maxDepth" ticks size="is-large" :min="1" :max="appConfig.crawlMaxDepth"></b-slider>
           </b-field>
           <p class="has-text-grey">
             <span>Potentially {{ potentialRequests.toLocaleString() }} crawl requests.</span>
@@ -261,6 +261,7 @@
   import { ref, reactive, watch, watchEffect, onMounted, computed } from "vue"
   import { useRouter } from "vue-router"
   import axios from "axios"
+  import appConfig from "../config/app-config.js"
   import apiConfig from "../config/api-config.js"
 
   const router = useRouter()
