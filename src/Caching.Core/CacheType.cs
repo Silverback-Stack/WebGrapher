@@ -2,9 +2,9 @@
 {
     public enum CacheType
     {
-        InMemory,
-        InStorage,
+        Memory,
+        FileStorage,
         Redis,
-        AzureBlobStorage
+        BlobStorage
     }
 }

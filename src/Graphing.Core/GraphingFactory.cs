@@ -2,7 +2,7 @@
 using Events.Core.Bus;
 using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin;
-using Graphing.Core.WebGraph.Adapters.InMemory;
+using Graphing.Core.WebGraph.Adapters.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Graphing.Core
@@ -15,8 +15,8 @@ namespace Graphing.Core
             IWebGraph webGraph;
             switch (graphingSettings.WebGraph.WebGraphType)
             {
-                case WebGraphType.InMemory:
-                    webGraph = new InMemoryWebGraphAdapter(logger, graphingSettings);
+                case WebGraphType.Memory:
+                    webGraph = new MemoryWebGraphAdapter(logger, graphingSettings);
                     break;
 
                 case WebGraphType.AzureCosmosGremlin:

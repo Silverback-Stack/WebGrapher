@@ -1,7 +1,7 @@
 ﻿using System;
 using Graphing.Core;
 using Graphing.Core.WebGraph;
-using Graphing.Core.WebGraph.Adapters.InMemory;
+using Graphing.Core.WebGraph.Adapters.Memory;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -9,9 +9,9 @@ using Moq;
 namespace Service.Graphing.Tests
 {
     [TestFixture]
-    public class InMemoryWebGraphAdapterTests
+    public class MemoryWebGraphAdapterTests
     {
-        private InMemoryWebGraphAdapter _adapter;
+        private MemoryWebGraphAdapter _adapter;
         private Mock<ILogger> _logger;
         private bool _includeImmediateNeighborhood;
         private GraphingSettings _graphingSettings;
@@ -21,7 +21,7 @@ namespace Service.Graphing.Tests
         {
             _logger = new Mock<ILogger>();
             _graphingSettings = new GraphingSettings();
-            _adapter = new InMemoryWebGraphAdapter(_logger.Object, _graphingSettings);
+            _adapter = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
             _includeImmediateNeighborhood = true; //true when current link depth < 2
         }
 

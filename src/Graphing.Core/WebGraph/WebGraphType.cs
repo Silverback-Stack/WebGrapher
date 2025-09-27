@@ -3,7 +3,7 @@ namespace Graphing.Core.WebGraph
 {
     public enum WebGraphType
     {
-        InMemory,
+        Memory,
         AzureCosmosGremlin
     }
 }
