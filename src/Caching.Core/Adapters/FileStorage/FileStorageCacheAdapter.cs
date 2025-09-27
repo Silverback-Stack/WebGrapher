@@ -2,31 +2,35 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
-namespace Caching.Core.Adapters.InStorage
+namespace Caching.Core.Adapters.FileStorage
 {
-    public partial class InStorageCacheAdapter : ICache
+    public partial class FileStorageCacheAdapter : ICache
     {
         private readonly ILogger _logger;
-        private readonly CacheSettings _cacheSettings;
+
+        public string Container { get; private set; }
 
         /// <summary>
         /// In-storage cache adapter for local development.
         /// </summary>
-        public InStorageCacheAdapter(string serviceName, ILogger logger, CacheSettings cacheSettings)
+        public FileStorageCacheAdapter(
+            string serviceName, 
+            ILogger logger, 
+            CacheSettings cacheSettings)
         {
             _logger = logger;
-            _cacheSettings = cacheSettings;
-            Container = CreateContainer(serviceName, _cacheSettings.InStorage.ContainerName);
 
-            ClearCacheAsync();
+            Container = CreateContainer(serviceName, cacheSettings.FileStorage.ContainerName);
+
+            //fire on background thread
+            _ = ClearCacheAsync(cacheSettings.FileStorage.AbsoluteExpirationHours);
         }
-
-        public string Container { get; private set; }
 
         private string CreateContainer(string serviceName, string containerName)
         {
-            var basePath = Path.Combine(AppContext.BaseDirectory, containerName);
-            var containerPath = Path.Combine(basePath, serviceName);
+            var folderName = $"{containerName}-{serviceName}".ToLowerInvariant();
+
+            var containerPath = Path.Combine(AppContext.BaseDirectory, folderName);
 
             try
             {
@@ -43,6 +47,7 @@ namespace Caching.Core.Adapters.InStorage
 
         private string GetFilePath(string key) => Path.Combine(Container, key);
 
+
         public async Task<bool> ExistsAsync(string key)
         {
             var path = GetFilePath(key);
@@ -53,28 +58,34 @@ namespace Caching.Core.Adapters.InStorage
 
         public async Task<T?> GetAsync<T>(string key)
         {
-            var path = GetFilePath(key);
-            if (!File.Exists(path)) return default;
+            try
+            {
+                var path = GetFilePath(key);
+                if (!File.Exists(path)) return default;
 
-            if (typeof(T) == typeof(byte[]))
-            {
-                var bytes = await File.ReadAllBytesAsync(path);
-                return (T)(object)bytes;
-            } 
-            else if (typeof(T) == typeof(Stream))
-            {
-                var stream = File.OpenRead(path);
-                return (T)(object)stream;
+                if (typeof(T) == typeof(byte[]))
+                {
+                    var bytes = await File.ReadAllBytesAsync(path);
+                    return (T)(object)bytes;
+                }
+                else if (typeof(T) == typeof(Stream))
+                {
+                    var stream = File.OpenRead(path);
+                    return (T)(object)stream;
+                }
+
+                var json = await File.ReadAllTextAsync(path);
+                return JsonSerializer.Deserialize<T>(json);
             }
-
-            var json = await File.ReadAllTextAsync(path);
-            return JsonSerializer.Deserialize<T>(json);
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Unable to read file {key}");
+                return default;
+            }
         }
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
-            //no need to implement expiration on local delevopement environment
-            //instead using absolute expiry to clear files
             var path = GetFilePath(key);
 
             try
@@ -112,11 +123,7 @@ namespace Caching.Core.Adapters.InStorage
         public async Task RemoveAsync(string key)
         {
             var path = GetFilePath(key);
-            DeleteFile(path);
-        }
 
-        private void DeleteFile(string path)
-        {
             try
             {
                 if (File.Exists(path))
@@ -128,10 +135,10 @@ namespace Caching.Core.Adapters.InStorage
             }
         }
 
-        private void ClearCacheAsync()
+        public async Task ClearCacheAsync(int absoluteExpirationHours)
         {
-            var cutoff = DateTime.UtcNow.AddHours(-_cacheSettings.InStorage.AbsoluteExpirationHours);
-            var filePath = GetFilePath(string.Empty);
+            var cutoff = DateTime.UtcNow.AddHours(-absoluteExpirationHours);
+            var filePath = GetFilePath(string.Empty); //root path
 
             foreach (var file in Directory.GetFiles(filePath))
                 if (File.GetLastWriteTimeUtc(file) < cutoff)

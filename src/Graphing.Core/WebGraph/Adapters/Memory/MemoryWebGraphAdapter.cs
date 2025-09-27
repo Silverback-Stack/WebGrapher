@@ -3,15 +3,15 @@ using System.Data;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Graphing.Core.WebGraph.Adapters.InMemory
+namespace Graphing.Core.WebGraph.Adapters.Memory
 {
-    public class InMemoryWebGraphAdapter : BaseWebGraph
+    public class MemoryWebGraphAdapter : BaseWebGraph
     {
         // Data holders for simulation of DB tables
         private readonly Dictionary<Guid, Graph> _graphTable = new();
         private readonly Dictionary<Guid, Dictionary<string, Node>> _nodeTable = new();
 
-        public InMemoryWebGraphAdapter(ILogger logger, GraphingSettings graphingSettings) 
+        public MemoryWebGraphAdapter(ILogger logger, GraphingSettings graphingSettings) 
             : base(logger, graphingSettings) { }
 
         public async override Task<Node?> GetNodeAsync(Guid graphId, string url)

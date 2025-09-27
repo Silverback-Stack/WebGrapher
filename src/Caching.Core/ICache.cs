@@ -24,5 +24,6 @@ namespace Caching.Core
         /// Check if a key exists in the cache.
         /// </summary>
         Task<bool> ExistsAsync(string key);
+
     }
 }

@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace Caching.Core.Adapters.InMemory
+namespace Caching.Core.Adapters.Memory
 {
-    public class InMemoryCacheAdapter : ICache
+    public class MemoryCacheAdapter : ICache
     {
         private readonly ILogger _logger;
         private readonly IMemoryCache _cache;
@@ -12,7 +12,7 @@ namespace Caching.Core.Adapters.InMemory
         /// <summary>
         /// In-memory cache adapter for local development.
         /// </summary>
-        public InMemoryCacheAdapter(string serviceName, ILogger logger)
+        public MemoryCacheAdapter(string serviceName, ILogger logger)
         {
             Container = serviceName;
             _logger = logger;
@@ -75,7 +75,7 @@ namespace Caching.Core.Adapters.InMemory
         {
             if (_cache is IDisposable disposable)
             {
-                _logger.LogDebug($"Disposing: {typeof(InMemoryCacheAdapter).Name}.");
+                _logger.LogDebug($"Disposing: {typeof(MemoryCacheAdapter).Name}.");
                 disposable.Dispose();
             }
         }

@@ -1,8 +1,9 @@
 ﻿using System;
-using Caching.Core.Adapters.InMemory;
-using Caching.Core.Adapters.InStorage;
+using Caching.Core.Adapters.Memory;
+using Caching.Core.Adapters.FileStorage;
 using Caching.Core.Adapters.Redis;
 using Microsoft.Extensions.Logging;
+using Caching.Core.Adapters.BlobStorage;
 
 namespace Caching.Core
 {
@@ -12,17 +13,17 @@ namespace Caching.Core
         {
             switch (cacheSettings.CacheType)
             {
-                case CacheType.InMemory:
-                    return new InMemoryCacheAdapter(serviceName, logger);
+                case CacheType.Memory:
+                    return new MemoryCacheAdapter(serviceName, logger);
 
-                case CacheType.InStorage:
-                    return new InStorageCacheAdapter(serviceName, logger, cacheSettings);
+                case CacheType.FileStorage:
+                    return new FileStorageCacheAdapter(serviceName, logger, cacheSettings);
 
                 case CacheType.Redis:
                     return new RedisCacheAdapter(serviceName, logger, cacheSettings);
 
-                case CacheType.AzureBlobStorage:
-                    throw new NotSupportedException($"Caching option '{cacheSettings.CacheType}' is not supported.");
+                case CacheType.BlobStorage:
+                    return new BlobStorageCacheAdapter(serviceName, logger, cacheSettings);
 
                 default:
                     throw new NotSupportedException($"Caching option '{cacheSettings.CacheType}' is not supported.");

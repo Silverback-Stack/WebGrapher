@@ -1,7 +1,7 @@
 ﻿using System.Runtime;
 using Graphing.Core;
 using Graphing.Core.WebGraph;
-using Graphing.Core.WebGraph.Adapters.InMemory;
+using Graphing.Core.WebGraph.Adapters.Memory;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -23,7 +23,7 @@ namespace Service.Graphing.Tests
         {
             _logger = new Mock<ILogger>();
             _graphingSettings = new GraphingSettings();
-            _webGraph = new InMemoryWebGraphAdapter(_logger.Object, _graphingSettings);
+            _webGraph = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
         }
 
         [Test]
