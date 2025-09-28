@@ -13,18 +13,18 @@ namespace Graphing.Core
         {
             //Create WebGraph
             IWebGraph webGraph;
-            switch (graphingSettings.WebGraph.WebGraphType)
+            switch (graphingSettings.WebGraph.Provider)
             {
-                case WebGraphType.Memory:
+                case WebGraphProvider.Memory:
                     webGraph = new MemoryWebGraphAdapter(logger, graphingSettings);
                     break;
 
-                case WebGraphType.AzureCosmosGremlin:
+                case WebGraphProvider.AzureCosmosGremlin:
                     webGraph = new AzureCosmosGremlinWebGraphAdapter(logger, graphingSettings);
                     break;
 
                 default:
-                    throw new NotSupportedException($"{graphingSettings.WebGraph.WebGraphType} is not supported.");
+                    throw new NotSupportedException($"{graphingSettings.WebGraph.Provider} is not supported.");
             }
 
             var service = new PageGrapher(logger, eventBus, webGraph, graphingSettings);

@@ -6,7 +6,7 @@ namespace Caching.Core
 {
     public class CacheSettings
     {
-        public CacheType CacheType { get; set; } = CacheType.Memory;
+        public CacheProvider Provider { get; set; } = CacheProvider.Memory;
 
         public FileStorageSettings FileStorage { get; set; } = new FileStorageSettings();
 

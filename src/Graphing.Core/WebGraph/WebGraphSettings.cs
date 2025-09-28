@@ -6,7 +6,7 @@ namespace Graphing.Core.WebGraph
 {
     public class WebGraphSettings
     {
-        public WebGraphType WebGraphType { get; set; } = WebGraphType.Memory;
+        public WebGraphProvider Provider { get; set; } = WebGraphProvider.Memory;
         public int ScheduleCrawlThrottleSeconds { get; set; } = 60;
         public NodeEdgesUpdateMode NodeEdgesUpdateMode { get; set; } = NodeEdgesUpdateMode.Append;
 

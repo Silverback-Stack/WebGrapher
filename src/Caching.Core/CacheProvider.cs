@@ -1,6 +1,6 @@
 ﻿namespace Caching.Core
 {
-    public enum CacheType
+    public enum CacheProvider
     {
         Memory,
         FileStorage,

@@ -11,22 +11,22 @@ namespace Caching.Core
     {
         public static ICache CreateCache(string serviceName, ILogger logger, CacheSettings cacheSettings)
         {
-            switch (cacheSettings.CacheType)
+            switch (cacheSettings.Provider)
             {
-                case CacheType.Memory:
+                case CacheProvider.Memory:
                     return new MemoryCacheAdapter(serviceName, logger);
 
-                case CacheType.FileStorage:
+                case CacheProvider.FileStorage:
                     return new FileStorageCacheAdapter(serviceName, logger, cacheSettings);
 
-                case CacheType.Redis:
+                case CacheProvider.Redis:
                     return new RedisCacheAdapter(serviceName, logger, cacheSettings);
 
-                case CacheType.BlobStorage:
+                case CacheProvider.BlobStorage:
                     return new BlobStorageCacheAdapter(serviceName, logger, cacheSettings);
 
                 default:
-                    throw new NotSupportedException($"Caching option '{cacheSettings.CacheType}' is not supported.");
+                    throw new NotSupportedException($"Caching option '{cacheSettings.Provider}' is not supported.");
             }
         }
     }
