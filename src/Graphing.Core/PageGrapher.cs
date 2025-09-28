@@ -28,12 +28,12 @@ namespace Graphing.Core
         }
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<GraphPageEvent>(ProcessGraphPageEventAsync);
+            _eventBus.Subscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<GraphPageEvent>(ProcessGraphPageEventAsync);
+            _eventBus.Unsubscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
         }
 
         public async Task PublishClientLogEventAsync(

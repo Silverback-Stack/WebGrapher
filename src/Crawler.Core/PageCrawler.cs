@@ -34,14 +34,14 @@ namespace Crawler.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<CrawlPageEvent>(EvaluatePageForCrawling);
-            _eventBus.Subscribe<ScrapePageFailedEvent>(RetryPageCrawl);
+            _eventBus.Subscribe<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
+            _eventBus.Subscribe<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<CrawlPageEvent>(EvaluatePageForCrawling);
-            _eventBus.Unsubscribe<ScrapePageFailedEvent>(RetryPageCrawl);
+            _eventBus.Unsubscribe<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
+            _eventBus.Unsubscribe<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
         }
 
         public async Task PublishClientLogEventAsync(
