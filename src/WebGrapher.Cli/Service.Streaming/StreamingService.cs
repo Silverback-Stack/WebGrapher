@@ -44,7 +44,6 @@ namespace WebGrapher.Cli.Service.Streaming
 
             //bind appsettings overrides to default settings objects
             var streamingSettings = configuration.BindSection<StreamingSettings>("Streaming");
-            var signalRSettings = configuration.BindSection<SignalRSettings>("SignalR");
 
             //Setup Logging
             var logFilePath = $"logs/{streamingSettings.ServiceName}.log";
@@ -60,7 +59,7 @@ namespace WebGrapher.Cli.Service.Streaming
 
 
             //Create and Start Streaming Hub
-            var (host, hubContext, hubUrl) = await StartHubServerAsync(signalRSettings);
+            var (host, hubContext, hubUrl) = await StartHubServerAsync(streamingSettings);
             _host = host;
 
             StreamerFactory.Create(logger, eventBus, hubContext, streamingSettings);
@@ -68,9 +67,9 @@ namespace WebGrapher.Cli.Service.Streaming
             logger.LogInformation($"Streaming service started on {hubUrl}");
         }
 
-        private async static Task<(IHost host, IHubContext<GraphStreamerHub>, string hubUrl)> StartHubServerAsync(SignalRSettings signalRSettings)
+        private async static Task<(IHost host, IHubContext<GraphStreamerHub>, string hubUrl)> StartHubServerAsync(StreamingSettings streamingSettings)
         {
-            string hubUrl = signalRSettings.Hosted.Host;
+            var hubUrl = "";
             var hostBuilder = Host.CreateDefaultBuilder();
 
             hostBuilder.ConfigureLogging(logging =>
@@ -95,22 +94,22 @@ namespace WebGrapher.Cli.Service.Streaming
                         });
                     });
 
-                    switch (signalRSettings.Service)
+                    switch (streamingSettings.Provider)
                     {
-                        case ServiceType.Hosted:
+                        case StreamingProvider.HostedSignalR:
                             services.AddSignalR();
                             break;
 
-                        case ServiceType.AzureDefault:
+                        case StreamingProvider.AzureSignalRDefault:
                             services.AddSignalR()
-                                .AddAzureSignalR(signalRSettings.Azure.ConnectionString);
+                                .AddAzureSignalR(streamingSettings.AzureSignalRDefault.ConnectionString);
                             break;
 
-                        case ServiceType.AzureServerless:
+                        case StreamingProvider.AzureSignalRServerless:
                             throw new NotSupportedException("Serverless mode only supported by serverless architecture such as Function apps.");
 
                         default:
-                            throw new NotSupportedException($"SignalR mode '{signalRSettings.Service}' is not supported.");
+                            throw new NotSupportedException($"SignalR mode '{streamingSettings.Provider}' is not supported.");
                     }
                 });
 
@@ -121,40 +120,42 @@ namespace WebGrapher.Cli.Service.Streaming
 
                     app.UseEndpoints(endpoints =>
                     {
-                        endpoints.MapHub<GraphStreamerHub>(signalRSettings.HubPath);
+                        endpoints.MapHub<GraphStreamerHub>(streamingSettings.HubPath);
                         endpoints.MapGet("/", () => "SignalR streaming service is running.");
                     });
                 });
 
-                switch (signalRSettings.Service)
+                switch (streamingSettings.Provider)
                 {
-                    case ServiceType.Hosted:
+                    case StreamingProvider.HostedSignalR:
                         //bind explicit URL and PORT
-                        webBuilder.UseUrls(signalRSettings.Hosted.Host);
+                        webBuilder.UseUrls(streamingSettings.HostedSignaR.Host);
+                        hubUrl = $"{streamingSettings.HostedSignaR.Host}{streamingSettings.HubPath}";
                         break;
 
-                    case ServiceType.AzureDefault:
+                    case StreamingProvider.AzureSignalRDefault:
                         var isProduction = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")?.ToLower() == "production";
                         if (!isProduction)
                         {
                             //Bind explicit URL and PORT for local testing
-                            webBuilder.UseUrls(signalRSettings.Hosted.Host);
+                            webBuilder.UseUrls(streamingSettings.HostedSignaR.Host);
+                            hubUrl = $"{streamingSettings.HostedSignaR.Host}{streamingSettings.HubPath}";
                         }
                         else
                         {
                             //Bind to random free port for production.
                             //Azure handless connections and port when deployed to Azure
                             webBuilder.UseUrls("http://127.0.0.1:0");
-                            hubUrl = $"{signalRSettings.Azure.Endpoint}{signalRSettings.HubPath}";
+                            hubUrl = $"{streamingSettings.AzureSignalRDefault.Endpoint}{streamingSettings.HubPath}";
                         }
                         break;
 
-                    case ServiceType.AzureServerless:
-                        hubUrl = $"{signalRSettings.Azure.Endpoint}{signalRSettings.HubPath}";
+                    case StreamingProvider.AzureSignalRServerless:
+                        hubUrl = $"{streamingSettings.AzureSignalRServerless.Endpoint}{streamingSettings.HubPath}";
                         break;
 
                     default:
-                        throw new NotSupportedException($"SignalR mode '{signalRSettings.Service}' is not supported.");
+                        throw new NotSupportedException($"SignalR mode '{streamingSettings.Provider}' is not supported.");
                 }
             });
 

@@ -1,7 +1,7 @@
 ﻿
 namespace Graphing.Core.WebGraph
 {
-    public enum WebGraphType
+    public enum WebGraphProvider
     {
         Memory,
         AzureCosmosGremlin

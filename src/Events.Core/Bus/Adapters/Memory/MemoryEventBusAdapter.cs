@@ -2,31 +2,31 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
-namespace Events.Core.Bus.Adapters.InMemory
+namespace Events.Core.Bus.Adapters.Memory
 {
     /// <summary>
     /// In-memory event bus adapter for local development, 
     /// can be swapped out with a distributed event bus adapter such as RabbitMQ or AzureServiceBus.
     /// </summary>
-    public class InMemoryEventBusAdapter : BaseEventBus
+    public class MemoryEventBusAdapter : BaseEventBus
     {
         //Continer for subscribers/handlers
         private readonly ConcurrentDictionary<Type, List<Delegate>> _handlers = new();
 
-        public InMemoryEventBusAdapter(
+        public MemoryEventBusAdapter(
             ILogger logger,
             Dictionary<Type, int>? concurrencyLimits = null) : base(logger, concurrencyLimits) { }
 
         public async override Task StartAsync()
         {
             //nothing to do for in-memory implementation
-            _logger.LogDebug($"Started event bus {typeof(InMemoryEventBusAdapter).Name}");
+            _logger.LogDebug($"Started event bus {typeof(MemoryEventBusAdapter).Name}");
         }
 
         public async override Task StopAsync()
         {
             //nothing to do for in-memory implementation
-            _logger.LogDebug($"Stopped event bus {typeof(InMemoryEventBusAdapter).Name}");
+            _logger.LogDebug($"Stopped event bus {typeof(MemoryEventBusAdapter).Name}");
         }
 
         public override void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : class
@@ -122,7 +122,7 @@ namespace Events.Core.Bus.Adapters.InMemory
         public override void Dispose()
         {
             base.Dispose();
-            _logger.LogDebug($"Disposing event bus {typeof(InMemoryEventBusAdapter).Name}, handlers cleared.");
+            _logger.LogDebug($"Disposing event bus {typeof(MemoryEventBusAdapter).Name}, handlers cleared.");
             _handlers.Clear();
         }
     }
