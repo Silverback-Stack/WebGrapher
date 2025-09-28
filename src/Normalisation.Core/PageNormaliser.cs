@@ -28,12 +28,12 @@ namespace Normalisation.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<NormalisePageEvent>(NormalisePageContentAsync);
+            _eventBus.Subscribe<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<NormalisePageEvent>(NormalisePageContentAsync);
+            _eventBus.Unsubscribe<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
         }
 
         public async Task PublishClientLogEventAsync(

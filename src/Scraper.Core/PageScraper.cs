@@ -16,7 +16,10 @@ namespace Scraper.Core
         protected readonly IRequestSender _requestSender;
         protected readonly ScraperSettings _scraperSettings;
 
-        public PageScraper(ILogger logger, IEventBus eventBus, IRequestSender requestSender, ScraperSettings scraperSettings)
+        public PageScraper(ILogger logger, 
+            IEventBus eventBus, 
+            IRequestSender requestSender, 
+            ScraperSettings scraperSettings)
         {
             _logger = logger;
             _eventBus = eventBus;
@@ -26,12 +29,12 @@ namespace Scraper.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<ScrapePageEvent>(ScrapeContentAsync);
+            _eventBus.Subscribe<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapeContentAsync);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<ScrapePageEvent>(ScrapeContentAsync);
+            _eventBus.Unsubscribe<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapeContentAsync);
         }
 
         public async Task PublishClientLogEventAsync(

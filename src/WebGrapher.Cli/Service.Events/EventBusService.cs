@@ -1,6 +1,5 @@
 ﻿using System;
 using Events.Core.Bus;
-using Events.Core.Events;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
@@ -25,18 +24,7 @@ namespace WebGrapher.Cli.Service.Events
 
             var logger = loggerFactory.CreateLogger<IEventBus>();
 
-
-            //configure event bus rate limits:
-            var concurrencyLimits = new Dictionary<Type, int>
-            {
-                { typeof(CrawlPageEvent), eventBusSettings.RateLimiter.MaxCrawlPageEvents },
-                { typeof(ScrapePageEvent), eventBusSettings.RateLimiter.MaxScrapePageEvents },
-                { typeof(NormalisePageEvent), eventBusSettings.RateLimiter.MaxNormalisePageEvents },
-                { typeof(GraphPageEvent), eventBusSettings.RateLimiter.MaxGraphPageEvents },
-                { typeof(GraphNodeAddedEvent), eventBusSettings.RateLimiter.MaxGraphNodeAddedEvents }
-            };
-
-            var eventBus = EventBusFactory.CreateEventBus(logger, concurrencyLimits);
+            var eventBus = EventBusFactory.CreateEventBus(logger, eventBusSettings);
             await eventBus.StartAsync();
 
             logger.LogInformation("Event bus service started.");

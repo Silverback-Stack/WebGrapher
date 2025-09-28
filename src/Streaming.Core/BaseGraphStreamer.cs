@@ -25,14 +25,14 @@ namespace Streaming.Core
 
         public void SubscribeAll()
         {
-            _eventBus.Subscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEventAsync);
-            _eventBus.Subscribe<ClientLogEvent>(ProcessGraphLogEventAsync);
+            _eventBus.Subscribe<GraphNodeAddedEvent>(_streamingSettings.ServiceName, ProcessGraphNodeAddedEventAsync);
+            _eventBus.Subscribe<ClientLogEvent>(_streamingSettings.ServiceName, ProcessGraphLogEventAsync);
         }
 
         public void UnsubscribeAll()
         {
-            _eventBus.Unsubscribe<GraphNodeAddedEvent>(ProcessGraphNodeAddedEventAsync);
-            _eventBus.Unsubscribe<ClientLogEvent>(ProcessGraphLogEventAsync);
+            _eventBus.Unsubscribe<GraphNodeAddedEvent>(_streamingSettings.ServiceName, ProcessGraphNodeAddedEventAsync);
+            _eventBus.Unsubscribe<ClientLogEvent>(_streamingSettings.ServiceName, ProcessGraphLogEventAsync);
         }
 
         public async Task PublishClientLogEventAsync(
