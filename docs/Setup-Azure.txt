@@ -25,7 +25,7 @@ Capacity: Provisioned throughput
 
 Apply Free Tier Discount: Apply
 
-Limit the total amount of throughput that can be provisioned on this account: False
+Limit the total amount of throughput that can be provisioned on this account: True
 
 
 
@@ -114,4 +114,35 @@ After Redis instance has been created:
 Go to Settings -> Authentication -> Access Keys tab
 
 Take note of the Primary Connection String and copy into AppSettings file.
+
+
+
+
+Create Azure Service Bus
+------------------------
+
+From Marketplace create a new resource: Service Bus
+
+Subscription: Default
+
+Resource group: webgrapher-resources
+
+Namespace name: webgrapher
+
+Location: UK South
+
+Pricing tier: Standard (Basic does not support Topics)
+
+Review and click Create.
+
+
+After Service Bus instance has been created:
+
+Go to Settings -> Shared access polities -> RootManagedSharedAccessKey
+
+Take note of the Primary Connection String and copy into AppSettings file.
+
+
+
+
 

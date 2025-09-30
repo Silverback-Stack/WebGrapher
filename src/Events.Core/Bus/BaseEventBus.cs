@@ -12,9 +12,9 @@ namespace Events.Core.Bus
             _logger = logger;
         }
 
-        public abstract void Subscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class;
+        public abstract Task Subscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class;
 
-        public abstract void Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class;
+        public abstract Task Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class;
 
         public abstract Task PublishAsync<TEvent>(
             TEvent @event,

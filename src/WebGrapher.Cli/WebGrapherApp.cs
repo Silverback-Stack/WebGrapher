@@ -35,8 +35,8 @@ namespace WebGrapher.Cli
             //bind appsettings overrides to default settings objects
             var eventBusSettings = configuration.BindSection<EventBusSettings>("EventBus");
 
-            //Create and Start Event Bus
-            _eventBus = await EventBusService.StartAsync(eventBusSettings);
+            //Create Event Bus
+            _eventBus = await EventBusService.CreateAsync(eventBusSettings);
 
             var crawlerTask = Task.Run(async () 
                 => _pageCrawler = await CrawlerService.InitializeAsync(_eventBus));
@@ -54,6 +54,9 @@ namespace WebGrapher.Cli
                 => StreamingService.InitializeAsync(_eventBus));
 
             await Task.WhenAll(crawlerTask, scraperTask, normalisationTask, graphingTask, streamingTask);
+
+            //start event bus after all services have finished subscribing
+            await _eventBus.StartAsync();
 
             await RunAsync();
         }

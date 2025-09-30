@@ -11,6 +11,7 @@ namespace Events.Core.Bus
         private readonly ServiceBusAdministrationClient _adminClient;
         private readonly Dictionary<string, ServiceBusProcessor> _processors = new();
         private readonly int _maxConcurrencyLimitPerEvent;
+        private bool _started = false;
 
         // no need for concurrencyLimits , uses maxConcurrentCalls instead
         public AzureServiceBusAdapter(
@@ -22,7 +23,7 @@ namespace Events.Core.Bus
             _maxConcurrencyLimitPerEvent = maxConcurrencyLimitPerEvent;
         }
 
-        public override async void Subscribe<TEvent>(
+        public override async Task Subscribe<TEvent>(
             string serviceName,
             Func<TEvent, Task> handler)
             where TEvent : class
@@ -48,7 +49,7 @@ namespace Events.Core.Bus
             {
                 try
                 {
-                    var body = args.Message.Body.ToString();
+                    var body = args.Message.Body.ToArray();
                     var evt = JsonSerializer.Deserialize<TEvent>(body);
 
                     if (evt != null)
@@ -71,16 +72,20 @@ namespace Events.Core.Bus
 
             _processors[$"{topicName}:{subscriptionName}"] = processor;
 
+            // if bus already started → start this new processor immediately
+            if (_started)
+                await processor.StartProcessingAsync();
+
             _logger.LogDebug($"{serviceName} service subscribed to event {typeof(TEvent).Name}");
         }
 
-        public override void Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler)
+        public override async Task Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler)
         {
             var key = $"{typeof(TEvent).Name}:{serviceName}";
             if (_processors.TryGetValue(key, out var processor))
             {
-                processor.StopProcessingAsync().GetAwaiter().GetResult();
-                processor.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                await processor.StopProcessingAsync();
+                await processor.DisposeAsync();
                 _processors.Remove(key);
 
                 _logger.LogDebug($"{serviceName} service unsubscribed from event {typeof(TEvent).Name}");
@@ -109,7 +114,11 @@ namespace Events.Core.Bus
 
         public override async Task StartAsync()
         {
-            foreach (var processor in _processors.Values)
+            _started = true;
+
+            //take a snapshow to prevent modifying changing data
+            var processorsSnapshot = _processors.Values.ToList();
+            foreach (var processor in processorsSnapshot)
                 await processor.StartProcessingAsync();
         }
 

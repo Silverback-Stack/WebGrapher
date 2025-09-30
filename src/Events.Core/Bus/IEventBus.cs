@@ -2,9 +2,9 @@
 {
     public interface IEventBus : IDisposable
     {
-        void Subscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class;
+        Task Subscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class;
 
-        void Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class;
+        Task Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class;
 
         Task PublishAsync<TEvent>(
             TEvent @event, 

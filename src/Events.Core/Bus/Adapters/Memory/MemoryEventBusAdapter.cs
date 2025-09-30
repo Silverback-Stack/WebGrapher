@@ -34,7 +34,7 @@ namespace Events.Core.Bus.Adapters.Memory
             _logger.LogDebug($"Stopped event bus {typeof(MemoryEventBusAdapter).Name}");
         }
 
-        public override void Subscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
+        public override async Task Subscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
         {
             // Ensure semaphore exists for this event type
             var semaphore = _semaphores.GetOrAdd(typeof(TEvent), _ => new SemaphoreSlim(_maxConcurrencyLimitPerEvent));
@@ -64,7 +64,7 @@ namespace Events.Core.Bus.Adapters.Memory
             _logger.LogDebug($"{serviceName} service subscribed to event {typeof(TEvent).Name}");
         }
 
-        public override void Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
+        public override async Task Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
         {
             if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
             {

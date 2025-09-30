@@ -9,7 +9,7 @@ namespace WebGrapher.Cli.Service.Events
 {
     internal class EventBusService
     {
-        public async static Task<IEventBus> StartAsync(EventBusSettings eventBusSettings)
+        public async static Task<IEventBus> CreateAsync(EventBusSettings eventBusSettings)
         {
             //configure logging:
             var serviceName = eventBusSettings.ServiceName;
@@ -25,7 +25,6 @@ namespace WebGrapher.Cli.Service.Events
             var logger = loggerFactory.CreateLogger<IEventBus>();
 
             var eventBus = EventBusFactory.CreateEventBus(logger, eventBusSettings);
-            await eventBus.StartAsync();
 
             logger.LogInformation("Event bus service started.");
 
