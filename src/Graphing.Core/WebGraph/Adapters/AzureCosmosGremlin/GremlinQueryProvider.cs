@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net;
 using Graphing.Core.WebGraph.Models;
 using Gremlin.Net.Driver;
 using Gremlin.Net.Driver.Exceptions;
@@ -11,11 +10,13 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
     {
         private readonly GremlinClient _gremlinClient;
         private readonly ILogger _logger;
+        private readonly int _maxQueryRetries;
 
-        public GremlinQueryProvider(ILogger logger, GremlinClient gremlinClient)
+        public GremlinQueryProvider(ILogger logger, GremlinClient gremlinClient, int maxQueryRetries)
         {
             _gremlinClient = gremlinClient;
             _logger = logger;
+            _maxQueryRetries = maxQueryRetries;
         }
 
         // Graph Operations
@@ -30,9 +31,10 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                var results = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                var vertex = await ExecuteListQueryAsync(query, parameters,
+                    operationName: "GetGraphVertexAsync");
 
-                return results.FirstOrDefault();
+                return vertex.FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -57,7 +59,9 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                var vertices = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                var vertices = await ExecuteListQueryAsync(query, parameters,
+                    operationName: "ListGraphVerticesAsync");
+
                 return vertices;
             }
             catch (Exception ex)
@@ -73,7 +77,10 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                return await _gremlinClient.SubmitWithSingleResultAsync<int>(query);
+                var count = await ExecuteScalarQueryAsync<int>(query, null,
+                    operationName: "CountGraphVerticesAsync");
+
+                return count;
             }
             catch (Exception ex)
             {
@@ -132,8 +139,10 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                var results = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
-                return results.FirstOrDefault();
+                var vertex = await ExecuteListQueryAsync(query, parameters,
+                    operationName: "CreateGraphVertexAsync");
+
+                return vertex.FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -189,10 +198,9 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
-
-                // Cosmos Gremlin mutation returns an empty result set,
-                // so success = no exception
+                await ExecuteCommandAsync(query, parameters,
+                    operationName: "UpdateGraphVertexAsync"
+                );
             }
             catch (Exception ex)
             {
@@ -223,11 +231,13 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                await _gremlinClient.SubmitAsync<dynamic>(deleteNodesQuery, parameters);
-                await _gremlinClient.SubmitAsync<dynamic>(deleteGraphQuery, parameters);
+                await ExecuteCommandAsync(deleteNodesQuery, parameters,
+                    operationName: "DeleteGraphVertexAsync"
+                );
 
-                // Cosmos Gremlin `.drop()` returns an empty result set,
-                // so success = no exception
+                await ExecuteCommandAsync(deleteGraphQuery, parameters,
+                    operationName: "DeleteGraphVertexAsync"
+                );
             }
             catch (Exception ex)
             {
@@ -251,8 +261,10 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                var results = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
-                return results.FirstOrDefault();
+                var nodes = await ExecuteListQueryAsync(query, parameters,
+                    operationName: "GetNodeVertexAsync");
+
+                return nodes.FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -284,8 +296,9 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                var edges = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
-
+                var edges = await ExecuteListQueryAsync(query, parameters,
+                    operationName: "GetNodeVerticesEdgesAsync");
+               
                 // Map results into (source, target, isOutgoing) tuples.
                 var results = edges.Select(e =>
                 {
@@ -340,8 +353,6 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
 
-            node.ModifiedAt = DateTimeOffset.UtcNow;
-
             var query = @"
                 g.V(vertexId)
                  .fold()
@@ -385,34 +396,9 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
-
-                // Cosmos Gremlin mutation returns an empty result set,
-                // so success = no exception
-            }
-            catch (ResponseException ex) when ((int)ex.StatusCode == (int)HttpStatusCode.PreconditionFailed)
-            {
-                _logger.LogWarning("Conflict on node {id}, checking ModifiedAt", node.Id);
-
-                // Fetch latest node from DB
-                var latest = await GetNodeVertexAsync(node.GraphId, node.Url);
-                if (latest == null)
-                {
-                    _logger.LogWarning("Conflict on {id} but no record found; retrying insert", node.Id);
-                    await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
-                    return;
-                }
-
-                // If DB record is newer, discard update
-                if (latest.ModifiedAt >= node.ModifiedAt)
-                {
-                    _logger.LogWarning("Discarding update for node {id}, data is stale.", node.Id);
-                    return;
-                }
-
-                // Otherwise retry update (our node is fresher)
-                _logger.LogWarning("Retrying update for node {id}, data is fresher.", node.Id);
-                await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                await ExecuteCommandAsync(query, parameters,
+                    operationName: "UpsertNodeVertexAsync"
+                );
             }
             catch (Exception ex)
             {
@@ -424,7 +410,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
         public async Task AddNodeVertexEdgeAsync(Node fromNode, Node toNode, Guid graphId)
         {
             // using coalesce to add edge if it does not already exist
-            var edgeQuery = @"
+            var query = @"
                 g.V(fromId).hasLabel('node').has('graphId', graphId).as('from')
                  .V(toId).hasLabel('node').has('graphId', graphId).as('to')
                  .coalesce(
@@ -441,7 +427,9 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                await _gremlinClient.SubmitAsync<dynamic>(edgeQuery, parameters);
+                await ExecuteCommandAsync(query, parameters,
+                    operationName: "AddNodeVertexEdgeAsync"
+                );
             }
             catch (Exception ex)
             {
@@ -460,13 +448,17 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                  )
                  .drop()";
 
+            var parameters = new Dictionary<string, object>
+            {
+                ["vertexId"] = node.Id.ToString(),
+                ["graphId"] = graphId.ToString()
+            };
+
             try
             {
-                await _gremlinClient.SubmitAsync<dynamic>(query, new Dictionary<string, object>
-                {
-                    ["vertexId"] = node.Id.ToString(),
-                    ["graphId"] = graphId.ToString()
-                });
+                await ExecuteCommandAsync(query, parameters,
+                    operationName: "RemoveNodeVertexEdgesAsync"
+                );
             }
             catch (Exception ex)
             {
@@ -491,7 +483,9 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                await ExecuteCommandAsync(query, parameters, 
+                    operationName: "RemoveOrphanedNodeVerticesAsync"
+                );
             }
             catch (Exception ex)
             {
@@ -519,9 +513,11 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                var result = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                var count = await ExecuteScalarQueryAsync<int>(query, parameters,
+                    operationName: "CountNodeVertexEdgesAsync"
+                );
 
-                return result.FirstOrDefault() ?? 0;
+                return count;
             }
             catch (Exception ex)
             {
@@ -550,7 +546,10 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                return await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                var nodes = await ExecuteListQueryAsync(query, parameters,
+                    operationName: "GetNodeVerticesByCreationDateAscAsync");
+
+                return nodes;
             }
             catch (Exception ex)
             {
@@ -569,10 +568,11 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                var results = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
-                var count = results.FirstOrDefault();
+                var count = await ExecuteScalarQueryAsync<long>(query, parameters, 
+                    operationName: "CountNodeVerticesPopulatedAsync"
+                );
 
-                return Convert.ToInt64(count);
+                return count;
             }
             catch (Exception ex)
             {
@@ -602,8 +602,10 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             try
             {
-                var results = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
-                return results;
+                var nodes = await ExecuteListQueryAsync(query, parameters, 
+                    operationName: "GetNodeVertexSubgraphAsync");
+
+                return nodes;
             }
             catch (Exception ex)
             {
@@ -611,5 +613,139 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 throw;
             }
         }
+
+
+        /// <summary>
+        /// Returns a List<dynamic>
+        /// </summary>
+        private async Task<List<dynamic>> ExecuteListQueryAsync(
+            string query,
+            Dictionary<string, object>? parameters,
+            string operationName)
+        {
+            return await ExecuteWithRetryAsync(async () =>
+            {
+                var resultSet = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                return resultSet.ToList();
+            }, operationName);
+        }
+
+        /// <summary>
+        /// Returns a single scalar (int, long, etc.)
+        /// </summary>
+        private async Task<T> ExecuteScalarQueryAsync<T>(
+            string query,
+            Dictionary<string, object>? parameters,
+            string operationName)
+        {
+            return await ExecuteWithRetryAsync(async () =>
+            {
+                var resultSet = await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                return (T)Convert.ChangeType(resultSet.FirstOrDefault(), typeof(T));
+            }, operationName);
+        }
+
+        /// <summary>
+        /// Runs a mutation insert/update/delete (no return value)
+        /// </summary>
+        private async Task ExecuteCommandAsync(
+            string query,
+            Dictionary<string, object>? parameters,
+            string operationName)
+        {
+            await ExecuteWithRetryAsync(async () =>
+            {
+                await _gremlinClient.SubmitAsync<dynamic>(query, parameters);
+                return true; // dummy value just to satisfy generic
+            }, operationName);
+        }
+
+        private async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> operation, string operationName)
+        {
+            var rng = new Random();
+
+            for (int attempt = 1; attempt <= _maxQueryRetries; attempt++)
+            {
+                try
+                {
+                    var result = await operation();
+
+                    if (attempt > 1)
+                    {
+                        _logger.LogDebug(
+                            "{operationName} succeeded on retry attempt {attempt}/{maxRetries}",
+                            operationName, attempt, _maxQueryRetries);
+                    }
+
+                    return result;
+                }
+                catch (ResponseException ex)
+                {
+                    var (statusCode, subStatusCode, retryAfterMs) = ParseExceptionMessage(ex.Message);
+
+                    if (statusCode == "TooManyRequests" || statusCode == "PreconditionFailed")
+                    {
+                        // Use server-provided retry if available, else fallback
+                        int waitMs = retryAfterMs ?? (200 * attempt + rng.Next(0, 100));
+                        var wait = TimeSpan.FromMilliseconds(Math.Min(5000, waitMs));
+
+                        _logger.LogDebug(
+                            "Retryable error during {operationName}, attempt {attempt}/{maxRetries}. " +
+                            "StatusCode={statusCode}, SubStatusCode={subStatusCode}. Waiting {wait} before retrying.",
+                            operationName, attempt, _maxQueryRetries,
+                            statusCode, subStatusCode, wait);
+
+                        await Task.Delay(wait);
+                        continue;
+                    }
+
+                    throw;
+                }
+            }
+
+            throw new Exception($"Max retry attempts ({_maxQueryRetries}) exceeded for {operationName}");
+        }
+
+        private static (string? statusCode, string? subStatusCode, int? retryAfterMs) ParseExceptionMessage(string message)
+        {
+            string? statusCode = null;
+            string? subStatusCode = null;
+            int? retryAfterMs = null;
+
+            // Scan for StatusCode / SubStatusCode
+            foreach (var line in message.Split(new[] { '\n', ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var trimmed = line.Trim();
+                if (trimmed.StartsWith("StatusCode =")) statusCode = trimmed["StatusCode =".Length..].Trim();
+                if (trimmed.StartsWith("SubStatusCode =")) subStatusCode = trimmed["SubStatusCode =".Length..].Trim();
+            }
+
+            // Scan for RetryAfterInMs anywhere in the message
+            const string retryKey = "\"RetryAfterInMs\"";
+            var retryIndex = message.IndexOf(retryKey, StringComparison.OrdinalIgnoreCase);
+            if (retryIndex >= 0)
+            {
+                // Find the first number after the key
+                var colonIndex = message.IndexOf(':', retryIndex);
+                if (colonIndex >= 0)
+                {
+                    var start = colonIndex + 1;
+                    // Skip any quotes or whitespace
+                    while (start < message.Length && (message[start] == '"' || char.IsWhiteSpace(message[start])))
+                        start++;
+
+                    int end = start;
+                    while (end < message.Length && char.IsDigit(message[end]))
+                        end++;
+
+                    if (int.TryParse(message[start..end], out var ms))
+                        retryAfterMs = ms;
+                }
+            }
+
+            return (statusCode, subStatusCode, retryAfterMs);
+        }
+
     }
+
 }
