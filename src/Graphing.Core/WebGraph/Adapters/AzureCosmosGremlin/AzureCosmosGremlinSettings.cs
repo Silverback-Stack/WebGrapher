@@ -9,5 +9,6 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
         public string PrimaryKey { get; set; } = string.Empty;
         public string Database {  get; set; } = string.Empty;
         public string Graph {  get; set; } = string.Empty;
+        public int MaxQueryRetries { get; set; } = 5;
     }
 }

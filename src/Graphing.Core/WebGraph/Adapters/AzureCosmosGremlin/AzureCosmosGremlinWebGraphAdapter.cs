@@ -47,7 +47,10 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 throw;
             }
 
-            _gremlinQueryProvider = new GremlinQueryProvider(logger, _gremlinClient);
+            _gremlinQueryProvider = new GremlinQueryProvider(
+                logger, 
+                _gremlinClient, 
+                graphingSettings.WebGraph.AzureCosmosGremlin.MaxQueryRetries);
         }
 
 

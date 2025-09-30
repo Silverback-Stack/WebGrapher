@@ -25,7 +25,7 @@ Capacity: Provisioned throughput
 
 Apply Free Tier Discount: Apply
 
-Limit the total amount of throughput that can be provisioned on this account: True
+Limit the total amount of throughput that can be provisioned on this account: False
 
 
 
