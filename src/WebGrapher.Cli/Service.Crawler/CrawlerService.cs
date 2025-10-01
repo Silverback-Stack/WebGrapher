@@ -1,10 +1,9 @@
 ﻿using System;
 using Caching.Core;
+using Config.Core;
 using Crawler.Core;
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Serilog;
@@ -17,17 +16,10 @@ namespace WebGrapher.Cli.Service.Crawler
     {
         public async static Task<IPageCrawler> InitializeAsync(IEventBus eventBus)
         {
-            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
-
             //Setup Configuration using appsettings overrides
-            var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("Service.Crawler/appsettings.json", optional: true, reloadOnChange: true)
-            .AddJsonFile($"Service.Crawler/appsettings.{environment}.json", optional: true, reloadOnChange: true) // local overrides
-            .AddEnvironmentVariables()
-            .Build();
+            var configuration = ConfigurationLoader.LoadConfiguration("Service.Crawler");
 
-            //bind appsettings overrides to default settings objects
+            //Bind to strongly typed objects
             var crawlerSettings = configuration.BindSection<CrawlerSettings>("Crawler");
             var metaCacheSettings = configuration.BindSection<CacheSettings>("MetaCache");
             var blobCacheSettings = configuration.BindSection<CacheSettings>("BlobCache");

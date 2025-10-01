@@ -6,33 +6,6 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 {
     public static class GremlinQueryHelper
     {
-        public static string? GetPropString(
-            IDictionary<string, object>? properties,
-            string key)
-        {
-            // 1) Guard: no props or key missing
-            if (properties is null) return null;
-            if (!properties.TryGetValue(key, out var rawEntry) || rawEntry is null) return null;
-
-            if (rawEntry is IEnumerable<object> entryList)
-            {
-                var firstItem = entryList.Cast<object?>().FirstOrDefault();
-                if (firstItem == null) return null;
-
-                switch (firstItem)
-                {
-                    case IDictionary<string, object> dict when dict.TryGetValue("value", out var val):
-                        return val?.ToString();
-                    case JsonElement json when json.ValueKind == JsonValueKind.Object && json.TryGetProperty("value", out var valueProp):
-                        return valueProp.ToString();
-                    default:
-                        return firstItem.ToString();
-                }
-            }
-
-            return rawEntry.ToString();
-        }
-
         public static int? GetPropInt(IDictionary<string, object>? properties, string key)
         {
             var str = GetPropString(properties, key);
@@ -54,52 +27,112 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             return null;
         }
 
+        public static string? GetPropString(
+            IDictionary<string, object>? properties,
+            string key)
+        {
+            // 1) Guard: no props or key missing
+            if (properties is null) return null;
+            if (!properties.TryGetValue(key, out var rawEntry) || rawEntry is null) return null;
+
+            // 2) If the entry is a list, take the first item
+            if (rawEntry is IEnumerable<object> entryList)
+            {
+                var firstItem = entryList.Cast<object?>().FirstOrDefault();
+                if (firstItem == null) return null;
+
+                // 3a) Check if first item is a dictionary
+                if (firstItem is IDictionary<string, object> dict)
+                {
+                    if (dict.TryGetValue("value", out var val))
+                    {
+                        return val?.ToString(); // return the value inside the dictionary
+                    }
+                }
+
+                // 3b) Check if first item is a JsonElement
+                else if (firstItem is JsonElement json)
+                {
+                    if (json.ValueKind == JsonValueKind.Object)
+                    {
+                        if (json.TryGetProperty("value", out var valueProp))
+                        {
+                            return valueProp.ToString(); // return the "value" property
+                        }
+                    }
+                }
+
+                // 3c) Otherwise, just return firstItem as string
+                return firstItem.ToString();
+            }
+
+            // 4) Otherwise, just return the raw entry as string
+            return rawEntry.ToString();
+        }
+
         /// <summary>
         /// Extracts a list of strings from a vertex property in Cosmos/Gremlin.
         /// Handles arrays of strings, single strings, and JsonElements.
         /// </summary>
         public static List<string> GetPropStringList(IDictionary<string, object>? properties, string key)
         {
+            // 1) Guard: no properties or key missing
             if (properties == null || !properties.TryGetValue(key, out var rawEntry) || rawEntry == null)
                 return new List<string>();
 
-            // 2. If the value is a list of objects
+            // 2) If the value is a list of objects
             if (rawEntry is IEnumerable<object> entryList)
             {
                 var list = new List<string>();
+
                 foreach (var item in entryList)
                 {
-                    if (item == null) continue;
+                    if (item == null)
+                        continue;
 
-                    switch (item)
+                    // 2a) Check if item is a dictionary
+                    if (item is IDictionary<string, object> dict)
                     {
-                        case IDictionary<string, object> dict when dict.TryGetValue("value", out var val) && val != null:
-                            // Split CSV if it contains commas
+                        if (dict.TryGetValue("value", out var val) && val != null)
+                        {
                             var strVal = val.ToString()!;
+
+                            // If it contains commas, split into multiple entries
                             if (strVal.Contains(','))
-                                list.AddRange(strVal.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                                    .Select(s => s.Trim()));
+                            {
+                                var parts = strVal.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                                  .Select(s => s.Trim());
+                                list.AddRange(parts);
+                            }
                             else
+                            {
                                 list.Add(strVal);
-                            break;
+                            }
 
-                        case JsonElement json when json.ValueKind == JsonValueKind.String:
-                            list.Add(json.GetString()!);
-                            break;
-
-                        default:
-                            list.Add(item.ToString()!);
-                            break;
+                            continue; // done with this item
+                        }
                     }
+
+                    // 2b) Check if item is a JsonElement string
+                    else if (item is JsonElement json)
+                    {
+                        if (json.ValueKind == JsonValueKind.String)
+                        {
+                            list.Add(json.GetString()!);
+                            continue;
+                        }
+                    }
+
+                    // 2c) Fallback: any other type
+                    list.Add(item.ToString()!);
                 }
+
                 return list;
             }
 
-            // 3. Fallback: single object
+            // 3) Fallback: single object
             return new List<string> { rawEntry.ToString()! };
         }
-
-
 
         public static Graph HydrateGraphFromVertex(dynamic vertex)
         {

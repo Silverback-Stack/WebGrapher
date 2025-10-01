@@ -1,11 +1,11 @@
 ﻿using System;
+using Config.Core;
 using Events.Core.Bus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.SignalR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -32,15 +32,8 @@ namespace WebGrapher.Cli.Service.Streaming
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
-
             //Setup Configuration using appsettings overrides
-            var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("Service.Streaming/appsettings.json", optional: true, reloadOnChange: true)
-            .AddJsonFile($"Service.Streaming/appsettings.{environment}.json", optional: true, reloadOnChange: true) // local overrides
-            .AddEnvironmentVariables()
-            .Build();
+            var configuration = ConfigurationLoader.LoadConfiguration("Service.Streaming");
 
             //bind appsettings overrides to default settings objects
             var streamingSettings = configuration.BindSection<StreamingSettings>("Streaming");

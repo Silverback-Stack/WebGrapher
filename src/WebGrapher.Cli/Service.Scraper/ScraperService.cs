@@ -1,7 +1,7 @@
 ﻿using System;
 using Caching.Core;
+using Config.Core;
 using Events.Core.Bus;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Scraper.Core;
@@ -15,15 +15,8 @@ namespace WebGrapher.Cli.Service.Scraper
     {
         public async static Task InitializeAsync(IEventBus eventBus)
         {
-            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
-
             //Setup Configuration using appsettings overrides
-            var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("Service.Scraper/appsettings.json", optional: true, reloadOnChange: true)
-            .AddJsonFile($"Service.Scraper/appsettings.{environment}.json", optional: true, reloadOnChange: true) // local overrides
-            .AddEnvironmentVariables()
-            .Build();
+            var configuration = ConfigurationLoader.LoadConfiguration("Service.Scraper");
 
             //bind appsettings overrides to default settings objects
             var scraperSettings = configuration.BindSection<ScraperSettings>("Scraper");
