@@ -12,6 +12,7 @@
 # Ignore local environment settings
 **/appsettings.Development.json
 **/appsettings.Local.json
+**/appsettings.Production.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
