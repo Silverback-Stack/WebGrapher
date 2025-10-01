@@ -1,6 +1,6 @@
 ﻿using System;
 using Caching.Core;
-using Config.Core;
+using Settings.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

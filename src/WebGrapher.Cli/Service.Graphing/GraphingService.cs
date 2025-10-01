@@ -1,5 +1,5 @@
 ﻿using System;
-using Config.Core;
+using Settings.Core;
 using Events.Core.Bus;
 using Graphing.Core;
 using Microsoft.AspNetCore.Builder;
