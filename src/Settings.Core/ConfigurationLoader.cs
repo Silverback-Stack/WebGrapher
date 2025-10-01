@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Config.Core
+namespace Settings.Core
 {
     public static class ConfigurationLoader
     {

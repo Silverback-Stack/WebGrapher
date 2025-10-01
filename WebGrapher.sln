@@ -71,9 +71,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Graphing.Tests", "t
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "webgrapher.webui", "src\webgrapher.webui\webgrapher.webui.esproj", "{4039A1E4-C459-4290-3D75-68616CA9CBD3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Config.Core", "src\Config.Core\Config.Core.csproj", "{5A554159-07B6-49FE-8392-05B357C5915C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Settings.Core", "src\Settings.Core\Settings.Core.csproj", "{5A554159-07B6-49FE-8392-05B357C5915C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared.Config", "Shared.Config", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared.Settings", "Shared.Settings", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,6 +1,5 @@
 ﻿using System;
 using Caching.Core;
-using Config.Core;
 using Crawler.Core;
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
@@ -9,6 +8,7 @@ using Requests.Core;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions.Logging;
+using Settings.Core;
 
 namespace WebGrapher.Cli.Service.Crawler
 {

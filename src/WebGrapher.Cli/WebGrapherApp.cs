@@ -1,5 +1,5 @@
 ﻿using System;
-using Config.Core;
+using Settings.Core;
 using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
