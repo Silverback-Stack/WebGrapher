@@ -1,5 +1,4 @@
 ﻿using System;
-using Settings.Core;
 using Events.Core.Bus;
 using Graphing.Core;
 using Microsoft.AspNetCore.Builder;
@@ -8,8 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Events;
 using Serilog.Extensions.Logging;
+using Settings.Core;
 using WebGrapher.Cli.Service.Graphing.Controllers;
 
 namespace WebGrapher.Cli.Service.Graphing
@@ -27,15 +26,15 @@ namespace WebGrapher.Cli.Service.Graphing
             var webApiSettings = configuration.BindSection<WebApiSettings>("WebApi");
             var graphingSettings = configuration.BindSection<GraphingSettings>("Graphing");
 
-
-            //Setup Logging
-            var logFilePath = $"logs/{graphingSettings.ServiceName}.log";
-
+            // Setup Serilog Logging
             var serilogLogger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .ReadFrom.Configuration(configuration)
+                .WriteTo.File(
+                    path: $"logs/{graphingSettings.ServiceName}.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
                 .CreateLogger();
+
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
@@ -47,7 +46,12 @@ namespace WebGrapher.Cli.Service.Graphing
             var host = await StartWebApiServerAsync(pageGrapher, webApiSettings);
             _host = host;
 
-            logger.LogInformation($"Graphing service started on {webApiSettings.Host}/{webApiSettings.SwaggerRoutePrefix}");
+
+            logger.LogInformation("{ServiceName} service started on {Host}/{Swagger} with environment {Environment}",
+                graphingSettings.ServiceName,
+                webApiSettings.Host,
+                webApiSettings.SwaggerRoutePrefix,
+                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
         }
 
         private async static Task<IHost> StartWebApiServerAsync(IPageGrapher pageGrapher, WebApiSettings webApiSettings)

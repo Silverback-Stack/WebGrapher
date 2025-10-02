@@ -1,13 +1,12 @@
 ﻿using System;
 using Caching.Core;
-using Settings.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Scraper.Core;
 using Serilog;
-using Serilog.Events;
 using Serilog.Extensions.Logging;
+using Settings.Core;
 
 namespace WebGrapher.Cli.Service.Scraper
 {
@@ -24,14 +23,15 @@ namespace WebGrapher.Cli.Service.Scraper
             var blobCacheSettings = configuration.BindSection<CacheSettings>("BlobCache");
             var requestSenderSettings = configuration.BindSection<RequestSenderSettings>("RequestSender");
 
-
-            //Setup Logging
-            var logFilePath = $"logs/{scraperSettings.ServiceName}.log";
+            // Setup Serilog Logging
             var serilogLogger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .ReadFrom.Configuration(configuration)
+                .WriteTo.File(
+                    path: $"logs/{scraperSettings.ServiceName}.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
                 .CreateLogger();
+
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IRequestSender>();
 
@@ -59,7 +59,9 @@ namespace WebGrapher.Cli.Service.Scraper
 
             ScraperFactory.Create(logger, eventBus, requestSender, scraperSettings);
 
-            logger.LogInformation("Scraper service started.");
+            logger.LogInformation("{ServiceName} service started with environment {Environment}",
+                scraperSettings.ServiceName,
+                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
         }
     }
 }

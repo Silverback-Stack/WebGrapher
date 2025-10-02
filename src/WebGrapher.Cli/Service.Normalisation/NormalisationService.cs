@@ -1,13 +1,12 @@
 ﻿using System;
 using Caching.Core;
-using Settings.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core;
 using Serilog;
-using Serilog.Events;
 using Serilog.Extensions.Logging;
+using Settings.Core;
 
 namespace WebGrapher.Cli.Service.Normalisation
 {
@@ -21,15 +20,15 @@ namespace WebGrapher.Cli.Service.Normalisation
             //bind appsettings overrides to default settings objects
             var normalisationSettings = configuration.BindSection<NormalisationSettings>("Normalisation");
 
-
-            //Setup Logging
-            var logFilePath = $"logs/{normalisationSettings.ServiceName}.log";
-
+            // Setup Serilog Logging
             var serilogLogger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .ReadFrom.Configuration(configuration)
+                .WriteTo.File(
+                    path: $"logs/{normalisationSettings.ServiceName}.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
                 .CreateLogger();
+
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageNormaliser>();
 
@@ -46,7 +45,9 @@ namespace WebGrapher.Cli.Service.Normalisation
             //Create Normalisation
             NormalisationFactory.CreateNormaliser(logger, cache, eventBus, normalisationSettings);
 
-            logger.LogInformation("Normalisation service started.");
+            logger.LogInformation("{ServiceName} service started with environment {Environment}",
+                normalisationSettings.ServiceName,
+                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
         }
     }
 }

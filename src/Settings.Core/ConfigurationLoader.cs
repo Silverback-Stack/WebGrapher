@@ -4,18 +4,27 @@ namespace Settings.Core
 {
     public static class ConfigurationLoader
     {
-        public static IConfigurationRoot LoadConfiguration(string serviceName)
+        public static IConfiguration LoadConfiguration(string serviceName)
         {
-            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+               ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+               ?? Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT")
+               ?? "Production";
 
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
 
-                // Base settings
+                // Service settings
                 .AddJsonFile($"{serviceName}/appsettings.json", optional: true, reloadOnChange: true)
 
-                // Environment overrides
+                // Service Environment overrides
                 .AddJsonFile($"{serviceName}/appsettings.{environment}.json", optional: true, reloadOnChange: true)
+
+                // Logging settings
+                .AddJsonFile($"Service.Logging/appsettings.json", optional: true, reloadOnChange: true)
+
+                // Logging Environment overrides
+                .AddJsonFile($"Service.Logging/appsettings.{environment}.json", optional: true, reloadOnChange: true)
 
                 .AddEnvironmentVariables()
                 .Build();

@@ -2,31 +2,38 @@
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Events;
 using Serilog.Extensions.Logging;
+using Settings.Core;
 
 namespace WebGrapher.Cli.Service.Events
 {
     internal class EventBusService
     {
-        public async static Task<IEventBus> CreateAsync(EventBusSettings eventBusSettings)
+        public async static Task<IEventBus> CreateAsync()
         {
-            //configure logging:
-            var serviceName = eventBusSettings.ServiceName;
-            var logFilePath = $"logs/{serviceName}.log";
+            //Setup Configuration using appsettings overrides
+            var configuration = ConfigurationLoader.LoadConfiguration("Service.Events");
 
+            //Bind to strongly typed objects
+            var eventBusSettings = configuration.BindSection<EventBusSettings>("EventBus");
+
+            // Setup Serilog Logging
             var serilogLogger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .ReadFrom.Configuration(configuration)
+                .WriteTo.File(
+                    path: $"logs/{eventBusSettings.ServiceName}.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
                 .CreateLogger();
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
 
+            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IEventBus>();
 
             var eventBus = EventBusFactory.CreateEventBus(logger, eventBusSettings);
 
-            logger.LogInformation("Event bus service started.");
+            logger.LogInformation("{ServiceName} service started with environment {Environment}",
+                eventBusSettings.ServiceName,
+                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
 
             return eventBus;
         }
