@@ -1,7 +1,8 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace Events.Core.Bus
 {
@@ -9,7 +10,7 @@ namespace Events.Core.Bus
     {
         private readonly ServiceBusClient _client;
         private readonly ServiceBusAdministrationClient _adminClient;
-        private readonly Dictionary<string, ServiceBusProcessor> _processors = new();
+        private readonly ConcurrentDictionary<string, ServiceBusProcessor> _processors = new();
         private readonly int _maxConcurrencyLimitPerEvent;
         private bool _started = false;
 
@@ -82,11 +83,10 @@ namespace Events.Core.Bus
         public override async Task Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler)
         {
             var key = $"{typeof(TEvent).Name}:{serviceName}";
-            if (_processors.TryGetValue(key, out var processor))
+            if (_processors.TryRemove(key, out var processor))
             {
                 await processor.StopProcessingAsync();
                 await processor.DisposeAsync();
-                _processors.Remove(key);
 
                 _logger.LogDebug($"{serviceName} service unsubscribed from event {typeof(TEvent).Name}");
             }
@@ -116,16 +116,26 @@ namespace Events.Core.Bus
         {
             _started = true;
 
-            //take a snapshow to prevent modifying changing data
+            //take a snapshot to prevent modifying changing data
             var processorsSnapshot = _processors.Values.ToList();
+
             foreach (var processor in processorsSnapshot)
-                await processor.StartProcessingAsync();
+            {
+                if (processor != null)
+                    await processor.StartProcessingAsync();
+            }
+                
         }
 
         public override async Task StopAsync()
         {
-            foreach (var processor in _processors.Values)
-                await processor.StopProcessingAsync();
+            //take a snapshot to prevent modifying changing data
+            var processorsSnapshot = _processors.Values.ToList();
+
+            foreach (var processor in processorsSnapshot)
+                if (processor != null)
+                    await processor.StopProcessingAsync();
+
         }
 
         public override void Dispose()

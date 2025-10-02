@@ -6,7 +6,6 @@ using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Serilog;
-using Serilog.Events;
 using Serilog.Extensions.Logging;
 using Settings.Core;
 
@@ -26,15 +25,15 @@ namespace WebGrapher.Cli.Service.Crawler
             var requestSenderSettings = configuration.BindSection<RequestSenderSettings>("RequestSender");
             var policyCacheSettings = configuration.BindSection<CacheSettings>("PolicyCache");
 
-
-            //Setup Logging
-            var logFilePath = $"logs/{crawlerSettings.ServiceName}.log";
-
+            // Setup Serilog Logging
             var serilogLogger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .ReadFrom.Configuration(configuration)
+                .WriteTo.File(
+                    path: $"logs/{crawlerSettings.ServiceName}.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
                 .CreateLogger();
+
             ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IPageCrawler>();
 
@@ -78,7 +77,11 @@ namespace WebGrapher.Cli.Service.Crawler
             var crawler = CrawlerFactory.CreateCrawler(
                 logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
-            logger.LogInformation($"Crawler service started.");
+
+            logger.LogInformation("{ServiceName} service started with environment {Environment}",
+                crawlerSettings.ServiceName,
+                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+
             return crawler;
         }
     }

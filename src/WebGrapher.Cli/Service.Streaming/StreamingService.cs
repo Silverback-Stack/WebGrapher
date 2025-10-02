@@ -1,5 +1,4 @@
 ﻿using System;
-using Settings.Core;
 using Events.Core.Bus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -10,10 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Events;
 using Serilog.Extensions.Logging;
+using Settings.Core;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
+using WebGrapher.Cli.Service.Graphing;
 
 
 //NOTE:
@@ -35,19 +35,19 @@ namespace WebGrapher.Cli.Service.Streaming
             //Setup Configuration using appsettings overrides
             var configuration = ConfigurationLoader.LoadConfiguration("Service.Streaming");
 
-            //bind appsettings overrides to default settings objects
+            //Bind to strongly typed objects
             var streamingSettings = configuration.BindSection<StreamingSettings>("Streaming");
 
-            //Setup Logging
-            var logFilePath = $"logs/{streamingSettings.ServiceName}.log";
-
+            // Setup Serilog Logging
             var serilogLogger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
-                .WriteTo.Console(LogEventLevel.Information)
+                .ReadFrom.Configuration(configuration)
+                .WriteTo.File(
+                    path: $"logs/{streamingSettings.ServiceName}.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
                 .CreateLogger();
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
 
+            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
             var logger = loggerFactory.CreateLogger<IGraphStreamer>();
 
 
@@ -57,7 +57,10 @@ namespace WebGrapher.Cli.Service.Streaming
 
             StreamerFactory.Create(logger, eventBus, hubContext, streamingSettings);
 
-            logger.LogInformation($"Streaming service started on {hubUrl}");
+            logger.LogInformation("{ServiceName} service started on {HubUrl} with environment {Environment}",
+                streamingSettings.ServiceName,
+                hubUrl,
+                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
         }
 
         private async static Task<(IHost host, IHubContext<GraphStreamerHub>, string hubUrl)> StartHubServerAsync(StreamingSettings streamingSettings)

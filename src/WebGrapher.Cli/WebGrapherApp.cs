@@ -1,5 +1,4 @@
 ﻿using System;
-using Settings.Core;
 using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
@@ -22,33 +21,26 @@ namespace WebGrapher.Cli
 
         public async Task InitializeAsync()
         {
-            //Setup Configuration using appsettings overrides
-            var configuration = ConfigurationLoader.LoadConfiguration("Service.Events");
-
-            //bind appsettings overrides to default settings objects
-            var eventBusSettings = configuration.BindSection<EventBusSettings>("EventBus");
-
             //Create Event Bus
-            _eventBus = await EventBusService.CreateAsync(eventBusSettings);
+            _eventBus = await EventBusService.CreateAsync();
 
-            var crawlerTask = Task.Run(async () 
-                => _pageCrawler = await CrawlerService.InitializeAsync(_eventBus));
+            // Kick off all service initializations concurrently
+            var crawlerTask = CrawlerService.InitializeAsync(_eventBus);
 
-            var scraperTask = Task.Run(async () 
-                => ScraperService.InitializeAsync(_eventBus));
+            var scraperTask = ScraperService.InitializeAsync(_eventBus);
 
-            var normalisationTask = Task.Run(async () 
-                => NormalisationService.InitializeAsync(_eventBus));
+            var normalisationTask = NormalisationService.InitializeAsync(_eventBus);
 
-            var graphingTask = Task.Run(async () 
-                => GraphingService.InitializeAsync(_eventBus));
+            var graphingTask = GraphingService.InitializeAsync(_eventBus);
 
-            var streamingTask = Task.Run(async () 
-                => StreamingService.InitializeAsync(_eventBus));
+            var streamingTask = StreamingService.InitializeAsync(_eventBus);
 
+            // Wait for all services to finish subscribing events
             await Task.WhenAll(crawlerTask, scraperTask, normalisationTask, graphingTask, streamingTask);
 
-            //start event bus after all services have finished subscribing
+            _pageCrawler = await crawlerTask;
+
+            // Start event bus after all services are ready
             await _eventBus.StartAsync();
 
             await RunAsync();
