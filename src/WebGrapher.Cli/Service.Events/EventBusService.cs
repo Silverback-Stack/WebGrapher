@@ -1,4 +1,5 @@
 ﻿using System;
+using Crawler.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -31,9 +32,8 @@ namespace WebGrapher.Cli.Service.Events
 
             var eventBus = EventBusFactory.CreateEventBus(logger, eventBusSettings);
 
-            logger.LogInformation("{ServiceName} service started with environment {Environment}",
-                eventBusSettings.ServiceName,
-                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+            logger.LogInformation("{ServiceName} service started.",
+                eventBusSettings.ServiceName);
 
             return eventBus;
         }

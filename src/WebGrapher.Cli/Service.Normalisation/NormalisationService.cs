@@ -45,9 +45,8 @@ namespace WebGrapher.Cli.Service.Normalisation
             //Create Normalisation
             NormalisationFactory.CreateNormaliser(logger, cache, eventBus, normalisationSettings);
 
-            logger.LogInformation("{ServiceName} service started with environment {Environment}",
-                normalisationSettings.ServiceName,
-                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+            logger.LogInformation("{ServiceName} service started.",
+                normalisationSettings.ServiceName);
         }
     }
 }

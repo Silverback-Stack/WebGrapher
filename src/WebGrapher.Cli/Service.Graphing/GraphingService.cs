@@ -46,12 +46,10 @@ namespace WebGrapher.Cli.Service.Graphing
             var host = await StartWebApiServerAsync(pageGrapher, webApiSettings);
             _host = host;
 
-
-            logger.LogInformation("{ServiceName} service started on {Host}/{Swagger} with environment {Environment}",
-                graphingSettings.ServiceName,
+            logger.LogInformation("{ServiceName} service started on {Host}/{Swagger}",
+                graphingSettings.ServiceName, 
                 webApiSettings.Host,
-                webApiSettings.SwaggerRoutePrefix,
-                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+                webApiSettings.SwaggerRoutePrefix);
         }
 
         private async static Task<IHost> StartWebApiServerAsync(IPageGrapher pageGrapher, WebApiSettings webApiSettings)

@@ -2,6 +2,7 @@
 using Caching.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
+using Normalisation.Core;
 using Requests.Core;
 using Scraper.Core;
 using Serilog;
@@ -59,9 +60,8 @@ namespace WebGrapher.Cli.Service.Scraper
 
             ScraperFactory.Create(logger, eventBus, requestSender, scraperSettings);
 
-            logger.LogInformation("{ServiceName} service started with environment {Environment}",
-                scraperSettings.ServiceName,
-                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+            logger.LogInformation("{ServiceName} service started.",
+                scraperSettings.ServiceName);
         }
     }
 }
