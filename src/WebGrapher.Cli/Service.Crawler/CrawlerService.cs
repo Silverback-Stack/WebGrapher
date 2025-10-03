@@ -78,9 +78,8 @@ namespace WebGrapher.Cli.Service.Crawler
                 logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
 
-            logger.LogInformation("{ServiceName} service started with environment {Environment}",
-                crawlerSettings.ServiceName,
-                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+            logger.LogInformation("{ServiceName} service started.", 
+                crawlerSettings.ServiceName);
 
             return crawler;
         }

@@ -57,10 +57,9 @@ namespace WebGrapher.Cli.Service.Streaming
 
             StreamerFactory.Create(logger, eventBus, hubContext, streamingSettings);
 
-            logger.LogInformation("{ServiceName} service started on {HubUrl} with environment {Environment}",
+            logger.LogInformation("{ServiceName} service started on {HubUrl}",
                 streamingSettings.ServiceName,
-                hubUrl,
-                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+                hubUrl);
         }
 
         private async static Task<(IHost host, IHubContext<GraphStreamerHub>, string hubUrl)> StartHubServerAsync(StreamingSettings streamingSettings)
