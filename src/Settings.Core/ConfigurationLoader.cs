@@ -21,10 +21,10 @@ namespace Settings.Core
                 .AddJsonFile($"{serviceName}/appsettings.{environment}.json", optional: true, reloadOnChange: true)
 
                 // Logging settings
-                .AddJsonFile($"Service.Logging/appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"Shared.Logging/appsettings.json", optional: true, reloadOnChange: true)
 
                 // Logging Environment overrides
-                .AddJsonFile($"Service.Logging/appsettings.{environment}.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"Shared.Logging/appsettings.{environment}.json", optional: true, reloadOnChange: true)
 
                 .AddEnvironmentVariables()
                 .Build();
