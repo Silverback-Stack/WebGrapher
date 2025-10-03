@@ -62,3 +62,24 @@ Name:   DOTNET_ENVIRONMENT
 Value:  Development
 
 Close settings.
+
+
+Setup Environment Profiles
+--------------------------
+
+In VS from the Play button drop down , select: 
+
+    WebGraphger.Cli Debug Properties
+
+Click duplicate to duplicate the profile
+
+Rename the profile to :  WebGraphger.Cli (Development.Cloud)
+
+Edit 
+
+    DOTNET_ENVIRONMENT : Development.Cloud
+
+Save and close changes.
+
+Now from the VS Play button drop down, switch between profiles to pickup oberrides to appSettings using the environment variable.
+
