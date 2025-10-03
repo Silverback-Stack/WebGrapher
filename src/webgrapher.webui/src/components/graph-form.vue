@@ -303,7 +303,6 @@
 
 
   // Compute the potential requests as a geometric sum
-  const potentialMaxRequests = 127550 //50 Max Links and 3 Links Deep
   const potentialRequests = computed(() => {
     let total = 0
     for (let d = 1; d <= form.maxDepth; d++) {
