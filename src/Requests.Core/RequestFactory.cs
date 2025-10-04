@@ -11,11 +11,14 @@ namespace Requests.Core
         {
             var httpClientHandler = new HttpClientHandler
             {
-                AllowAutoRedirect = true,
-                MaxAutomaticRedirections = 5
+                AllowAutoRedirect = requestSenderSettings.AllowAutoRedirect,
+                MaxAutomaticRedirections = requestSenderSettings.MaxAutomaticRedirections,
+                AutomaticDecompression = System.Net.DecompressionMethods.All
             };
 
-            IHttpRequester httpRequester = new HttpClientAdapter(new HttpClient(httpClientHandler));
+            IHttpRequester httpRequester = new HttpClientAdapter(new HttpClient(httpClientHandler) { 
+                Timeout = TimeSpan.FromSeconds(requestSenderSettings.TimoutSeconds) 
+            });
 
             IRequestTransformer requestTransformer = new RequestTransformer(requestSenderSettings);
 
