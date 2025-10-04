@@ -103,8 +103,18 @@ namespace Requests.Core
                 responseEnvelope.IsFromCache = false;
                 return responseEnvelope;
             }
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Timeout occurred (not user-requested cancellation)
+                _logger.LogWarning($"Request to {url.AbsoluteUri} timed out.");
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogWarning($"Request to {url.AbsoluteUri} timed out: {ex.Message}");
+            }
             catch (Exception ex)
             {
+                // All other unexpected exceptions
                 _logger.LogError(ex, $"Get request for {url.AbsoluteUri} threw an exception.");
             }
 
