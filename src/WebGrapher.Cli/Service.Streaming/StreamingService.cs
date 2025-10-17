@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics.Eventing.Reader;
+using System.Reflection.PortableExecutable;
 using Events.Core.Bus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -13,7 +15,6 @@ using Serilog.Extensions.Logging;
 using Settings.Core;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
-using WebGrapher.Cli.Service.Graphing;
 
 
 //NOTE:
@@ -129,18 +130,18 @@ namespace WebGrapher.Cli.Service.Streaming
                         break;
 
                     case StreamingProvider.AzureSignalRDefault:
-                        var isProduction = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")?.ToLower() == "production";
-                        if (!isProduction)
+                        var isRunningLocally = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT") == null;
+                        if (isRunningLocally)
                         {
-                            //Bind explicit URL and PORT for local testing
+                            // Local machine testing
                             webBuilder.UseUrls(streamingSettings.HostedSignaR.Host);
                             hubUrl = $"{streamingSettings.HostedSignaR.Host}{streamingSettings.HubPath}";
                         }
                         else
                         {
-                            //Bind to random free port for production.
-                            //Azure handless connections and port when deployed to Azure
-                            webBuilder.UseUrls("http://127.0.0.1:0");
+                            // Running in Azure (Function App)
+                            // No need to bind local ports — Azure manages the hub endpoint
+                            // clients connect directly to hubUrl endpoint
                             hubUrl = $"{streamingSettings.AzureSignalRDefault.Endpoint}{streamingSettings.HubPath}";
                         }
                         break;

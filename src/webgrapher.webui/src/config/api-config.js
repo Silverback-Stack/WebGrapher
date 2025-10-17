@@ -1,7 +1,7 @@
 const configs = {
   development: {
     graphUrl: "http://localhost:5000/api",
-    hubUrl: "http://localhost:5100/graphstreamerhub"
+    hubUrl: "http://localhost:5100/graphstreamerhub" //points to microservice which negotiates with azure instance
   },
   production: {
     graphUrl: "https://my-production-api.com/api",
