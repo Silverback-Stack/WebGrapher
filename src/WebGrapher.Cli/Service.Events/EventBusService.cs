@@ -1,5 +1,4 @@
 ﻿using System;
-using Crawler.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Serilog;

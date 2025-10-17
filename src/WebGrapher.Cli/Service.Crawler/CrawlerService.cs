@@ -53,7 +53,6 @@ namespace WebGrapher.Cli.Service.Crawler
 
 
             //Create Request Sender
-
             var requestSender = RequestFactory.CreateRequestSender(
                 logger, 
                 metaCache, 

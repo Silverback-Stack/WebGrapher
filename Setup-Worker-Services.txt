@@ -1,0 +1,41 @@
+
+WebGrapher.Azure
+----------------
+
+Setup Crawler Function App
+
+
+Create physical folder: \WebGrapher\src\WebGrapher.Cloud\
+
+
+From VS select New Project
+
+Search and select: Azure Functions project template
+
+Click Next
+
+  Name: Crawler.FunctionApp
+
+  Location: \WebGrapher\src\WebGrapher.Cloud\
+
+Click Next
+
+
+  Functions worker: .NET 8.0 (Long term support)
+
+  Function: Service Bus Topic Trigger
+
+  Use Azurite for runtime storage account (AzureWebJobsStorage) : True
+
+  Connection string setting name: AzureServiceBusConnectionString
+
+  Subscription name: Crawler
+
+  Topic name: crawlpageevent
+
+Click Create button.
+
+
+
+
+

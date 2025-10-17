@@ -1,3 +1,32 @@
+Azure Blob Storage
+------------------
+
+Add instructions to create blob storage
+
+
+Azure Application Insights
+--------------------------
+
+From Azure portal:
+
+Search: Application Insights and click Create
+
+Subscription: Default
+
+Resource Group: webgrapher-resources
+
+Name: webgrapher-insights
+
+Region: UK South
+
+Subscription: Default
+
+Workspace: DefaultWorkspace
+
+Click Review & Create
+
+
+
 Azure Cosmos DB
 ---------------
 
@@ -68,7 +97,7 @@ From Marketplace create a new resource: SignalR Service
 
 Subscription: Default
 Resource group: webgrapher-resources
-Resource name: webgrapher
+Resource name: webgrapher-signalr
 Region: UK South
 Pricing tier: Free
 Service mode: Default (Do not choose serverless - this only works with function app and special adapter - we can try this later when setting up the azure functions)
@@ -88,7 +117,7 @@ Subscription: Default
 
 Resource group: webgrapher-resources
 
-Resource name: webgrapher
+Resource name: webgrapher-redis
 
 Region: UK South
 
@@ -106,7 +135,7 @@ Cache Size: C0 (250 MB Cache)
 
 Security Considerations:
 Later when deploying to producting we can restore Networking and disable Access Key settings.
-Right now we need these enabled to test the caceh from local.
+Right now we need these enabled to test the cache from local.
 
 
 After Redis instance has been created:
@@ -127,7 +156,7 @@ Subscription: Default
 
 Resource group: webgrapher-resources
 
-Namespace name: webgrapher
+Namespace name: webgrapher-eventbus
 
 Location: UK South
 

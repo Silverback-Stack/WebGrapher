@@ -55,6 +55,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Setup-Azure.txt = docs\Setup-Azure.txt
 		docs\Setup-Console-Cli.txt = docs\Setup-Console-Cli.txt
 		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
+		Setup-Worker-Services.txt = Setup-Worker-Services.txt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Scraper.Tests", "tests\Service.Scraper.Tests\Service.Scraper.Tests.csproj", "{3BC7B8B4-70A9-4105-932A-B4B98BE39D47}"
@@ -74,6 +75,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared.Settings", "Shared.Settings", "{FEA42193-2CE1-4FEB-B1A4-808CBCD56CDC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Settings.Core", "src\Settings.Core\Settings.Core.csproj", "{2E2AFF9E-1FBE-171E-63AA-F698AD0EA057}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crawler.FunctionApp", "src\WebGrapher.Cloud\Crawler.FunctionApp\Crawler.FunctionApp.csproj", "{89023F0C-0D1C-4123-9BF7-31725D05670D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WebGrapher.Cloud", "WebGrapher.Cloud", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -147,6 +152,10 @@ Global
 		{2E2AFF9E-1FBE-171E-63AA-F698AD0EA057}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E2AFF9E-1FBE-171E-63AA-F698AD0EA057}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2E2AFF9E-1FBE-171E-63AA-F698AD0EA057}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89023F0C-0D1C-4123-9BF7-31725D05670D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89023F0C-0D1C-4123-9BF7-31725D05670D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89023F0C-0D1C-4123-9BF7-31725D05670D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89023F0C-0D1C-4123-9BF7-31725D05670D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -177,6 +186,8 @@ Global
 		{4039A1E4-C459-4290-3D75-68616CA9CBD3} = {82C3C83E-1FAE-4950-9A5F-AEE5AB823C11}
 		{FEA42193-2CE1-4FEB-B1A4-808CBCD56CDC} = {918A18B5-B3A1-4EF9-8B23-3DCBB4E886B3}
 		{2E2AFF9E-1FBE-171E-63AA-F698AD0EA057} = {FEA42193-2CE1-4FEB-B1A4-808CBCD56CDC}
+		{89023F0C-0D1C-4123-9BF7-31725D05670D} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {82C3C83E-1FAE-4950-9A5F-AEE5AB823C11}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B99AE7C8-1566-45E6-8A0C-24230118B3F6}
