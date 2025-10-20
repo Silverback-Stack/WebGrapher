@@ -23,16 +23,16 @@ namespace Streaming.Core
             _streamingSettings = streamingSettings;
         }
 
-        public void SubscribeAll()
+        public async Task StartAsync()
         {
-            _eventBus.Subscribe<GraphNodeAddedEvent>(_streamingSettings.ServiceName, ProcessGraphNodeAddedEventAsync);
-            _eventBus.Subscribe<ClientLogEvent>(_streamingSettings.ServiceName, ProcessGraphLogEventAsync);
+            await _eventBus.Subscribe<GraphNodeAddedEvent>(_streamingSettings.ServiceName, ProcessGraphNodeAddedEventAsync);
+            await _eventBus.Subscribe<ClientLogEvent>(_streamingSettings.ServiceName, ProcessGraphLogEventAsync);
         }
 
-        public void UnsubscribeAll()
+        public async Task StopAsync()
         {
-            _eventBus.Unsubscribe<GraphNodeAddedEvent>(_streamingSettings.ServiceName, ProcessGraphNodeAddedEventAsync);
-            _eventBus.Unsubscribe<ClientLogEvent>(_streamingSettings.ServiceName, ProcessGraphLogEventAsync);
+            await _eventBus.Unsubscribe<GraphNodeAddedEvent>(_streamingSettings.ServiceName, ProcessGraphNodeAddedEventAsync);
+            await _eventBus.Unsubscribe<ClientLogEvent>(_streamingSettings.ServiceName, ProcessGraphLogEventAsync);
         }
 
         public async Task PublishClientLogEventAsync(

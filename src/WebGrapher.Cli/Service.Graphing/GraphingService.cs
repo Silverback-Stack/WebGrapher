@@ -1,13 +1,12 @@
-﻿using System;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
 using Graphing.Core;
+using Logger.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Extensions.Logging;
 using Settings.Core;
 using WebGrapher.Cli.Service.Graphing.Controllers;
 
@@ -19,37 +18,31 @@ namespace WebGrapher.Cli.Service.Graphing
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            //Setup Configuration using appsettings overrides
+            // Load Configuration
             var configuration = ConfigurationLoader.LoadConfiguration("Service.Graphing");
-
-            //bind appsettings overrides to default settings objects
             var webApiSettings = configuration.BindSection<WebApiSettings>("WebApi");
             var graphingSettings = configuration.BindSection<GraphingSettings>("Graphing");
 
-            // Setup Serilog Logging
-            var serilogLogger = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration)
-                .WriteTo.File(
-                    path: $"logs/{graphingSettings.ServiceName}.log",
-                    rollingInterval: RollingInterval.Day,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
-                .CreateLogger();
 
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
+            // Setup Logger
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
+                configuration, graphingSettings.ServiceName);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
-            //Create PageGrapher service
-            var pageGrapher = GraphingFactory.Create(logger, eventBus, graphingSettings);
 
+            logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration on {Host}/{Swagger}",
+                graphingSettings.ServiceName,
+                configuration.GetEnvironmentName(),
+                webApiSettings.Host,
+                webApiSettings.SwaggerRoutePrefix);
+
+            // Create PageGrapher Service
+            var pageGrapher = GraphingFactory.Create(logger, eventBus, graphingSettings);
+            await pageGrapher.StartAsync();
 
             //Start WEB.API:
             var host = await StartWebApiServerAsync(pageGrapher, webApiSettings);
             _host = host;
-
-            logger.LogInformation("{ServiceName} service started on {Host}/{Swagger}",
-                graphingSettings.ServiceName, 
-                webApiSettings.Host,
-                webApiSettings.SwaggerRoutePrefix);
         }
 
         private async static Task<IHost> StartWebApiServerAsync(IPageGrapher pageGrapher, WebApiSettings webApiSettings)

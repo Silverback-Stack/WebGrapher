@@ -18,7 +18,6 @@ namespace Crawler.Core
             var service = new PageCrawler(
                 logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
-            service.SubscribeAll();
             return service;
         }
     }

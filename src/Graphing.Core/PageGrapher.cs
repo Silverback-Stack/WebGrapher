@@ -26,14 +26,14 @@ namespace Graphing.Core
             _webGraph = webGraph;
             _graphingSettings = graphingSettings;
         }
-        public void SubscribeAll()
+        public async Task StartAsync()
         {
-            _eventBus.Subscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
+            await _eventBus.Subscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
         }
 
-        public void UnsubscribeAll()
+        public async Task StopAsync()
         {
-            _eventBus.Unsubscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
+            await _eventBus.Unsubscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
         }
 
         public async Task PublishClientLogEventAsync(

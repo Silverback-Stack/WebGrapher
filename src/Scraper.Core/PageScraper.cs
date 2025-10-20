@@ -27,14 +27,14 @@ namespace Scraper.Core
             _scraperSettings = scraperSettings;
         }
 
-        public void SubscribeAll()
+        public async Task StartAsync()
         {
-            _eventBus.Subscribe<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapeContentAsync);
+            await _eventBus.Subscribe<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapeContentAsync);
         }
 
-        public void UnsubscribeAll()
+        public async Task StopAsync()
         {
-            _eventBus.Unsubscribe<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapeContentAsync);
+            await _eventBus.Unsubscribe<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapeContentAsync);
         }
 
         public async Task PublishClientLogEventAsync(

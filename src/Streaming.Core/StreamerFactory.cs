@@ -15,7 +15,7 @@ namespace Streaming.Core
             StreamingSettings streamingSettings)
         {
             var service = new SignalRGraphStreamerAdapter(logger, eventBus, hubContext, streamingSettings);
-            service.SubscribeAll();
+
             return service;
         }
     }

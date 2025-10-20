@@ -10,7 +10,7 @@ namespace Normalisation.Core
         public static IPageNormaliser CreateNormaliser(ILogger logger, ICache cache, IEventBus eventBus, NormalisationSettings normalisationSettings)
         {
             var service = new PageNormaliser(logger, cache, eventBus, normalisationSettings);
-            service.SubscribeAll();
+
             return service;
         }
     }

@@ -10,7 +10,7 @@ namespace Scraper.Core
         public static IPageScraper Create(ILogger logger, IEventBus eventbus, IRequestSender requestSender, ScraperSettings scraperSettings)
         {
             var service = new PageScraper(logger, eventbus, requestSender, scraperSettings);
-            service.SubscribeAll();
+
             return service;
         }
     }

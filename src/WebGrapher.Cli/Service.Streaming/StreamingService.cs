@@ -1,7 +1,5 @@
-﻿using System;
-using System.Diagnostics.Eventing.Reader;
-using System.Reflection.PortableExecutable;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
+using Logger.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Routing;
@@ -11,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Extensions.Logging;
 using Settings.Core;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
@@ -33,34 +30,30 @@ namespace WebGrapher.Cli.Service.Streaming
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            //Setup Configuration using appsettings overrides
+            //Load Configuration
             var configuration = ConfigurationLoader.LoadConfiguration("Service.Streaming");
-
-            //Bind to strongly typed objects
             var streamingSettings = configuration.BindSection<StreamingSettings>("Streaming");
 
-            // Setup Serilog Logging
-            var serilogLogger = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration)
-                .WriteTo.File(
-                    path: $"logs/{streamingSettings.ServiceName}.log",
-                    rollingInterval: RollingInterval.Day,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
-                .CreateLogger();
 
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
+            // Create Logger
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
+                configuration, streamingSettings.ServiceName);
             var logger = loggerFactory.CreateLogger<IGraphStreamer>();
 
 
-            //Create and Start Streaming Hub
+            // Start Streaming Hub Server
             var (host, hubContext, hubUrl) = await StartHubServerAsync(streamingSettings);
             _host = host;
 
-            StreamerFactory.Create(logger, eventBus, hubContext, streamingSettings);
 
-            logger.LogInformation("{ServiceName} service started on {HubUrl}",
+            logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration on {HubUrl}",
                 streamingSettings.ServiceName,
+                configuration.GetEnvironmentName(),
                 hubUrl);
+
+            // Create Streamer Service
+            var streamingService = StreamerFactory.Create(logger, eventBus, hubContext, streamingSettings);
+            await streamingService.StartAsync();
         }
 
         private async static Task<(IHost host, IHubContext<GraphStreamerHub>, string hubUrl)> StartHubServerAsync(StreamingSettings streamingSettings)

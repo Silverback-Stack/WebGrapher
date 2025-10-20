@@ -26,14 +26,14 @@ namespace Normalisation.Core
             _normalisationSettings = normalisationSettings;
         }
 
-        public void SubscribeAll()
+        public async Task StartAsync()
         {
-            _eventBus.Subscribe<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
+            await _eventBus.Subscribe<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
         }
 
-        public void UnsubscribeAll()
+        public async Task StopAsync()
         {
-            _eventBus.Unsubscribe<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
+            await _eventBus.Unsubscribe<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
         }
 
         public async Task PublishClientLogEventAsync(
