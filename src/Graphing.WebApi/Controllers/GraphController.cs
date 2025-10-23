@@ -1,10 +1,10 @@
-﻿using System;
-using Graphing.Core;
+﻿using Graphing.Core;
 using Graphing.Core.WebGraph.Dtos;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.AspNetCore.Mvc;
+using System;
 
-namespace WebGrapher.Cli.Service.Graphing.Controllers
+namespace Graphing.WebApi.Controllers
 {
  
     [ApiController]

@@ -14,7 +14,7 @@ namespace Logger.Core
                 .ReadFrom.Configuration(configuration)
                 .Enrich.WithProperty("ServiceName", serviceName)
                 .Enrich.WithProperty("EnvironmentName", configuration.GetEnvironmentName())
-                //define the file sink here instead of in appsettings to allow dynamic log filename generation
+                // File sink for dynamic filenames
                 .WriteTo.File(
                     path: $"logs/{serviceName}.log",
                     rollingInterval: RollingInterval.Day,

@@ -7,7 +7,7 @@ namespace Normalisation.Core
 {
     public static class NormalisationFactory
     {
-        public static IPageNormaliser CreateNormaliser(ILogger logger, ICache cache, IEventBus eventBus, NormalisationSettings normalisationSettings)
+        public static IPageNormaliser Create(ILogger logger, ICache cache, IEventBus eventBus, NormalisationSettings normalisationSettings)
         {
             var service = new PageNormaliser(logger, cache, eventBus, normalisationSettings);
 

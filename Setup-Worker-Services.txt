@@ -1,41 +1,60 @@
 
-WebGrapher.Azure
-----------------
-
-Setup Crawler Function App
+Setup Worker Services
+=====================
 
 
-Create physical folder: \WebGrapher\src\WebGrapher.Cloud\
+WebGrapher.Workers
+------------------
 
+Create a new project in Visual Studio
 
-From VS select New Project
+  Template: Worker Service
 
-Search and select: Azure Functions project template
+  Project Name: Crawler.WorkerService
 
-Click Next
-
-  Name: Crawler.FunctionApp
-
-  Location: \WebGrapher\src\WebGrapher.Cloud\
+  Location: \WebGrapher\src\
 
 Click Next
 
 
-  Functions worker: .NET 8.0 (Long term support)
+  Framework: .NET 8.0
 
-  Function: Service Bus Topic Trigger
+  Enable Container Support: Tick
 
-  Use Azurite for runtime storage account (AzureWebJobsStorage) : True
+  Container OS: Linux
 
-  Connection string setting name: AzureServiceBusConnectionString
+  Container build type: Dockerfile
 
-  Subscription name: Crawler
+  Do not use top-level statements: Tick
 
-  Topic name: crawlpageevent
-
-Click Create button.
+Click Create
 
 
+Right click project name and Set as Startup Project
+
+From Play dropdown button select: Debug Properties
+
+From the left select: Crawler.WorkerService
+
+Name to: Crawler.WorkerService (Azure)
+
+Add Environment settings:
+
+  Name: DOTNET_ENVIRONMENT
+  Value: Production
+
+Close Launch Profile Properties window.
 
 
+
+Repeat for other services.
+
+
+
+Publish Worker Service to Azure
+===============================
+
+Right click Worker Service and choose -> Publish
+
+CLick : Add a publish profile
 

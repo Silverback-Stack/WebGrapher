@@ -15,36 +15,36 @@ namespace WebGrapher.Cli.Service.Crawler
         public async static Task<IPageCrawler> InitializeAsync(IEventBus eventBus)
         {
             // Load Configuration
-            var configuration = ConfigurationLoader.LoadConfiguration("Service.Crawler");
-            var crawlerSettings = configuration.BindSection<CrawlerSettings>("Crawler");
-            var metaCacheSettings = configuration.BindSection<CacheSettings>("MetaCache");
-            var blobCacheSettings = configuration.BindSection<CacheSettings>("BlobCache");
-            var requestSenderSettings = configuration.BindSection<RequestSenderSettings>("RequestSender");
-            var policyCacheSettings = configuration.BindSection<CacheSettings>("PolicyCache");
+            var configCrawler = ConfigurationLoader.LoadConfiguration("Service.Crawler");
+            var crawlerSettings = configCrawler.BindSection<CrawlerSettings>("Crawler");
+            var metaCacheSettings = configCrawler.BindSection<CacheSettings>("MetaCache");
+            var blobCacheSettings = configCrawler.BindSection<CacheSettings>("BlobCache");
+            var requestSenderSettings = configCrawler.BindSection<RequestSenderSettings>("RequestSender");
+            var policyCacheSettings = configCrawler.BindSection<CacheSettings>("PolicyCache");
 
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configuration, crawlerSettings.ServiceName);
+                configCrawler, crawlerSettings.ServiceName);
             var logger = loggerFactory.CreateLogger<IPageCrawler>();
 
 
             // Create Meta Cache for Request Sender
-            var metaCache = CacheFactory.CreateCache(
+            var metaCache = CacheFactory.Create(
                 crawlerSettings.ServiceName,
                 logger,
                 metaCacheSettings);
 
 
             // Create Blob Cache for Request Sender
-            var blobCache = CacheFactory.CreateCache(
+            var blobCache = CacheFactory.Create(
                 crawlerSettings.ServiceName,
                 logger,
                 blobCacheSettings);
 
 
             // Create Request Sender
-            var requestSender = RequestFactory.CreateRequestSender(
+            var requestSender = RequestFactory.Create(
                 logger,
                 metaCache,
                 blobCache,
@@ -52,7 +52,7 @@ namespace WebGrapher.Cli.Service.Crawler
 
 
             // Create Policy Cache for Site Policy Resolver
-            var policyCache = CacheFactory.CreateCache(
+            var policyCache = CacheFactory.Create(
                 crawlerSettings.ServiceName,
                 logger,
                 policyCacheSettings);
@@ -65,15 +65,15 @@ namespace WebGrapher.Cli.Service.Crawler
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                crawlerSettings.ServiceName, configuration.GetEnvironmentName());
+                crawlerSettings.ServiceName, configCrawler.GetEnvironmentName());
 
             // Create Crawler Service
-            var crawler = CrawlerFactory.CreateCrawler(
+            var crawlerService = CrawlerFactory.Create(
                 logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
-            await crawler.StartAsync();
+            await crawlerService.StartAsync();
 
-            return crawler;
+            return crawlerService;
         }
     }
 }

@@ -27,64 +27,69 @@ namespace Crawler.WorkerService
             var policyCacheSettings = configCrawler.BindSection<CacheSettings>("PolicyCache");
 
 
-            // Setup Logging
+            // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
                 configCrawler, crawlerSettings.ServiceName);
-
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog();
 
 
-            // Create Event Bus
+            // Register Event Bus as a singleton in DI
             builder.Services.AddSingleton<IEventBus>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IEventBus>>();
-                return EventBusFactory.CreateEventBus(logger, eventsSettings);
+                return EventBusFactory.Create(logger, eventsSettings);
             });
 
 
-            // Create Crawler Service
+            // Register Crawler Service as a singleton in DI
             builder.Services.AddSingleton(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IPageCrawler>>();
 
                 var eventBus = sp.GetRequiredService<IEventBus>();
 
-                var metaCache = CacheFactory.CreateCache(
+                // Create Meta Cache for Request Sender
+                var metaCache = CacheFactory.Create(
                     crawlerSettings.ServiceName,
                     logger,
                     metaCacheSettings);
 
-                var blobCache = CacheFactory.CreateCache(
+                // Create Blob Cache for Request Sender
+                var blobCache = CacheFactory.Create(
                     crawlerSettings.ServiceName,
                     logger,
                     blobCacheSettings);
 
-                var requestSender = RequestFactory.CreateRequestSender(
+                // Create Request Sender
+                var requestSender = RequestFactory.Create(
                     logger, 
                     metaCache, 
                     blobCache, 
                     requestSenderSettings);
 
-                var policyCache = CacheFactory.CreateCache(
+                // Create Policy Cache for Site Policy Resolver
+                var policyCache = CacheFactory.Create(
                     crawlerSettings.ServiceName,
                     logger,
                     policyCacheSettings);
 
+                // Create Site Policy Resolver
                 var sitePolicyResolver = new SitePolicyResolver(
                     logger, 
                     policyCache, 
                     requestSender, 
                     crawlerSettings);
 
-                var crawler = CrawlerFactory.CreateCrawler(
+                // Create Crawler Service
+                var crawlerService = CrawlerFactory.Create(
                     logger, 
                     eventBus, 
                     requestSender, 
                     sitePolicyResolver, 
                     crawlerSettings);
 
-                return crawler;
+                return crawlerService;
             });
 
 
@@ -94,14 +99,13 @@ namespace Crawler.WorkerService
             // Build and run
             var host = builder.Build();
 
-
             try
             {
                 host.Run();
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, $"{crawlerSettings.ServiceName} terminated unexpectedly");
+                Log.Fatal(ex, $"{crawlerSettings.ServiceName} terminated unexpectedly.");
             }
             finally
             {

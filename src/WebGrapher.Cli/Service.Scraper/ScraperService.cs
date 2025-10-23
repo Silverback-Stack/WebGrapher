@@ -13,35 +13,35 @@ namespace WebGrapher.Cli.Service.Scraper
         public async static Task InitializeAsync(IEventBus eventBus)
         {
             // Load Configuration
-            var configuration = ConfigurationLoader.LoadConfiguration("Service.Scraper");
-            var scraperSettings = configuration.BindSection<ScraperSettings>("Scraper");
-            var metaCacheSettings = configuration.BindSection<CacheSettings>("MetaCache");
-            var blobCacheSettings = configuration.BindSection<CacheSettings>("BlobCache");
-            var requestSenderSettings = configuration.BindSection<RequestSenderSettings>("RequestSender");
+            var configScraper = ConfigurationLoader.LoadConfiguration("Service.Scraper");
+            var scraperSettings = configScraper.BindSection<ScraperSettings>("Scraper");
+            var metaCacheSettings = configScraper.BindSection<CacheSettings>("MetaCache");
+            var blobCacheSettings = configScraper.BindSection<CacheSettings>("BlobCache");
+            var requestSenderSettings = configScraper.BindSection<RequestSenderSettings>("RequestSender");
 
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configuration, scraperSettings.ServiceName);
+                configScraper, scraperSettings.ServiceName);
             var logger = loggerFactory.CreateLogger<IRequestSender>();
 
 
             // Create Meta Cache for Request Sender
-            var metaCache = CacheFactory.CreateCache(
+            var metaCache = CacheFactory.Create(
                 scraperSettings.ServiceName,
                 logger,
                 metaCacheSettings);
 
 
             // Create Blob Cache for Request Sender
-            var blobCache = CacheFactory.CreateCache(
+            var blobCache = CacheFactory.Create(
                 scraperSettings.ServiceName,
                 logger,
                 blobCacheSettings);
 
 
             // Create Request Sender
-            var requestSender = RequestFactory.CreateRequestSender(
+            var requestSender = RequestFactory.Create(
                 logger, 
                 metaCache, 
                 blobCache,
@@ -49,10 +49,11 @@ namespace WebGrapher.Cli.Service.Scraper
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                scraperSettings.ServiceName, configuration.GetEnvironmentName());
+                scraperSettings.ServiceName, configScraper.GetEnvironmentName());
 
             // Create Scraper Service
             var scraperService = ScraperFactory.Create(logger, eventBus, requestSender, scraperSettings);
+
             await scraperService.StartAsync();
         }
     }

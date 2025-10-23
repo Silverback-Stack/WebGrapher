@@ -9,7 +9,7 @@ namespace Caching.Core
 {
     public static class CacheFactory
     {
-        public static ICache CreateCache(string serviceName, ILogger logger, CacheSettings cacheSettings)
+        public static ICache Create(string serviceName, ILogger logger, CacheSettings cacheSettings)
         {
             switch (cacheSettings.Provider)
             {

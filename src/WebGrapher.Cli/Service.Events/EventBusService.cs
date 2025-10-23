@@ -24,7 +24,7 @@ namespace WebGrapher.Cli.Service.Events
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
                 eventBusSettings.ServiceName, configuration.GetEnvironmentName());
 
-            var eventBus = EventBusFactory.CreateEventBus(logger, eventBusSettings);
+            var eventBus = EventBusFactory.Create(logger, eventBusSettings);
 
             return eventBus;
         }

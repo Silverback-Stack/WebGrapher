@@ -7,7 +7,7 @@ namespace Requests.Core
 {
     public static class RequestFactory
     {
-        public static IRequestSender CreateRequestSender(ILogger logger, ICache metaCache, ICache blobCache, RequestSenderSettings requestSenderSettings)
+        public static IRequestSender Create(ILogger logger, ICache metaCache, ICache blobCache, RequestSenderSettings requestSenderSettings)
         {
             var httpClientHandler = new HttpClientHandler
             {
