@@ -112,6 +112,11 @@ namespace Requests.Core
             {
                 _logger.LogWarning($"Request to {url.AbsoluteUri} timed out: {ex.Message}");
             }
+            catch (HttpRequestException ex)
+            {
+                // Server not running / connection refused
+                _logger.LogWarning(ex, $"Could not connect to {url.AbsoluteUri}.");
+            }
             catch (Exception ex)
             {
                 // All other unexpected exceptions

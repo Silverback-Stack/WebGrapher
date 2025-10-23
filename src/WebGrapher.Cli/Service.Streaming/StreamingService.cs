@@ -1,29 +1,16 @@
-﻿using System;
-using System.Diagnostics.Eventing.Reader;
-using System.Reflection.PortableExecutable;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
+using Logger.Core;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Azure.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Extensions.Logging;
 using Settings.Core;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
+using Streaming.WebApi;
 
-
-//NOTE:
-// YOU WILL NEED TO ADD PACKAGES:
-// Microsoft.AspNetCore
-// Microsoft.AspNetCore.SignalR
-// Microsoft.Extensions.Hosting
-// Microsoft.Extensions.DependencyInjection
-// Microsoft.Azure.SignalR
 
 namespace WebGrapher.Cli.Service.Streaming
 {
@@ -33,136 +20,79 @@ namespace WebGrapher.Cli.Service.Streaming
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            //Setup Configuration using appsettings overrides
-            var configuration = ConfigurationLoader.LoadConfiguration("Service.Streaming");
+            //Load Configuration
+            var configStreaming = ConfigurationLoader.LoadConfiguration("Service.Streaming");
+            var streamingSettings = configStreaming.BindSection<StreamingSettings>("Streaming");
 
-            //Bind to strongly typed objects
-            var streamingSettings = configuration.BindSection<StreamingSettings>("Streaming");
 
-            // Setup Serilog Logging
-            var serilogLogger = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration)
-                .WriteTo.File(
-                    path: $"logs/{streamingSettings.ServiceName}.log",
-                    rollingInterval: RollingInterval.Day,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
-                .CreateLogger();
-
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
+            // Create Logger
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
+                configStreaming, streamingSettings.ServiceName);
             var logger = loggerFactory.CreateLogger<IGraphStreamer>();
 
 
-            //Create and Start Streaming Hub
-            var (host, hubContext, hubUrl) = await StartHubServerAsync(streamingSettings);
+            // Start SignalR host and get hub context & URL
+            var (host, hubUrl) = await InitializeSignalRHostAsync(streamingSettings);
             _host = host;
 
-            StreamerFactory.Create(logger, eventBus, hubContext, streamingSettings);
 
-            logger.LogInformation("{ServiceName} service started on {HubUrl}",
+            logger.LogInformation(
+                "{ServiceName} service is starting using {EnvironmentName} configuration on {HubUrl}",
                 streamingSettings.ServiceName,
+                configStreaming.GetEnvironmentName(),
                 hubUrl);
+
+            var hubContext = _host.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();
+
+
+            // Create Streaming Service
+            var streamingService = StreamerFactory.Create(
+                logger, 
+                eventBus, 
+                hubContext, 
+                streamingSettings);
+
+            await streamingService.StartAsync();
         }
 
-        private async static Task<(IHost host, IHubContext<GraphStreamerHub>, string hubUrl)> StartHubServerAsync(StreamingSettings streamingSettings)
+        private async static Task<(IHost host, string hubUrl)> InitializeSignalRHostAsync(
+            StreamingSettings settings)
         {
-            var hubUrl = "";
-            var hostBuilder = Host.CreateDefaultBuilder();
+            var builder = WebApplication.CreateBuilder();
 
-            hostBuilder.ConfigureLogging(logging =>
+            // Use existing logger
+            builder.Logging.ClearProviders();
+            builder.Logging.AddSerilog(Log.Logger, dispose: false);
+
+            // Add the Streaming API
+            builder.Services.AddStreamingWebApi(settings);
+            var app = builder.Build();
+            app.UseStreamingWebApi(settings);
+
+
+            string hubUrl;
+
+            // Configure endpoint host URLs
+            switch (settings.Provider)
             {
-                logging.ClearProviders();
-                //logging.AddConsole();
-            });
+                case StreamingProvider.HostedSignalR:
+                case StreamingProvider.AzureSignalRDefault:
+                    app.Urls.Add(settings.HostedSignaR.Host);
+                    hubUrl = $"{settings.HostedSignaR.Host}{settings.HubPath}";
+                    break;
 
-            hostBuilder.ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.ConfigureServices(services =>
-                {
-                    services.AddCors(options =>
-                    {
-                        options.AddDefaultPolicy(builder =>
-                        {
-                            builder
-                                .AllowAnyHeader()
-                                .AllowAnyMethod()
-                                .AllowCredentials()
-                                .SetIsOriginAllowed(_ => true);
-                        });
-                    });
+                case StreamingProvider.AzureSignalRServerless:
+                    hubUrl = $"{settings.AzureSignalRServerless.Endpoint}{settings.HubPath}";
+                    break;
 
-                    switch (streamingSettings.Provider)
-                    {
-                        case StreamingProvider.HostedSignalR:
-                            services.AddSignalR();
-                            break;
+                default:
+                    throw new NotSupportedException($"SignalR provider '{settings.Provider}' is not supported.");
+            }
 
-                        case StreamingProvider.AzureSignalRDefault:
-                            services.AddSignalR()
-                                .AddAzureSignalR(streamingSettings.AzureSignalRDefault.ConnectionString);
-                            break;
+            await app.StartAsync();
 
-                        case StreamingProvider.AzureSignalRServerless:
-                            throw new NotSupportedException("Serverless mode only supported by serverless architecture such as Function apps.");
-
-                        default:
-                            throw new NotSupportedException($"SignalR mode '{streamingSettings.Provider}' is not supported.");
-                    }
-                });
-
-                webBuilder.Configure(app =>
-                {
-                    app.UseCors();
-                    app.UseRouting();
-
-                    app.UseEndpoints(endpoints =>
-                    {
-                        endpoints.MapHub<GraphStreamerHub>(streamingSettings.HubPath);
-                        endpoints.MapGet("/", () => "SignalR streaming service is running.");
-                    });
-                });
-
-                switch (streamingSettings.Provider)
-                {
-                    case StreamingProvider.HostedSignalR:
-                        //bind explicit URL and PORT
-                        webBuilder.UseUrls(streamingSettings.HostedSignaR.Host);
-                        hubUrl = $"{streamingSettings.HostedSignaR.Host}{streamingSettings.HubPath}";
-                        break;
-
-                    case StreamingProvider.AzureSignalRDefault:
-                        var isRunningLocally = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT") == null;
-                        if (isRunningLocally)
-                        {
-                            // Local machine testing
-                            webBuilder.UseUrls(streamingSettings.HostedSignaR.Host);
-                            hubUrl = $"{streamingSettings.HostedSignaR.Host}{streamingSettings.HubPath}";
-                        }
-                        else
-                        {
-                            // Running in Azure (Function App)
-                            // No need to bind local ports — Azure manages the hub endpoint
-                            // clients connect directly to hubUrl endpoint
-                            hubUrl = $"{streamingSettings.AzureSignalRDefault.Endpoint}{streamingSettings.HubPath}";
-                        }
-                        break;
-
-                    case StreamingProvider.AzureSignalRServerless:
-                        hubUrl = $"{streamingSettings.AzureSignalRServerless.Endpoint}{streamingSettings.HubPath}";
-                        break;
-
-                    default:
-                        throw new NotSupportedException($"SignalR mode '{streamingSettings.Provider}' is not supported.");
-                }
-            });
-
-            var host = hostBuilder.Build();
-            var hubContext = host.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();
-
-            await host.StartAsync();
-
-            return (host, hubContext, hubUrl);
+            return (app, hubUrl);
         }
-
 
         public static async Task StopHubServerAsync()
         {

@@ -4,11 +4,17 @@ namespace Settings.Core
 {
     public static class ConfigurationLoader
     {
+        public static string GetEnvironmentName()
+        {
+            return Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+                ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                ?? Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT")
+                ?? "Production";
+        }
+
         public static IConfiguration LoadConfiguration(string serviceName)
         {
-            var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
-               ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
-               ?? Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
+            var environment = GetEnvironmentName();
 
             var builder = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
@@ -41,5 +47,6 @@ namespace Settings.Core
             config.GetSection(sectionName).Bind(settings);
             return settings;
         }
+
     }
 }

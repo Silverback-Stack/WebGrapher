@@ -28,7 +28,7 @@ namespace Graphing.Core
             }
 
             var service = new PageGrapher(logger, eventBus, webGraph, graphingSettings);
-            service.SubscribeAll();
+            
             return service;
         }
     }

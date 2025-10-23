@@ -1,15 +1,13 @@
-﻿using System;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
 using Graphing.Core;
+using Logger.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Extensions.Logging;
 using Settings.Core;
-using WebGrapher.Cli.Service.Graphing.Controllers;
+using Graphing.WebApi;
 
 namespace WebGrapher.Cli.Service.Graphing
 {
@@ -19,108 +17,52 @@ namespace WebGrapher.Cli.Service.Graphing
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            //Setup Configuration using appsettings overrides
-            var configuration = ConfigurationLoader.LoadConfiguration("Service.Graphing");
+            // Load Configuration
+            var configGraphing = ConfigurationLoader.LoadConfiguration("Service.Graphing");
+            var webApiSettings = configGraphing.BindSection<WebApiSettings>("WebApi");
+            var graphingSettings = configGraphing.BindSection<GraphingSettings>("Graphing");
 
-            //bind appsettings overrides to default settings objects
-            var webApiSettings = configuration.BindSection<WebApiSettings>("WebApi");
-            var graphingSettings = configuration.BindSection<GraphingSettings>("Graphing");
 
-            // Setup Serilog Logging
-            var serilogLogger = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration)
-                .WriteTo.File(
-                    path: $"logs/{graphingSettings.ServiceName}.log",
-                    rollingInterval: RollingInterval.Day,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
-                .CreateLogger();
-
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
+            // Setup Logger
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
+                configGraphing, graphingSettings.ServiceName);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
-            //Create PageGrapher service
-            var pageGrapher = GraphingFactory.Create(logger, eventBus, graphingSettings);
 
-
-            //Start WEB.API:
-            var host = await StartWebApiServerAsync(pageGrapher, webApiSettings);
-            _host = host;
-
-            logger.LogInformation("{ServiceName} service started on {Host}/{Swagger}",
-                graphingSettings.ServiceName, 
+            logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration on {Host}/{Swagger}",
+                graphingSettings.ServiceName,
+                configGraphing.GetEnvironmentName(),
                 webApiSettings.Host,
                 webApiSettings.SwaggerRoutePrefix);
+
+            // Create Graphing Service
+            var graphingService = GraphingFactory.Create(logger, eventBus, graphingSettings);
+            await graphingService.StartAsync();
+
+            //Start WEB.API:
+            _host = await StartWebApiServerAsync(graphingService, webApiSettings);
         }
 
-        private async static Task<IHost> StartWebApiServerAsync(IPageGrapher pageGrapher, WebApiSettings webApiSettings)
+        private async static Task<IHost> StartWebApiServerAsync(IPageGrapher graphingService, WebApiSettings webApiSettings)
         {
-            // Create and build web host
-            var host = Host.CreateDefaultBuilder()
-                .ConfigureServices(services =>
-                {
-                    services.AddControllers()
-                        .AddApplicationPart(typeof(GraphController).Assembly);
-                    services.AddEndpointsApiExplorer();
-                    services.AddSwaggerGen();
+            var builder = WebApplication.CreateBuilder();
 
-                    // Flexible CORS for any localhost port
-                    services.AddCors(options =>
-                    {
-                        options.AddPolicy("AllowLocalhost", policy =>
-                        {
-                            policy.SetIsOriginAllowed(origin =>
-                            {
-                                // Allow all http/https localhost origins
-                                if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-                                {
-                                    return uri.IsLoopback; // true for 127.0.0.1 or localhost
-                                }
-                                return false;
-                            })
-                            .AllowAnyHeader()
-                            .AllowAnyMethod()
-                            .AllowCredentials();
-                        });
-                    });
+            // Use existing logger
+            builder.Logging.ClearProviders();
+            builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
-                    // dependency injection:
-                    services.AddSingleton<IPageGrapher>(pageGrapher);
-                })
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseWebRoot(Path.Combine(AppContext.BaseDirectory, "Service.Graphing", "wwwroot"));
+            // Add the Graphing API
+            builder.Services.AddGraphingWebApi(graphingService);
 
-                    webBuilder.Configure(app =>
-                    {
-                        app.UseRouting();
-                        app.UseCors("AllowLocalhost"); //must come before static files and swagger
+            var app = builder.Build();
 
-                        app.UseDefaultFiles();
-                        app.UseStaticFiles();
-                                                
-                        app.UseSwagger();
-                        app.UseSwaggerUI(options =>
-                        {
-                            options.SwaggerEndpoint(webApiSettings.SwaggerEndpointUrl, webApiSettings.SwaggerEndpointName);
-                            options.RoutePrefix = webApiSettings.SwaggerRoutePrefix;
-                        });
-                        app.UseEndpoints(endpoints =>
-                        {
-                            endpoints.MapControllers();
-                        });
-                    })
-                    .UseUrls(webApiSettings.Host);
-                })
-                .ConfigureLogging(logging =>
-                {
-                    logging.ClearProviders();
-                    //logging.AddConsole();
-                })
-                .Build();
+            app.UseGraphingWebApi(webApiSettings);
 
-            await host.StartAsync();
+            app.Urls.Add(webApiSettings.Host);
 
-            return host;
+            await app.StartAsync();
+
+            return app;
         }
 
         public static async Task StopWebApiServerAsync()

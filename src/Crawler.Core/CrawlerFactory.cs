@@ -8,7 +8,7 @@ namespace Crawler.Core
 {
     public class CrawlerFactory
     {
-        public static IPageCrawler CreateCrawler(
+        public static IPageCrawler Create(
             ILogger logger,
             IEventBus eventBus,
             IRequestSender requestSender,
@@ -18,7 +18,6 @@ namespace Crawler.Core
             var service = new PageCrawler(
                 logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
 
-            service.SubscribeAll();
             return service;
         }
     }

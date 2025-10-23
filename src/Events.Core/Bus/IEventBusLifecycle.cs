@@ -6,14 +6,14 @@ namespace Events.Core.Bus
     public interface IEventBusLifecycle
     {
         /// <summary>
-        /// Registers event handlers or subscriptions for this service.
+        /// Subscribes to all event handlers.
         /// </summary>
-        void SubscribeAll();
+        Task StartAsync();
 
         /// <summary>
-        /// Unsubscribes or cleans up event handlers.
+        /// Unsubscribes and cleans up all event handlers.
         /// </summary>
-        void UnsubscribeAll();
+        Task StopAsync();
 
         /// <summary>
         /// Publishes a client-facing log entry associated with a specific graph.

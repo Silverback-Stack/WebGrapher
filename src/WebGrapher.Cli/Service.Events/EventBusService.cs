@@ -1,8 +1,6 @@
-﻿using System;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
+using Logger.Core;
 using Microsoft.Extensions.Logging;
-using Serilog;
-using Serilog.Extensions.Logging;
 using Settings.Core;
 
 namespace WebGrapher.Cli.Service.Events
@@ -11,28 +9,22 @@ namespace WebGrapher.Cli.Service.Events
     {
         public async static Task<IEventBus> CreateAsync()
         {
-            //Setup Configuration using appsettings overrides
+            // Load Configuration
             var configuration = ConfigurationLoader.LoadConfiguration("Service.Events");
-
-            //Bind to strongly typed objects
             var eventBusSettings = configuration.BindSection<EventBusSettings>("EventBus");
 
-            // Setup Serilog Logging
-            var serilogLogger = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration)
-                .WriteTo.File(
-                    path: $"logs/{eventBusSettings.ServiceName}.log",
-                    rollingInterval: RollingInterval.Day,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug)
-                .CreateLogger();
 
-            ILoggerFactory loggerFactory = new SerilogLoggerFactory(serilogLogger);
+            // Create Logger
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
+                configuration, eventBusSettings.ServiceName);
             var logger = loggerFactory.CreateLogger<IEventBus>();
 
-            var eventBus = EventBusFactory.CreateEventBus(logger, eventBusSettings);
 
-            logger.LogInformation("{ServiceName} service started.",
-                eventBusSettings.ServiceName);
+            // Create Event Bus
+            logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
+                eventBusSettings.ServiceName, configuration.GetEnvironmentName());
+
+            var eventBus = EventBusFactory.Create(logger, eventBusSettings);
 
             return eventBus;
         }

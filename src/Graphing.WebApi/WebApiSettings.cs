@@ -1,5 +1,5 @@
 ﻿
-namespace WebGrapher.Cli.Service.Graphing
+namespace Graphing.WebApi
 {
     public class WebApiSettings
     {

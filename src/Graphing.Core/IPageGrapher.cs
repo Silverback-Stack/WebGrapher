@@ -5,8 +5,8 @@ namespace Graphing.Core
 {
     public interface IPageGrapher
     {
-        void SubscribeAll();
-        void UnsubscribeAll();
+        Task StartAsync();
+        Task StopAsync();
 
         Task<Graph?> GetGraphByIdAsync(Guid graphId);
 

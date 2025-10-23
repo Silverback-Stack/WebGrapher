@@ -11,72 +11,18 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
-    <PackageReference Include="Microsoft.Azure.SignalR" Version="1.32.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
-    <PackageReference Include="Serilog" Version="4.3.0" />
-    <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2" />
-    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Streaming.WebApi\Streaming.WebApi.csproj" />
     <ProjectReference Include="..\Graphing.Core\Graphing.Core.csproj" />
+    <ProjectReference Include="..\Graphing.WebApi\Graphing.WebApi.csproj" />
+    <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
     <ProjectReference Include="..\Normalisation.Core\Normalisation.Core.csproj" />
     <ProjectReference Include="..\Crawler.Core\Crawler.Core.csproj" />
     <ProjectReference Include="..\Scraper.Core\Scraper.Core.csproj" />
     <ProjectReference Include="..\Settings.Core\Settings.Core.csproj" />
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Service.Graphing\wwwroot\music\Adele.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\adele.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\Coldplay.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\coldplay.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\index.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\Katy-Perry.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\katy-perry.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\Linkin-Park.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\linkin-park.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\Metallica.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\metallica.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\Taylor-Swift.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\taylor-swift.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\homepage.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Service.Graphing\wwwroot\music\top-artists.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

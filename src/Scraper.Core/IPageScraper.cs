@@ -5,6 +5,8 @@ namespace Scraper.Core
 {
     public interface IPageScraper
     {
+        Task StartAsync();
+        Task StopAsync();
         Task<HttpResponseEnvelope?> FetchAsync(
             Uri url,
             string userAgent,

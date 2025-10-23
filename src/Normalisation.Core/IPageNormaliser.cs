@@ -4,7 +4,7 @@ namespace Normalisation.Core
 {
     public interface IPageNormaliser
     {
-        void SubscribeAll();
-        void UnsubscribeAll();
+        Task StartAsync();
+        Task StopAsync();
     }
 }

@@ -25,7 +25,7 @@ namespace WebGrapher.Cli
             _eventBus = await EventBusService.CreateAsync();
 
             // Kick off all service initializations concurrently
-            //var crawlerTask = CrawlerService.InitializeAsync(_eventBus);
+            var crawlerTask = CrawlerService.InitializeAsync(_eventBus);
 
             var scraperTask = ScraperService.InitializeAsync(_eventBus);
 

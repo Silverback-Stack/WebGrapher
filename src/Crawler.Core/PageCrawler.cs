@@ -32,16 +32,16 @@ namespace Crawler.Core
             _crawlerSettings = crawlerSettings;
         }
 
-        public void SubscribeAll()
+        public async Task StartAsync()
         {
-            _eventBus.Subscribe<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
-            _eventBus.Subscribe<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
+            await _eventBus.Subscribe<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
+            await _eventBus.Subscribe<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
         }
 
-        public void UnsubscribeAll()
+        public async Task StopAsync()
         {
-            _eventBus.Unsubscribe<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
-            _eventBus.Unsubscribe<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
+            await _eventBus.Unsubscribe<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
+            await _eventBus.Unsubscribe<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
         }
 
         public async Task PublishClientLogEventAsync(

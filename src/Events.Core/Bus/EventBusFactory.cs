@@ -6,7 +6,7 @@ namespace Events.Core.Bus
 {
     public static class EventBusFactory
     {
-        public static IEventBus CreateEventBus(ILogger logger, EventBusSettings eventBusSettings)
+        public static IEventBus Create(ILogger logger, EventBusSettings eventBusSettings)
         {
             switch (eventBusSettings.Provider)
             {
