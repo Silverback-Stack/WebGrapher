@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-Scraper.WorkerService-bd7d8055-fd3f-4ae6-8285-c483ad065566</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..\..</DockerfileContext>
+    <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +17,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
     <ProjectReference Include="..\Scraper.Core\Scraper.Core.csproj" />
-    <ProjectReference Include="..\Settings.Core\Settings.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\PublishProfiles\" />
   </ItemGroup>
 </Project>

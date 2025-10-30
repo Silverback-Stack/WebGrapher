@@ -94,7 +94,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scraper.WorkerService", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Graphing.WebApi", "src\Graphing.WebApi\Graphing.WebApi.csproj", "{720D0A35-1B42-406B-9ED2-B0D5C740585F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.WebApi", "Streaming.WebApi\Streaming.WebApi.csproj", "{6282A125-B985-420B-A8E3-D3235EF25CBF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.WebApi", "src\Streaming.WebApi\Streaming.WebApi.csproj", "{6282A125-B985-420B-A8E3-D3235EF25CBF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Streaming.WorkerService", "src\Streaming.WorkerService\Streaming.WorkerService.csproj", "{E09A17ED-FA99-4950-9614-579D51CEC5CB}"
 EndProject

@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-Normalisation.WorkerService-97030424-0c95-4fbc-9248-963d0e002036</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..\..</DockerfileContext>
+    <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +17,5 @@
   <ItemGroup>
     <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
     <ProjectReference Include="..\Normalisation.Core\Normalisation.Core.csproj" />
-    <ProjectReference Include="..\Settings.Core\Settings.Core.csproj" />
   </ItemGroup>
 </Project>

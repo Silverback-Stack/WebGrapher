@@ -19,7 +19,8 @@ namespace Events.Core.Bus
                     return new AzureServiceBusAdapter(
                         logger,
                         eventBusSettings.AzureServiceBus.ConnectionString,
-                        eventBusSettings.AzureServiceBus.MaxConcurrencyLimitPerEvent);
+                        eventBusSettings.AzureServiceBus.MaxConcurrencyLimitPerEvent,
+                        eventBusSettings.AzureServiceBus.PrefetchCount);
 
                 default:
                     throw new NotSupportedException($"Event Bus Provider '{eventBusSettings.Provider}' is not supported.");

@@ -14,15 +14,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Streaming.WebApi\Streaming.WebApi.csproj" />
     <ProjectReference Include="..\Graphing.Core\Graphing.Core.csproj" />
     <ProjectReference Include="..\Graphing.WebApi\Graphing.WebApi.csproj" />
     <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
     <ProjectReference Include="..\Normalisation.Core\Normalisation.Core.csproj" />
     <ProjectReference Include="..\Crawler.Core\Crawler.Core.csproj" />
     <ProjectReference Include="..\Scraper.Core\Scraper.Core.csproj" />
-    <ProjectReference Include="..\Settings.Core\Settings.Core.csproj" />
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
+    <ProjectReference Include="..\Streaming.WebApi\Streaming.WebApi.csproj" />
   </ItemGroup>
 
 </Project>

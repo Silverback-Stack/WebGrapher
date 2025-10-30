@@ -183,7 +183,7 @@ namespace Normalisation.Core
             var extractedContent = htmlParser.ExtractContentAsPlainText(request.Options.ContentElementXPath);
             var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent, _normalisationSettings);
             var extractedLinks = htmlParser.ExtractLinks(request.Options.RelatedLinksElementXPath);
-            var extractedImageUrl = htmlParser.ExtractImageUrl(request.Options.ImageElementXPath);   
+            var extractedImageUrl = htmlParser.ExtractImageUrl(request.Options.ImageElementXPath);
 
             var normalisedTitle = NormaliseTitle(extractedTitle);
             var normalisedSummary = NormaliseSummary(extractedSummary);
@@ -301,6 +301,7 @@ namespace Normalisation.Core
 
             uniqueUrls = UrlNormaliser.RemoveCyclicalLinks(uniqueUrls, baseUrl);
 
+            //NEVER REMOVE TRAILING SLASHES - always honour the sites url exactly otherwise can cause unnessesary canonical redirects
             //uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
 
             uniqueUrls = UrlNormaliser.FilterBySchema(uniqueUrls, _normalisationSettings.AllowableLinkSchemas);
@@ -317,6 +318,7 @@ namespace Normalisation.Core
 
             return uniqueUrls;
         }
+
 
         public Uri? NormaliseImageUrl(
             string imageUrl,

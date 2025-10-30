@@ -23,7 +23,7 @@ namespace Caching.Core.Adapters.FileStorage
             Container = CreateContainer(serviceName, cacheSettings.FileStorage.ContainerName);
 
             //fire on background thread
-            _ = ClearCacheAsync(cacheSettings.FileStorage.AbsoluteExpirationHours);
+            _ = ClearCacheAsync(cacheSettings.FileStorage.AbsoluteExpiryHours);
         }
 
         private string CreateContainer(string serviceName, string containerName)

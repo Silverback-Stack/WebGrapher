@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-Crawler.WorkerService-b4bad300-3928-4fcf-8ac7-d1edecf21918</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..\..</DockerfileContext>
+    <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,11 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Caching.Core\Caching.Core.csproj" />
     <ProjectReference Include="..\Crawler.Core\Crawler.Core.csproj" />
-    <ProjectReference Include="..\Events.Core\Events.Core.csproj" />
     <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
-    <ProjectReference Include="..\Requests.Core\Requests.Core.csproj" />
-    <ProjectReference Include="..\Settings.Core\Settings.Core.csproj" />
   </ItemGroup>
 </Project>

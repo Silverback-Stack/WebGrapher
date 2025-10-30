@@ -158,35 +158,35 @@
               </p>
 
               <!-- If this log is NormalisationSuccess, show preview details -->
-              <div v-if="log.code === 'NormalisationSuccess' && log.context?.preview"
+              <div v-if="log.code === 'NormalisationSuccess' && log.context?.Preview"
                    class="mt-2 pl-4 box">
 
-                <div v-if="log.context.preview.imageUrl" class="columns is-mobile">
+                <div v-if="log.context.Preview.ImageUrl" class="columns is-mobile">
                   <div class="column is-3">
-                    <b-image v-if="log.context.preview.imageUrl"
-                             :src="log.context.preview.imageUrl"
+                    <b-image v-if="log.context.Preview.ImageUrl"
+                             :src="log.context.Preview.ImageUrl"
                              alt="Preview"
                              responsive />
                   </div>
                 </div>
 
                 <h3><strong>Title</strong></h3>
-                <p>{{ log.context.preview.title }}</p>
+                <p>{{ log.context.Preview.Title }}</p>
 
                 <h3 class="mt-3"><strong>Summary</strong></h3>
-                <p>{{ log.context.preview.summary }}</p>
+                <p>{{ log.context.Preview.Summary }}</p>
 
                 <h3 class="mt-3"><strong>Keywords</strong></h3>
-                <p>{{ log.context.preview.keywords }}</p>
+                <p>{{ log.context.Preview.Keywords }}</p>
 
                 <h3 class="mt-3"><strong>Tags</strong></h3>
                 <p>
-                  <span v-for="(tag, idx) in log.context.preview.tags" :key="idx">{{ tag }}, </span>
+                  <span v-for="(tag, idx) in log.context.Preview.Tags" :key="idx">{{ tag }}, </span>
                 </p>
 
                 <h3 class="mt-3"><strong>Links</strong></h3>
                 <ul>
-                  <li v-for="(link, idx) in log.context.preview.links" :key="idx">
+                  <li v-for="(link, idx) in log.context.Preview.Links" :key="idx">
                     <a :href="link" target="_blank">{{ link }}</a>
                   </li>
                 </ul>

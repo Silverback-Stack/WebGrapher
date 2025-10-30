@@ -26,6 +26,7 @@ namespace Graphing.Core
             _webGraph = webGraph;
             _graphingSettings = graphingSettings;
         }
+
         public async Task StartAsync()
         {
             await _eventBus.Subscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
@@ -143,26 +144,33 @@ namespace Graphing.Core
 
         private async Task ProcessGraphPageEventAsync(GraphPageEvent evt)
         {
-            var request = evt.CrawlPageRequest;
-            var webPage = MapToWebPage(evt);
-
-            //Delegate : Called when Node is populated with data
-            Func<Node, Task> nodePopulatedCallback = async (node) =>
+            try
             {
-                await PublishGraphNodeAddedEventAsync(request, node);
-            };
+                var request = evt.CrawlPageRequest;
+                var webPage = MapToWebPage(evt);
 
-            //Delegate : Called when Link is discovered
-            Func<Node, Task> linkDiscoveredCallback = async (node) =>
+                //Delegate : Called when Node is populated with data
+                Func<Node, Task> nodePopulatedCallback = async (node) =>
+                {
+                    await PublishGraphNodeAddedEventAsync(request, node);
+                };
+
+                //Delegate : Called when Link is discovered
+                Func<Node, Task> linkDiscoveredCallback = async (node) =>
+                {
+                    await PublishCrawlPageEventAsync(request, node);
+                };
+
+                // when Depth is 0 the request was initiated by the user
+                // user initiated requests should force update of any previously stored information
+                var forceRefresh = request.Depth == 0;
+
+                await _webGraph.AddWebPageAsync(webPage, forceRefresh, nodePopulatedCallback, linkDiscoveredCallback);
+            }
+            catch (Exception ex)
             {
-                await PublishCrawlPageEventAsync(request, node);
-            };
-
-            // when Depth is 0 the request was initiated by the user
-            // user initiated requests should force update of any previously stored information
-            var forceRefresh = request.Depth == 0;
-
-            await _webGraph.AddWebPageAsync(webPage, forceRefresh, nodePopulatedCallback, linkDiscoveredCallback);
+                _logger.LogError(ex, "Error processing GraphPageEvent.");
+            }
         }
 
         private WebPageItem MapToWebPage(GraphPageEvent evt)
