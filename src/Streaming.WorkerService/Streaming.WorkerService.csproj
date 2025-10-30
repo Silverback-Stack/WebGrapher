@@ -16,10 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Streaming.WebApi\Streaming.WebApi.csproj" />
-    <ProjectReference Include="..\Events.Core\Events.Core.csproj" />
     <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
-    <ProjectReference Include="..\Settings.Core\Settings.Core.csproj" />
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
+    <ProjectReference Include="..\Streaming.WebApi\Streaming.WebApi.csproj" />
   </ItemGroup>
 </Project>

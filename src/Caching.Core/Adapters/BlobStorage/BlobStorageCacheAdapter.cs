@@ -29,7 +29,7 @@ namespace Caching.Core.Adapters.BlobStorage
             _containerClient.CreateIfNotExists(PublicAccessType.None);
 
             //fire on background thread
-            _ = ClearCacheAsync(cacheSettings.BlobStorage.AbsoluteExpirationHours);
+            _ = ClearCacheAsync(cacheSettings.BlobStorage.AbsoluteExpiryHours);
         }
 
         private BlobClient GetBlobClient(string key) {

@@ -18,26 +18,43 @@ namespace Service.Normalisation.Tests
         {
             var urls = new List<string>
             {
+                // Relative URLs
                 "/page1",                     // root-relative
                 "page2",                      // relative
-                "https://other.com/page3",    // absolute
-                "//other.com/page4",          // protocol-relative with host
-                "//images/page5",             // protocol-relative without host
-                "page6#fragment",             // relative with fragment
+                "./page3",                    // relative with "./"
+                "../page4",                   // relative with parent folder
+                "folder/page5",               // nested relative
+                "folder/page6.html",          // nested with file extension
+                "#section1",                  // fragment-only
+                "page7#fragment",             // relative with fragment
+                "?",                          // query-only
                 "",                           // empty
-                " "                           // whitespace
+                " ",                          // whitespace
+
+                // Absolute and protocol-relative URLs
+                "https://other.com/page8",    // absolute external
+                "//other.com/page9",          // protocol-relative with host
+                "//images/page10"             // protocol-relative without host
             };
+
 
             var results = UrlNormaliser.MakeAbsolute(urls, _baseUrl);
             var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
 
-            Assert.That(resultsStrings.Count, Is.EqualTo(6));
+            Assert.That(resultsStrings.Count, Is.EqualTo(12));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page1"));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page2"));
-            Assert.That(resultsStrings, Has.Some.EqualTo("https://other.com/page3"));
-            Assert.That(resultsStrings, Has.Some.EqualTo("https://other.com/page4"));
-            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/images/page5"));
-            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page6"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page3"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page4"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/folder/page5"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/folder/page6.html"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/page7"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/?"));
+
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://other.com/page8"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://other.com/page9"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/images/page10"));
         }
 
         [Test]
@@ -103,6 +120,7 @@ namespace Service.Normalisation.Tests
                 new Uri("ftp://example.com"),
                 new Uri("mailto:email@example.com"),
                 new Uri("tel:0123456789"),
+                new Uri("javascript:void(0)")
             };
 
             var filtered = UrlNormaliser.FilterBySchema(urls, new[] { "https", "ftp" });

@@ -12,16 +12,20 @@ namespace Events.Core.Bus
         private readonly ServiceBusAdministrationClient _adminClient;
         private readonly ConcurrentDictionary<string, ServiceBusProcessor> _processors = new();
         private readonly int _maxConcurrencyLimitPerEvent;
+        private readonly int _prefetchCount;
         private bool _started = false;
 
-        // no need for concurrencyLimits , uses maxConcurrentCalls instead
         public AzureServiceBusAdapter(
-            ILogger logger, string connectionString, int maxConcurrencyLimitPerEvent)
+            ILogger logger,
+            string connectionString, 
+            int maxConcurrencyLimitPerEvent, 
+            int prefetchCount)
             : base(logger) 
         {
             _client = new ServiceBusClient(connectionString);
             _adminClient = new ServiceBusAdministrationClient(connectionString);
             _maxConcurrencyLimitPerEvent = maxConcurrencyLimitPerEvent;
+            _prefetchCount = prefetchCount;
         }
 
         public override async Task Subscribe<TEvent>(
@@ -40,10 +44,12 @@ namespace Events.Core.Bus
                 await _adminClient.CreateSubscriptionAsync(topicName, subscriptionName);
 
             // Create processor
+            // no need to manage concurrencyLimits , uses maxConcurrentCalls setting instead 
             var processor = _client.CreateProcessor(topicName, subscriptionName, new ServiceBusProcessorOptions
             {
                 MaxConcurrentCalls = _maxConcurrencyLimitPerEvent,
-                AutoCompleteMessages = false
+                AutoCompleteMessages = false,
+                PrefetchCount = _prefetchCount
             });
 
             processor.ProcessMessageAsync += async args =>

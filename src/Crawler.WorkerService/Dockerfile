@@ -9,12 +9,19 @@ WORKDIR /app
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
+
+# Copy source files
 WORKDIR /src
-COPY ["src/WebGrapher.Workers/Crawler.WorkerService/Crawler.WorkerService.csproj", "src/WebGrapher.Workers/Crawler.WorkerService/"]
-RUN dotnet restore "./src/WebGrapher.Workers/Crawler.WorkerService/Crawler.WorkerService.csproj"
-COPY . .
-WORKDIR "/src/src/WebGrapher.Workers/Crawler.WorkerService"
+COPY ["src/", "./"]
+
+# Restore dependencies
+WORKDIR /src/Crawler.WorkerService
+RUN dotnet restore "./Crawler.WorkerService.csproj"
+
+# Build main project
+WORKDIR /src/Crawler.WorkerService
 RUN dotnet build "./Crawler.WorkerService.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish

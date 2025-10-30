@@ -1,18 +1,6 @@
-const configs = {
-  development: {
-    graphUrl: "http://localhost:5000/api",
-    hubUrl: "http://localhost:5100/graphstreamerhub" //points to microservice which negotiates with azure instance
-  },
-  production: {
-    graphUrl: "https://my-production-api.com/api",
-    hubUrl: "https://my-production-api.com/graphstreamerhub"
-  }
-};
-
-// Choose config based on environment
-const env = import.meta.env.MODE || "development";
-
-const { graphUrl, hubUrl } = configs[env];
+// ENV values are set in root .env.* 
+const graphUrl = import.meta.env.VITE_GRAPH_URL;
+const hubUrl = import.meta.env.VITE_HUB_URL;
 
 export default {
   GRAPH_LIST: `${graphUrl}/Graph/list`,
