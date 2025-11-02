@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Settings.Core;
 using Graphing.WebApi;
+using Auth.WebApi;
 
 namespace WebGrapher.Cli.Service.Graphing
 {
@@ -17,10 +18,13 @@ namespace WebGrapher.Cli.Service.Graphing
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            // Load Configuration
+            // Load configurations
             var configGraphing = ConfigurationLoader.LoadConfiguration("Service.Graphing");
-            var webApiSettings = configGraphing.BindSection<WebApiSettings>("WebApi");
             var graphingSettings = configGraphing.BindSection<GraphingSettings>("Graphing");
+            var graphingWebApiSettings = configGraphing.BindSection<GraphingWebApiSettings>("GraphingWebApi");
+
+            var configAuth = ConfigurationLoader.LoadConfiguration("Shared.Auth");
+            var authSettings = configAuth.BindSection<AuthSettings>("Auth");
 
 
             // Setup Logger
@@ -32,18 +36,21 @@ namespace WebGrapher.Cli.Service.Graphing
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration on {Host}/{Swagger}",
                 graphingSettings.ServiceName,
                 configGraphing.GetEnvironmentName(),
-                webApiSettings.Host,
-                webApiSettings.SwaggerRoutePrefix);
+                graphingWebApiSettings.Host,
+                graphingWebApiSettings.Swagger.RoutePrefix);
 
             // Create Graphing Service
             var graphingService = GraphingFactory.Create(logger, eventBus, graphingSettings);
             await graphingService.StartAsync();
 
             //Start WEB.API:
-            _host = await StartWebApiServerAsync(graphingService, webApiSettings);
+            _host = await StartWebApiServerAsync(graphingService, graphingWebApiSettings, authSettings);
         }
 
-        private async static Task<IHost> StartWebApiServerAsync(IPageGrapher graphingService, WebApiSettings webApiSettings)
+        private async static Task<IHost> StartWebApiServerAsync(
+            IPageGrapher graphingService, 
+            GraphingWebApiSettings graphingWebApiSettings,
+            AuthSettings authSettings)
         {
             var builder = WebApplication.CreateBuilder();
 
@@ -52,13 +59,13 @@ namespace WebGrapher.Cli.Service.Graphing
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
             // Add the Graphing API
-            builder.Services.AddGraphingWebApi(graphingService);
+            builder.Services.AddGraphingWebApi(graphingService, graphingWebApiSettings, authSettings);
 
             var app = builder.Build();
 
-            app.UseGraphingWebApi(webApiSettings);
+            app.UseGraphingWebApi(graphingWebApiSettings);
 
-            app.Urls.Add(webApiSettings.Host);
+            app.Urls.Add(graphingWebApiSettings.Host);
 
             await app.StartAsync();
 

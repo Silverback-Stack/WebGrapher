@@ -124,7 +124,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             return GremlinQueryHelper.HydrateGraphFromVertex(vertex);
         }
 
-        public override async Task<Graph?> UpdateGraphAsync(Graph graph)
+        public override async Task<Graph> UpdateGraphAsync(Graph graph)
         {
             await _gremlinQueryProvider.UpdateGraphVertexAsync(graph);
 

@@ -1,0 +1,11 @@
+﻿using System;
+
+namespace Auth.WebApi.Auth.IdentityProviders.Auth0
+{
+    public class Auth0Settings
+    {
+        public string Domain { get; set; } = string.Empty;
+        public string Audience { get; set; } = string.Empty;
+        public string LoginUrl { get; set; } = string.Empty;
+    }
+}

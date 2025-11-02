@@ -15,7 +15,7 @@ namespace Graphing.Core.WebGraph
 
         Task<Graph> CreateGraphAsync(GraphOptions options);
 
-        Task<Graph?> UpdateGraphAsync(Graph graph);
+        Task<Graph> UpdateGraphAsync(Graph graph);
 
         Task<Graph?> DeleteGraphAsync(Guid graphId);
 

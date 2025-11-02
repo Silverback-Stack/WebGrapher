@@ -5,6 +5,12 @@ namespace Streaming.Core
     {
         public string ServiceName { get; set; } = "Streaming";
         public string HubPath { get; set; } = "/graphstreamerhub";
+
+        public SignalRSettings SignalR { get; set; } = new SignalRSettings();
+    }
+
+    public class SignalRSettings
+    {
         public StreamingProvider Provider { get; set; } = StreamingProvider.HostedSignalR;
 
         public HostedSignaRSettings HostedSignaR { get; set; } = new HostedSignaRSettings();
@@ -12,6 +18,7 @@ namespace Streaming.Core
         public AzureSignalRDefaultSettings AzureSignalRDefault { get; set; } = new AzureSignalRDefaultSettings();
 
         public AzureSignalRServerlessSettings AzureSignalRServerless { get; set; } = new AzureSignalRServerlessSettings();
+
     }
 
     public class HostedSignaRSettings

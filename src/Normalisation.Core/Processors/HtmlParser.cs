@@ -95,12 +95,12 @@ namespace Normalisation.Core.Processors
             foreach (var node in nodes)
             {
                 // Try src
-                var src = node.GetAttributeValue("src", null);
+                var src = node.GetAttributeValue("src", string.Empty);
                 if (!string.IsNullOrEmpty(src))
                     return src;
 
                 // Try srcset — get first URL
-                var srcset = node.GetAttributeValue("srcset", null);
+                var srcset = node.GetAttributeValue("srcset", string.Empty);
                 if (!string.IsNullOrEmpty(srcset))
                 {
                     var firstUrl = srcset.Split(',')[0].Trim().Split(' ')[0];

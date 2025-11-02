@@ -1,9 +1,10 @@
+using Auth.WebApi;
 using Events.Core.Bus;
 using Graphing.Core;
+using Graphing.WebApi;
 using Logger.Core;
 using Serilog;
 using Settings.Core;
-using Graphing.WebApi;
 
 namespace Graphing.WorkerService
 {
@@ -18,8 +19,11 @@ namespace Graphing.WorkerService
             var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
 
             var configGraphing = ConfigurationLoader.LoadConfiguration("Service.Graphing");
-            var webApiSettings = configGraphing.BindSection<WebApiSettings>("WebApi");
             var graphingSettings = configGraphing.BindSection<GraphingSettings>("Graphing");
+            var graphingWebApiSettings = configGraphing.BindSection<GraphingWebApiSettings>("GraphingWebApi");
+
+            var configAuth = ConfigurationLoader.LoadConfiguration("Shared.Auth");
+            var authSettings = configAuth.BindSection<AuthSettings>("Auth");
 
 
             // Create Logger
@@ -29,17 +33,18 @@ namespace Graphing.WorkerService
             builder.Logging.AddSerilog();
 
 
-            // Register Event Bus as a singleton in DI
+            // Register Event Bus in DI
             builder.Services.AddSingleton<IEventBus>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IEventBus>>();
                 return EventBusFactory.Create(logger, eventsSettings);
             });
 
-            // Register WebApi Settings as a singleton in DI
-            builder.Services.AddSingleton(webApiSettings);
+            // Register Settings in DI
+            builder.Services.AddSingleton(graphingWebApiSettings);
+            builder.Services.AddSingleton(authSettings);
 
-            // Register Graphing Service as a singleton in DI
+            // Register Graphing Service in DI
             builder.Services.AddSingleton(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IPageGrapher>>();
