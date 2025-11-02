@@ -48,12 +48,11 @@ namespace Caching.Core.Adapters.FileStorage
         private string GetFilePath(string key) => Path.Combine(Container, key);
 
 
-        public async Task<bool> ExistsAsync(string key)
+        public Task<bool> ExistsAsync(string key)
         {
             var path = GetFilePath(key);
-            if (File.Exists(path)) return true;
-
-            return false;
+            bool exists = File.Exists(path);
+            return Task.FromResult(exists);
         }
 
         public async Task<T?> GetAsync<T>(string key)
@@ -120,7 +119,7 @@ namespace Caching.Core.Adapters.FileStorage
             }
         }
 
-        public async Task RemoveAsync(string key)
+        public Task RemoveAsync(string key)
         {
             var path = GetFilePath(key);
 
@@ -133,9 +132,11 @@ namespace Caching.Core.Adapters.FileStorage
             {
                 _logger.LogWarning(ex, $"Unable to delete cache file {path}");
             }
+
+            return Task.CompletedTask;
         }
 
-        public async Task ClearCacheAsync(int absoluteExpirationHours)
+        public Task ClearCacheAsync(int absoluteExpirationHours)
         {
             var cutoff = DateTime.UtcNow.AddHours(-absoluteExpirationHours);
             var filePath = GetFilePath(string.Empty); //root path
@@ -143,6 +144,8 @@ namespace Caching.Core.Adapters.FileStorage
             foreach (var file in Directory.GetFiles(filePath))
                 if (File.GetLastWriteTimeUtc(file) < cutoff)
                     File.Delete(file);
+
+            return Task.CompletedTask;
         }
 
         public void Dispose()

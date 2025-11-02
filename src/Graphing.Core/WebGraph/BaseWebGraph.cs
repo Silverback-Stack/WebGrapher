@@ -18,8 +18,8 @@ namespace Graphing.Core.WebGraph
         public async Task AddWebPageAsync(
             WebPageItem webPage, 
             bool forceRefresh,
-            Func<Node, Task> nodePopulatedCallback, 
-            Func<Node, Task> linkDiscoveredCallback,
+            Func<Node, Task>? nodePopulatedCallback, 
+            Func<Node, Task>? linkDiscoveredCallback,
             NodeEdgesUpdateMode linkUpdateMode = NodeEdgesUpdateMode.Append)
         {
             _logger.LogDebug($"AddWebPageAsync started for {webPage.Url}");
@@ -269,7 +269,7 @@ namespace Graphing.Core.WebGraph
 
         public abstract Task<Graph> CreateGraphAsync(GraphOptions options);
 
-        public abstract Task<Graph?> UpdateGraphAsync(Graph graph);
+        public abstract Task<Graph> UpdateGraphAsync(Graph graph);
 
         public abstract Task<Graph?> DeleteGraphAsync(Guid graphId);
 

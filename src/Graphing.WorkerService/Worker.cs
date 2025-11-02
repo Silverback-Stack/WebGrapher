@@ -11,20 +11,20 @@ namespace Graphing.WorkerService
         private readonly IEventBus _eventBus;
         private readonly IPageGrapher _pageGrapher;
         private readonly IConfiguration _configuration;
-        private readonly WebApiSettings _webApiSettings;
+        private readonly GraphingWebApiSettings _graphingWebApiSettings;
 
         public Worker(
             ILogger<Worker> logger,
             IEventBus eventBus,
             IPageGrapher pageGrapher,
             IConfiguration configuration,
-            WebApiSettings webApiSettings)
+            GraphingWebApiSettings graphingWebApiSettings)
         {
             _logger = logger;
             _eventBus = eventBus;
             _pageGrapher = pageGrapher;
             _configuration = configuration;
-            _webApiSettings = webApiSettings;
+            _graphingWebApiSettings = graphingWebApiSettings;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -36,8 +36,8 @@ namespace Graphing.WorkerService
 
             _logger.LogInformation("Graphing service is starting using {EnvironmentName} configuration on {Host}/{Swagger}",
                 _configuration.GetEnvironmentName(),
-                _webApiSettings.Host,
-                _webApiSettings.SwaggerRoutePrefix);
+                _graphingWebApiSettings.Host,
+                _graphingWebApiSettings.Swagger.RoutePrefix);
 
             await _pageGrapher.StartAsync();
 

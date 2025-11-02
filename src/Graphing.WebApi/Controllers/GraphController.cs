@@ -1,12 +1,14 @@
 ﻿using Graphing.Core;
 using Graphing.Core.WebGraph.Dtos;
 using Graphing.Core.WebGraph.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 
 namespace Graphing.WebApi.Controllers
 {
- 
+
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class GraphController : ControllerBase

@@ -11,7 +11,7 @@ namespace Scraper.Core
             Uri url,
             string userAgent,
             string clientAccept,
-            string compositeKey = null,
+            string compositeKey = "",
             CancellationToken cancellationToken = default);
     }
 }

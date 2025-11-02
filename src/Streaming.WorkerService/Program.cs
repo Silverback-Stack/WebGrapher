@@ -1,3 +1,4 @@
+using Auth.WebApi;
 using Events.Core.Bus;
 using Logger.Core;
 using Microsoft.AspNetCore.Hosting;
@@ -24,6 +25,10 @@ namespace Streaming.WorkerService
 
             var configStreaming = ConfigurationLoader.LoadConfiguration("Service.Streaming");
             var streamingSettings = configStreaming.BindSection<StreamingSettings>("Streaming");
+            var streamingWebApiSettings = configStreaming.BindSection<StreamingWebApiSettings>("StreamingWebApi");
+
+            var configAuth = ConfigurationLoader.LoadConfiguration("Shared.Auth");
+            var authSettings = configAuth.BindSection<AuthSettings>("Auth");
 
 
             // Create logger
@@ -35,7 +40,8 @@ namespace Streaming.WorkerService
 
 
             // Start SignalR host (Kestrel) and get hub context & URL
-            var (hubContext, hubUrl, webHost) = await InitializeSignalRHostAsync(streamingSettings);
+            var (hubContext, hubUrl, webHost) = 
+                await InitializeSignalRHostAsync(streamingSettings, streamingWebApiSettings, authSettings);
 
 
             // Register Event Bus in DI
@@ -45,6 +51,8 @@ namespace Streaming.WorkerService
                 return EventBusFactory.Create(logger, eventsSettings);
             });
 
+            // Register Settings in DI
+            builder.Services.AddSingleton(streamingWebApiSettings);
 
             // Register the Streaming Service in DI
             // Pass the HubContext to the StreamerFactory so the streamer can broadcast messages
@@ -91,30 +99,33 @@ namespace Streaming.WorkerService
         /// Returns the hub context, hub URL, and optionally the in-process web host.
         /// </summary>
         private static async Task<(IHubContext<GraphStreamerHub>? hubContext, string hubUrl, IWebHost? webHost)>
-            InitializeSignalRHostAsync(StreamingSettings streamingSettings)
+            InitializeSignalRHostAsync(
+                StreamingSettings streamingSettings,
+                StreamingWebApiSettings streamingWebApiSettings,
+                AuthSettings authSettings)
         {
             IWebHost? webHost = null;
             IHubContext<GraphStreamerHub>? hubContext = null;
             string hubUrl;
 
-            switch (streamingSettings.Provider)
+            switch (streamingSettings.SignalR.Provider)
             {
                 case StreamingProvider.HostedSignalR:
                 case StreamingProvider.AzureSignalRDefault:
                     // Start local web server for hosted SignalR endpoint
-                    webHost = BuildKestrelHost(streamingSettings);
+                    webHost = BuildKestrelHost(streamingSettings, streamingWebApiSettings, authSettings);
                     await webHost.StartAsync();
                     hubContext = webHost.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();
-                    hubUrl = $"{streamingSettings.HostedSignaR.Host}{streamingSettings.HubPath}";
+                    hubUrl = $"{streamingSettings.SignalR.HostedSignaR.Host}{streamingSettings.HubPath}";
                     break;
 
                 case StreamingProvider.AzureSignalRServerless:
                     // Azure serverless: clients connect directly to Azure SignalR endpoint
-                    hubUrl = $"{streamingSettings.AzureSignalRServerless.Endpoint}{streamingSettings.HubPath}";
+                    hubUrl = $"{streamingSettings.SignalR.AzureSignalRServerless.Endpoint}{streamingSettings.HubPath}";
                     break;
 
                 default:
-                    throw new NotSupportedException($"SignalR provider '{streamingSettings.Provider}' is not supported.");
+                    throw new NotSupportedException($"SignalR provider '{streamingSettings.SignalR.Provider}' is not supported.");
             }
 
             return (hubContext, hubUrl, webHost);
@@ -123,18 +134,21 @@ namespace Streaming.WorkerService
         /// <summary>
         /// Builds an in-process Kestrel host for SignalR.
         /// </summary>
-        private static IWebHost BuildKestrelHost(StreamingSettings streamingSettings)
+        private static IWebHost BuildKestrelHost(
+            StreamingSettings streamingSettings,
+            StreamingWebApiSettings streamingWebApiSettings,
+            AuthSettings authSettings)
         {
             return new WebHostBuilder()
                 .UseKestrel()
-                .UseUrls(streamingSettings.HostedSignaR.Host)
+                .UseUrls(streamingSettings.SignalR.HostedSignaR.Host)
                 .ConfigureServices(services =>
                 {
-                    services.AddStreamingWebApi(streamingSettings);
+                    services.AddStreamingWebApi(streamingSettings, streamingWebApiSettings, authSettings);
                 })
                 .Configure(app =>
                 {
-                    app.UseStreamingWebApi(streamingSettings);
+                    app.UseStreamingWebApi(streamingSettings, streamingWebApiSettings);
                 })
                 .Build();
         }

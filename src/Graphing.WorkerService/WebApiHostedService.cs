@@ -3,21 +3,25 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Serilog;
 using Graphing.WebApi;
+using Auth.WebApi;
 
 namespace Graphing.WorkerService
 {
     internal class WebApiHostedService : IHostedService
     {
         private readonly IPageGrapher _pageGrapher;
-        private readonly WebApiSettings _webApiSettings;
+        private readonly GraphingWebApiSettings _graphingWebApiSettings;
+        private readonly AuthSettings _authSettings;
         private WebApplication? _app;
 
         public WebApiHostedService(
             IPageGrapher pageGrapher, 
-            WebApiSettings webApiSettings)
+            GraphingWebApiSettings graphingWebApiSettings,
+            AuthSettings authSettings)
         {
             _pageGrapher = pageGrapher;
-            _webApiSettings = webApiSettings;
+            _graphingWebApiSettings = graphingWebApiSettings;
+            _authSettings = authSettings;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -33,13 +37,13 @@ namespace Graphing.WorkerService
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
             // Add the Graphing API
-            builder.Services.AddGraphingWebApi(_pageGrapher);
+            builder.Services.AddGraphingWebApi(_pageGrapher, _graphingWebApiSettings, _authSettings);
 
             _app = builder.Build();
 
-            _app.UseGraphingWebApi(_webApiSettings);
+            _app.UseGraphingWebApi(_graphingWebApiSettings);
 
-            _app.Urls.Add(_webApiSettings.Host);
+            _app.Urls.Add(_graphingWebApiSettings.Host);
 
             await _app.StartAsync();
         }

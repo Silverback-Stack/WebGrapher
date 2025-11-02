@@ -199,13 +199,14 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
         }
 
 
-        public override async Task<Graph?> GetGraphAsync(Guid graphId)
+        public override Task<Graph?> GetGraphAsync(Guid graphId)
         {
             _graphTable.TryGetValue(graphId, out var graph);
-            return graph;
+
+            return Task.FromResult(graph);
         }
 
-        public override async Task<Graph?> CreateGraphAsync(GraphOptions options)
+        public override Task<Graph> CreateGraphAsync(GraphOptions options)
         {
             var graph = new Graph
             {
@@ -234,16 +235,17 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
             // Initialise node storage for this graph
             _nodeTable[graph.Id] = new Dictionary<string, Node>();
 
-            return graph;
+            return Task.FromResult(graph);
         }
 
-        public override async Task<Graph?> UpdateGraphAsync(Graph graph)
+        public override Task<Graph> UpdateGraphAsync(Graph graph)
         {
             if (!_graphTable.ContainsKey(graph.Id))
                 throw new KeyNotFoundException($"Graph {graph.Id} not found.");
 
             _graphTable[graph.Id] = graph;
-            return graph;
+
+            return Task.FromResult(graph);
         }
 
         public override Task<Graph?> DeleteGraphAsync(Guid graphId)
@@ -263,7 +265,7 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
             return Task.FromResult<Graph?>(graph);
         }
 
-        public override async Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize)
+        public override Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 1;
@@ -280,7 +282,7 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
                 page,
                 pageSize);
 
-            return result;
+            return Task.FromResult(result);
         }
 
 

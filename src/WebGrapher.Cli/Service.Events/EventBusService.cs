@@ -7,7 +7,7 @@ namespace WebGrapher.Cli.Service.Events
 {
     internal class EventBusService
     {
-        public async static Task<IEventBus> CreateAsync()
+        public static Task<IEventBus> CreateAsync()
         {
             // Load Configuration
             var configuration = ConfigurationLoader.LoadConfiguration("Service.Events");
@@ -26,7 +26,7 @@ namespace WebGrapher.Cli.Service.Events
 
             var eventBus = EventBusFactory.Create(logger, eventBusSettings);
 
-            return eventBus;
+            return Task.FromResult(eventBus);
         }
     }
 }

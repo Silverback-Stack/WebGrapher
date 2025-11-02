@@ -36,10 +36,10 @@ namespace WebGrapher.Cli
             var streamingTask = StreamingService.InitializeAsync(_eventBus);
 
             // Wait for all services to finish subscribing events
-            await Task.WhenAll(//crawlerTask,
-                scraperTask, normalisationTask, graphingTask, streamingTask);
+            await Task.WhenAll(
+                crawlerTask, scraperTask, normalisationTask, graphingTask, streamingTask);
 
-            //_pageCrawler = await crawlerTask;
+            _pageCrawler = await crawlerTask;
 
             // Start event bus after all services are ready
             await _eventBus.StartAsync();

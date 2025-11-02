@@ -23,21 +23,23 @@ namespace Caching.Core.Adapters.Memory
 
         private string GetScopedKey(string key) => $"{Container}_{key}";
 
-        public async Task<T?> GetAsync<T>(string key)
+        public Task<T?> GetAsync<T>(string key)
         {
             key = GetScopedKey(key);
 
             if (_cache.TryGetValue(key, out var value))
             {
                 _logger.LogDebug($"Cache hit for {key}");
-                return (T?)value;
+
+                return Task.FromResult((T?)value);
             }
 
             _logger.LogDebug($"Cache miss for {key}");
-            return default;
+
+            return Task.FromResult(default(T?));
         }
 
-        public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
+        public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
             key = GetScopedKey(key);
             var options = new MemoryCacheEntryOptions();
@@ -53,22 +55,27 @@ namespace Caching.Core.Adapters.Memory
             }
 
             _cache.Set(key, value, options);
+
+            return Task.CompletedTask;
         }
 
-        public async Task RemoveAsync(string key)
+        public Task RemoveAsync(string key)
         {
             key = GetScopedKey(key);
             _logger.LogDebug($"Removing cache entry for {key}");
 
             _cache.Remove(key);
+
+            return Task.CompletedTask;
         }
 
-        public async Task<bool> ExistsAsync(string key)
+        public Task<bool> ExistsAsync(string key)
         {
             key = GetScopedKey(key);
             var exists = _cache.TryGetValue(key, out _);
             _logger.LogDebug($"Checking existence for {key}: {exists}");
-            return exists;
+
+            return Task.FromResult(exists);
         }
 
         public void Dispose()

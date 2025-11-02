@@ -1,4 +1,5 @@
-﻿using Events.Core.Bus;
+﻿using Auth.WebApi;
+using Events.Core.Bus;
 using Logger.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.SignalR;
@@ -20,9 +21,13 @@ namespace WebGrapher.Cli.Service.Streaming
 
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            //Load Configuration
+            //Load Configurations
             var configStreaming = ConfigurationLoader.LoadConfiguration("Service.Streaming");
             var streamingSettings = configStreaming.BindSection<StreamingSettings>("Streaming");
+            var streamingWebApiSettings = configStreaming.BindSection<StreamingWebApiSettings>("StreamingWebApi");
+
+            var configAuth = ConfigurationLoader.LoadConfiguration("Shared.Auth");
+            var authSettings = configAuth.BindSection<AuthSettings>("Auth");
 
 
             // Create Logger
@@ -32,7 +37,10 @@ namespace WebGrapher.Cli.Service.Streaming
 
 
             // Start SignalR host and get hub context & URL
-            var (host, hubUrl) = await InitializeSignalRHostAsync(streamingSettings);
+            var (host, hubUrl) = await InitializeSignalRHostAsync(
+                streamingSettings, 
+                streamingWebApiSettings,
+                authSettings);
             _host = host;
 
 
@@ -56,7 +64,9 @@ namespace WebGrapher.Cli.Service.Streaming
         }
 
         private async static Task<(IHost host, string hubUrl)> InitializeSignalRHostAsync(
-            StreamingSettings settings)
+            StreamingSettings streamingSettings,
+            StreamingWebApiSettings streamingWebApiSettings,
+            AuthSettings authSettings)
         {
             var builder = WebApplication.CreateBuilder();
 
@@ -65,28 +75,31 @@ namespace WebGrapher.Cli.Service.Streaming
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
             // Add the Streaming API
-            builder.Services.AddStreamingWebApi(settings);
+            builder.Services.AddStreamingWebApi(
+                streamingSettings, 
+                streamingWebApiSettings, 
+                authSettings);
             var app = builder.Build();
-            app.UseStreamingWebApi(settings);
+            app.UseStreamingWebApi(streamingSettings, streamingWebApiSettings);
 
 
             string hubUrl;
 
             // Configure endpoint host URLs
-            switch (settings.Provider)
+            switch (streamingSettings.SignalR.Provider)
             {
                 case StreamingProvider.HostedSignalR:
                 case StreamingProvider.AzureSignalRDefault:
-                    app.Urls.Add(settings.HostedSignaR.Host);
-                    hubUrl = $"{settings.HostedSignaR.Host}{settings.HubPath}";
+                    app.Urls.Add(streamingSettings.SignalR.HostedSignaR.Host);
+                    hubUrl = $"{streamingSettings.SignalR.HostedSignaR.Host}{streamingSettings.HubPath}";
                     break;
 
                 case StreamingProvider.AzureSignalRServerless:
-                    hubUrl = $"{settings.AzureSignalRServerless.Endpoint}{settings.HubPath}";
+                    hubUrl = $"{streamingSettings.SignalR.AzureSignalRServerless.Endpoint}{streamingSettings.HubPath}";
                     break;
 
                 default:
-                    throw new NotSupportedException($"SignalR provider '{settings.Provider}' is not supported.");
+                    throw new NotSupportedException($"SignalR provider '{streamingSettings.SignalR.Provider}' is not supported.");
             }
 
             await app.StartAsync();

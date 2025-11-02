@@ -10,9 +10,11 @@
     <PackageReference Include="Microsoft.AspNetCore" Version="2.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
     <PackageReference Include="Microsoft.Azure.SignalR" Version="1.32.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Auth.WebApi\Auth.WebApi.csproj" />
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
   </ItemGroup>
 
