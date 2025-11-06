@@ -10,7 +10,7 @@ namespace Normalisation.Core
         public int MaxSummaryWords { get; set; } = 100;
         public int MaxKeywords { get; set; } = 300; //a page of text
         public int MaxKeywordTags { get; set; } = 10;
-        public int MaxLinksPerPage { get; set; } = 100;
+        public int MaxLinksPerPage { get; set; } = 1000;
 
         public string[] AllowableLinkSchemas = ["http", "https"];
         public ProcessorSettings Processors { get; set; } = new ProcessorSettings();

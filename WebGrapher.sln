@@ -55,6 +55,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Setup-Azure.txt = docs\Setup-Azure.txt
 		docs\Setup-Console-Cli.txt = docs\Setup-Console-Cli.txt
 		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
+		docs\Setup-VS.txt = docs\Setup-VS.txt
 		Setup-Worker-Services.txt = Setup-Worker-Services.txt
 	EndProjectSection
 EndProject

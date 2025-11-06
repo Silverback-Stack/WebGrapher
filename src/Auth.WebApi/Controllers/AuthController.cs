@@ -1,9 +1,10 @@
-﻿using Auth.WebApi.Auth.IdentityProviders;
+﻿using System;
+using Auth.WebApi.Auth.IdentityProviders;
 using Auth.WebApi.IdentityProviders;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
@@ -67,6 +68,22 @@ namespace Auth.WebApi.Controllers
                 // Return custom metadata thrown by the provider adapter
                 return Unauthorized(ex.Response);
             }
+        }
+
+        [AllowAnonymous]
+        [HttpPost("refresh")]
+        public IActionResult Refresh()
+        {
+            // This API does not implement refresh tokens because
+            // in production, authentication will be delegated to
+            // AzureAD or Auth0, which handle token refresh automatically
+            // through OAuth 2.0 / OpenID Connect flows.
+
+            return StatusCode(StatusCodes.Status501NotImplemented, new
+            {
+                Message = "Refresh tokens are not implemented. " +
+                          "Use AzureAD or Auth0 to handle token refresh."
+            });
         }
 
         public class LoginRequest

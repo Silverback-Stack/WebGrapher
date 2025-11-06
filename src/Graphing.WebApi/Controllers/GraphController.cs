@@ -72,9 +72,14 @@ namespace Graphing.WebApi.Controllers
             if (existingGraph == null)
                 return NotFound();
 
+            if (string.IsNullOrWhiteSpace(updateGraph.Url))
+            {
+                return BadRequest("URL is required.");
+            }
+
             if (!Uri.TryCreate(updateGraph.Url, UriKind.Absolute, out var validatedUrl))
             {
-                return BadRequest("Invalid URL format.");
+                return BadRequest("URL format is invalid.");
             }
 
             existingGraph.Name = updateGraph.Name;

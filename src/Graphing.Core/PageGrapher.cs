@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.Json;
+﻿using Azure.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
@@ -9,6 +8,8 @@ using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Adapters.SigmaJs;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Text.Json;
 
 namespace Graphing.Core
 {
@@ -147,6 +148,9 @@ namespace Graphing.Core
             try
             {
                 var request = evt.CrawlPageRequest;
+
+                await EnsureDefaultGraphIfNotProvidedAsync(request);
+
                 var webPage = MapToWebPage(evt);
 
                 //Delegate : Called when Node is populated with data
@@ -170,6 +174,37 @@ namespace Graphing.Core
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing GraphPageEvent.");
+            }
+        }
+
+        private async Task EnsureDefaultGraphIfNotProvidedAsync(CrawlPageRequestDto request)
+        {
+            if (request.GraphId == Guid.Empty)
+            {
+                //create default graph if not already exists:
+                var graph = await GetGraphByIdAsync(request.GraphId);
+                if (graph == null)
+                {
+                    graph = await CreateGraphAsync(new GraphOptions
+                    {
+                        Id = request.GraphId,
+                        Name = "Default Graph",
+                        Description = "Automatically created when no graph identifier is provided in the request.",
+                        Url = request.Url,
+                        MaxLinks = request.Options.MaxLinks,
+                        MaxDepth = request.Options.MaxDepth,
+                        ExcludeExternalLinks = request.Options.ExcludeExternalLinks,
+                        ExcludeQueryStrings = request.Options.ExcludeQueryStrings,
+                        UrlMatchRegex = request.Options.UrlMatchRegex,
+                        TitleElementXPath = request.Options.TitleElementXPath,
+                        ContentElementXPath = request.Options.ContentElementXPath,
+                        SummaryElementXPath = request.Options.SummaryElementXPath,
+                        ImageElementXPath = request.Options.ImageElementXPath,
+                        RelatedLinksElementXPath = request.Options.RelatedLinksElementXPath,
+                        UserAgent = request.Options.UserAgent,
+                        UserAccepts = request.Options.UserAccepts
+                    });
+                }
             }
         }
 
