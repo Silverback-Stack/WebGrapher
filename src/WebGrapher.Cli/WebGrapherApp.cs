@@ -104,7 +104,7 @@ namespace WebGrapher.Cli
             var crawlPageRequest = new CrawlPageRequestDto
             {
                 Url = url,
-                GraphId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                GraphId = Guid.Empty, // Use default graph
                 CorrelationId = Guid.NewGuid(),
                 Attempt = 1,
                 Depth = 0,

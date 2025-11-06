@@ -1,5 +1,5 @@
 <template>
-  <nav class="card">
+  <div class="card">
     <header class="card-header">
       <p class="card-header-title is-size-4">
         <span v-if="props.mode === 'create'">New Graph</span>
@@ -36,7 +36,7 @@
         <!-- Only show in crawl/update -->
         <div v-if="props.mode === 'crawl' || props.mode === 'update'">
           <b-field label="Url" class="mb-4">
-            <b-input v-model="form.url" type="url" required></b-input>
+            <b-input v-model="form.url" type="url" required placeholder="https://"></b-input>
           </b-field>
           <b-field label="Max Links">
             <b-slider v-model="form.maxLinks" size="is-large" :min="1" :max="appConfig.crawlMaxLinks"></b-slider>
@@ -158,35 +158,35 @@
               </p>
 
               <!-- If this log is NormalisationSuccess, show preview details -->
-              <div v-if="log.code === 'NormalisationSuccess' && log.context?.Preview"
+              <div v-if="log.code === 'NormalisationSuccess' && log.context?.preview"
                    class="mt-2 pl-4 box">
 
-                <div v-if="log.context.Preview.ImageUrl" class="columns is-mobile">
+                <div v-if="log.context.preview.imageUrl" class="columns is-mobile">
                   <div class="column is-3">
-                    <b-image v-if="log.context.Preview.ImageUrl"
-                             :src="log.context.Preview.ImageUrl"
+                    <b-image v-if="log.context.preview.imageUrl"
+                             :src="log.context.preview.imageUrl"
                              alt="Preview"
                              responsive />
                   </div>
                 </div>
 
                 <h3><strong>Title</strong></h3>
-                <p>{{ log.context.Preview.Title }}</p>
+                <p>{{ log.context.preview.title }}</p>
 
                 <h3 class="mt-3"><strong>Summary</strong></h3>
-                <p>{{ log.context.Preview.Summary }}</p>
+                <p>{{ log.context.preview.summary }}</p>
 
                 <h3 class="mt-3"><strong>Keywords</strong></h3>
-                <p>{{ log.context.Preview.Keywords }}</p>
+                <p>{{ log.context.preview.keywords }}</p>
 
                 <h3 class="mt-3"><strong>Tags</strong></h3>
                 <p>
-                  <span v-for="(tag, idx) in log.context.Preview.Tags" :key="idx">{{ tag }}, </span>
+                  <span v-for="(tag, idx) in log.context.preview.tags" :key="idx">{{ tag }}, </span>
                 </p>
 
                 <h3 class="mt-3"><strong>Links</strong></h3>
                 <ul>
-                  <li v-for="(link, idx) in log.context.Preview.Links" :key="idx">
+                  <li v-for="(link, idx) in log.context.preview.links" :key="idx">
                     <a :href="link" target="_blank">{{ link }}</a>
                   </li>
                 </ul>
@@ -254,13 +254,14 @@
         <span>Back</span>
       </b-button>
     </footer>
-  </nav>
+  </div>
 </template>
 
 <script setup>
   import { ref, reactive, watch, watchEffect, onMounted, computed } from "vue"
   import { useRouter } from "vue-router"
   import axios from "axios"
+  import apiClient from '../apiClient.js'
   import appConfig from "../config/app-config.js"
   import apiConfig from "../config/api-config.js"
 
@@ -327,10 +328,13 @@
 
   // Load existing graph if graphId is provided
   onMounted(async () => {
-    if (!props.graphId) return;
+    if (!props.graphId) {
+      if (!form.url) form.url = "https://";
+      return;
+    }
 
     try {
-      const response = await axios.get(
+      const response = await apiClient.get(
         apiConfig.GRAPH_GET(props.graphId)
       );
       Object.assign(form, response.data);
@@ -338,6 +342,8 @@
       // If we're crawling, override just the URL after properties load
       if (props.mode === "crawl" && props.crawlUrl) {
         form.url = props.crawlUrl;
+      } else if (!form.url) {
+        form.url = "https://";
       }
 
     } catch (err) {
@@ -358,7 +364,7 @@
       let response;
 
       if (props.mode === "create") {
-        response = await axios.post(apiConfig.GRAPH_CREATE, form, {
+        response = await apiClient.post(apiConfig.GRAPH_CREATE, form, {
           headers: { "Content-Type": "application/json" },
         })
 
@@ -372,7 +378,7 @@
         await router.push({ name: "Graph", params: { id: response.data.id } })
 
       } else if (props.mode === "update") {
-        response = await axios.put(apiConfig.GRAPH_UPDATE(props.graphId), form, {
+        response = await apiClient.put(apiConfig.GRAPH_UPDATE(props.graphId), form, {
           headers: { "Content-Type": "application/json" },
         })
 
@@ -383,7 +389,7 @@
 
       } else if (props.mode === "crawl") {
         form.preview = preview
-        response = await axios.post(apiConfig.GRAPH_CRAWL(props.graphId), form, {
+        response = await apiClient.post(apiConfig.GRAPH_CRAWL(props.graphId), form, {
           headers: { "Content-Type": "application/json" },
         })
 
@@ -394,9 +400,18 @@
 
       }
     } catch (err) {
-      console.log("EEROR " + err)
-      if (err.response?.data) {
-        errorMessages.value = extractErrorMessages(err.response.data);
+      console.error("Error submitting form:", err);
+
+      const data = err.response?.data;
+
+      if (data) {
+        // Handle both text and JSON error payloads
+        errorMessages.value = extractErrorMessages(data);
+
+      } else if (err.message) {
+        // Handle network or unexpected errors
+        errorMessages.value = [err.message];
+
       } else {
         errorMessages.value = ["Something went wrong."];
       }
@@ -408,7 +423,7 @@
 
 
   function extractErrorMessages(apiError) {
-    if (!apiError?.errors) return [apiError?.title || "Unknown error"];
+    if (!apiError?.errors) return [apiError?.title || apiError || "Unknown error"];
     return Object.values(apiError.errors).flat();
   }
 

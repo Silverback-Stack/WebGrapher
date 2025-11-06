@@ -4,9 +4,9 @@ import { addOrUpdateNode, addEdge } from "./sigma.js"
 import appConfig from "./config/app-config.js"
 
 // Create Controller
-export async function initSignalRController(graphId, { sigmaGraph, runFA2, hubUrl, activityLogs }) {
+export async function initSignalRController(graphId, { sigmaGraph, runFA2, hubUrl, activityLogs, router }) {
   const status = ref("disconnected")
-  const controller = await setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, onStatus: (s) => (status.value = s), activityLogs })
+  const controller = await setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, onStatus: (s) => (status.value = s), activityLogs, router })
   controller.graphId = graphId
   controller.status = status
   return controller
@@ -16,10 +16,15 @@ export function disposeSignalR(controller) {
   controller?.dispose()
 }
 
-async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval = 2000, onStatus, activityLogs }) {
+async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval = 2000, onStatus, activityLogs, router }) {
   // Build connection
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl(hubUrl)
+    .withUrl(hubUrl, {
+      accessTokenFactory: () => {
+        // Add JWT token from localStorage
+        return localStorage.getItem('jwt') || '';
+      }
+    })
     .withServerTimeout(120000)
     .withAutomaticReconnect([0, 2000, 5000, 10000]) // exponential backoff (ms)
     .configureLogging(signalR.LogLevel.Information)
@@ -38,6 +43,13 @@ async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval
 
   connection.onclose(error => {
     console.error("SignalR connection closed", error)
+
+    if (error && error.statusCode === 401) {
+      // Jwt Token expired or invalid, redirect to login
+      const currentUrl = window.location.href;
+      router.push({ name: 'Login', query: { redirect: currentUrl } });
+    }
+
     if (onStatus) onStatus("closed", error)
   })
 

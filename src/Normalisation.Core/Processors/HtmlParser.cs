@@ -23,19 +23,27 @@ namespace Normalisation.Core.Processors
         /// </summary>
         public string ExtractTitle(string xPathExpression = "")
         {
-            if (!string.IsNullOrWhiteSpace(xPathExpression))
+            try
             {
-                var nodes = GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>();
-                var result = nodes
-                    .Select(n => n.InnerText?.Trim())
-                    .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
-                if (!string.IsNullOrWhiteSpace(result))
-                    return result;
-            }
+                if (!string.IsNullOrWhiteSpace(xPathExpression))
+                {
+                    var nodes = GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>();
+                    var result = nodes
+                        .Select(n => n.InnerText?.Trim())
+                        .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
+                    if (!string.IsNullOrWhiteSpace(result))
+                        return result;
+                }
 
-            // Fallback to <title>
-            var titleNode = _htmlDocument.DocumentNode.SelectSingleNode(_normalisationSettings.Processors.TitleXPath);
-            return titleNode?.InnerText.Trim() ?? string.Empty;
+                // Fallback to <title>
+                var titleNode = _htmlDocument.DocumentNode.SelectSingleNode(_normalisationSettings.Processors.TitleXPath);
+                return titleNode?.InnerText.Trim() ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                // Friendly message for client, include original exception internally
+                throw new NormalisationException("Title Container XPath is invalid; check your expression.", ex);
+            }
         }
 
 
@@ -44,19 +52,28 @@ namespace Normalisation.Core.Processors
         /// Falls back to the document root if no expression is provided.
         /// Returns an empty string if expression is provided but nothing matches.
         /// </summary>
-        public string ExtractContentAsPlainText(string xPathExpression = "")
+        public string ExtractContentAsPlainText(string xPathExpression = "", string containerName = "")
         {
-            var nodes = string.IsNullOrWhiteSpace(xPathExpression)
-                ? GetRoot()
-                : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
+            try
+            {
+                var nodes = string.IsNullOrWhiteSpace(xPathExpression)
+                    ? GetRoot()
+                    : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
 
-            var result = string.Join(" ",
-                nodes
-                    .Select(n => n.InnerText?.Trim())
-                    .Where(t => !string.IsNullOrWhiteSpace(t))
-            ).Trim();
+                var result = string.Join(" ",
+                    nodes
+                        .Select(n => n.InnerText?.Trim())
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                ).Trim();
 
-            return result;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                // Friendly message for client, include original exception internally
+                throw new NormalisationException($"{containerName} XPath is invalid; check your expression.", ex);
+            }
+
         }
 
 
@@ -67,18 +84,26 @@ namespace Normalisation.Core.Processors
         /// </summary>
         public IEnumerable<string> ExtractLinks(string xPathExpression = "")
         {
-            // Normalize to IEnumerable<HtmlNode>
-            var nodes = string.IsNullOrWhiteSpace(xPathExpression)
-                ? GetRoot()
-                : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
+            try
+            {
+                // Normalize to IEnumerable<HtmlNode>
+                var nodes = string.IsNullOrWhiteSpace(xPathExpression)
+                    ? GetRoot()
+                    : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
 
-            var links = nodes
-                .SelectMany(node => node.SelectNodes(_normalisationSettings.Processors.LinksXPath) ?? Enumerable.Empty<HtmlNode>())
-                .Select(tag => WebUtility.HtmlDecode(tag.GetAttributeValue("href", "")))
-                .Where(href => !string.IsNullOrEmpty(href))
-                .ToHashSet();
+                var links = nodes
+                    .SelectMany(node => node.SelectNodes(_normalisationSettings.Processors.LinksXPath) ?? Enumerable.Empty<HtmlNode>())
+                    .Select(tag => WebUtility.HtmlDecode(tag.GetAttributeValue("href", "")))
+                    .Where(href => !string.IsNullOrEmpty(href))
+                    .ToHashSet();
 
-            return links;
+                return links;
+            }
+            catch (Exception ex)
+            {
+                // Friendly message for client, include original exception internally
+                throw new NormalisationException($"Related Links Container XPath is invalid; check your expression.", ex);
+            }
         }
 
 
@@ -87,29 +112,38 @@ namespace Normalisation.Core.Processors
         /// </summary>
         public string ExtractImageUrl(string xPathExpression = "")
         {
-            if (string.IsNullOrEmpty(xPathExpression))
-                return string.Empty;
-
-            var nodes = GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>();
-
-            foreach (var node in nodes)
+            try
             {
-                // Try src
-                var src = node.GetAttributeValue("src", string.Empty);
-                if (!string.IsNullOrEmpty(src))
-                    return src;
+                if (string.IsNullOrEmpty(xPathExpression))
+                    return string.Empty;
 
-                // Try srcset — get first URL
-                var srcset = node.GetAttributeValue("srcset", string.Empty);
-                if (!string.IsNullOrEmpty(srcset))
+                var nodes = GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>();
+
+                foreach (var node in nodes)
                 {
-                    var firstUrl = srcset.Split(',')[0].Trim().Split(' ')[0];
-                    if (!string.IsNullOrEmpty(firstUrl))
-                        return firstUrl;
+                    // Try src
+                    var src = node.GetAttributeValue("src", string.Empty);
+                    if (!string.IsNullOrEmpty(src))
+                        return src;
+
+                    // Try srcset — get first URL
+                    var srcset = node.GetAttributeValue("srcset", string.Empty);
+                    if (!string.IsNullOrEmpty(srcset))
+                    {
+                        var firstUrl = srcset.Split(',')[0].Trim().Split(' ')[0];
+                        if (!string.IsNullOrEmpty(firstUrl))
+                            return firstUrl;
+                    }
                 }
+
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                // Friendly message for client, include original exception internally
+                throw new NormalisationException($"Image Container XPath is invalid; check your expression.", ex);
             }
 
-            return string.Empty;
         }
 
         /// <summary>

@@ -210,7 +210,7 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
         {
             var graph = new Graph
             {
-                Id = Guid.NewGuid(),
+                Id = options.Id ?? Guid.NewGuid(),
                 Name = options.Name,
                 Description = options.Description,
                 Url = options.Url?.AbsoluteUri ?? string.Empty,

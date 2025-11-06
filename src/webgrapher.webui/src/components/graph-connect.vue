@@ -1,5 +1,5 @@
 <template>
-  <nav class="card">
+  <div class="card">
     <header class="card-header">
       <p class="card-header-title is-size-4">Connect to Graph</p>
 
@@ -73,12 +73,16 @@
                              :auto-close="['outside', 'escape']">
                     <template v-slot:content>
                       <b-button type="is-danger" outlined
+                                :loading="deletingGraphs[graph.id]"
+                                :disabled="deletingGraphs[graph.id]"
                                 @click="confirmDeleteGraph(graph)">
-                        <span class="icon"><i class="mdi mdi-alert"></i></span>
-                        <span>Confirm Delete</span>
+                        <span class="icon" v-if="!deletingGraphs[graph.id]"><i class="mdi mdi-alert"></i></span>
+                        <span class="icon" v-else><i class="mdi mdi-loading mdi-spin"></i></span>
+                        <span>{{ deletingGraphs[graph.id] ? 'Deleting...' : 'Confirm Delete' }}</span>
                       </b-button>
                     </template>
-                    <b-button type="is-primary" outlined>
+                    <b-button type="is-primary" outlined
+                              :disabled="deletingGraphs[graph.id]">
                       <span class="icon"><i class="mdi mdi-trash-can-outline"></i></span>
                       <span>Delete</span>
                     </b-button>
@@ -102,11 +106,11 @@
                     :per-page="pageSize"
                     size="is-small" />
     </footer>
-  </nav>
+  </div>
 </template>
 
 <script setup>
-  import { ref, defineProps, defineEmits, watch } from 'vue'
+  import { ref, reactive, defineProps, defineEmits, watch } from 'vue'
   import { useRouter } from 'vue-router'
 
   const props = defineProps({
@@ -120,6 +124,9 @@
   const emit = defineEmits(["connectGraph", "disconnectGraph", "createGraph", 'changePage', 'deleteGraph'])
 
   const localPage = ref(props.page)
+
+  // Track deleting state per graph id
+  const deletingGraphs = reactive({})
 
   // Keep localPage in sync with parent for pager
   watch(() => props.page, val => {
@@ -144,6 +151,8 @@
   }
 
   function confirmDeleteGraph(graph) {
+    if (deletingGraphs[graph.id]) return // prevent double click
+    deletingGraphs[graph.id] = true
     emit("deleteGraph", graph)
   }
 </script>

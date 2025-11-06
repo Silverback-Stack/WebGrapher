@@ -161,7 +161,7 @@ namespace Normalisation.Core
             var htmlDocument = await GetHtmlDocumentAsync(result.BlobId, result.BlobContainer, result.Encoding);
             if (htmlDocument is null)
             {
-                logMessage = $"Normalisation failed. Blob {result.BlobId} could not be found at {result.BlobContainer}";
+                logMessage = $"Normalisation failed: Blob {result.BlobId} could not be found at {result.BlobContainer}";
                 _logger.LogError(logMessage);
 
                 await PublishClientLogEventAsync(
@@ -177,28 +177,80 @@ namespace Normalisation.Core
                 return;
             }
 
-            var htmlParser = new HtmlParser(htmlDocument, _normalisationSettings);
-            var extractedTitle = htmlParser.ExtractTitle(request.Options.TitleElementXPath);
-            var extractedSummary = htmlParser.ExtractContentAsPlainText(request.Options.SummaryElementXPath);
-            var extractedContent = htmlParser.ExtractContentAsPlainText(request.Options.ContentElementXPath);
-            var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent, _normalisationSettings);
-            var extractedLinks = htmlParser.ExtractLinks(request.Options.RelatedLinksElementXPath);
-            var extractedImageUrl = htmlParser.ExtractImageUrl(request.Options.ImageElementXPath);
+            try
+            {
+                var htmlParser = new HtmlParser(htmlDocument, _normalisationSettings);
+                var extractedTitle = htmlParser.ExtractTitle(request.Options.TitleElementXPath);
+                var extractedSummary = htmlParser.ExtractContentAsPlainText(request.Options.SummaryElementXPath, "Summary Container");
+                var extractedContent = htmlParser.ExtractContentAsPlainText(request.Options.ContentElementXPath, "Content Container");
+                var detectedLanguageIso3 = LanguageIdentifier.DetectLanguage(extractedContent, _normalisationSettings);
+                var extractedLinks = htmlParser.ExtractLinks(request.Options.RelatedLinksElementXPath);
+                var extractedImageUrl = htmlParser.ExtractImageUrl(request.Options.ImageElementXPath);
 
-            var normalisedTitle = NormaliseTitle(extractedTitle);
-            var normalisedSummary = NormaliseSummary(extractedSummary);
-            var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
-            var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, _normalisationSettings.MaxKeywordTags);
-            var normalisedLinks = NormaliseLinks(
-                extractedLinks,
-                request.Url,
-                request.Options.ExcludeExternalLinks,
-                request.Options.ExcludeQueryStrings,
-                request.Options.MaxLinks,
-                request.Options.UrlMatchRegex);
-            var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
+                var normalisedTitle = NormaliseTitle(extractedTitle);
+                var normalisedSummary = NormaliseSummary(extractedSummary);
+                var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
+                var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, _normalisationSettings.MaxKeywordTags);
+                var normalisedLinks = NormaliseLinks(
+                    extractedLinks,
+                    request.Url,
+                    request.Options.ExcludeExternalLinks,
+                    request.Options.ExcludeQueryStrings,
+                    request.Options.MaxLinks,
+                    request.Options.UrlMatchRegex);
+                var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
 
-            await PublishGraphEventAsync(evt, normalisedTitle, normalisedSummary, normalisedKeywords, normalisedTags, normalisedLinks, normaliedImageUrl, detectedLanguageIso3);
+                await PublishGraphEventAsync(
+                    evt, 
+                    normalisedTitle, 
+                    normalisedSummary, 
+                    normalisedKeywords, 
+                    normalisedTags, 
+                    normalisedLinks, 
+                    normaliedImageUrl, 
+                    detectedLanguageIso3);
+
+            }
+            catch (NormalisationException ex) // normalisation pipeline exceptions
+            {
+                logMessage = $"Normalisation failed: {ex.Message}"; // Eg: "Title Container XPath is invalid; check your expression."
+
+                // Log full details including inner exception
+                _logger.LogError(ex, logMessage);
+
+                // Send friendly message to client
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Error,
+                    logMessage, 
+                    "NormalisationFailed",
+                    new LogContext
+                    {
+                        Url = request.Url.AbsoluteUri
+                    });
+
+            }
+            catch (Exception ex) // unhandled exceptions
+            {
+                logMessage = $"Normalisation failed: {request.Url}";
+
+                // Log full details
+                _logger.LogError(ex, logMessage);
+
+                // Send friendly message to client
+                await PublishClientLogEventAsync(
+                    request.GraphId,
+                    request.CorrelationId,
+                    LogType.Error,
+                    logMessage,
+                    "NormalisationFailed",
+                    new LogContext { 
+                        Url = request.Url.AbsoluteUri 
+                    }
+                );
+            }
+
         }
 
         private async Task<string?> GetHtmlDocumentAsync(string blobId, string? container, string encoding)
