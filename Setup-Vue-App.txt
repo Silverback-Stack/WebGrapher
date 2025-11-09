@@ -1,0 +1,104 @@
+﻿Publish Vue static app to azure
+===============================
+
+In Visual Studio open Developer PowerShell and navigate to project root:
+
+	cd src
+	cd  webgrapher.webui
+	npm run build
+
+This will build production files to /dist/ folder.
+
+
+From Azure Portal...
+
+Open your Storage Account in the Portal.
+
+In the left sidebar → go to Data Management → Static website.
+
+Click Enable.
+
+Set:
+	Index document: index.html
+	
+	Error document: index.html (important for Vue router)
+
+Click Save.
+Azure automatically creates a container named $web.
+
+
+From the portal Storage account -> Storage Browser -> Blob Containers
+
+Click Upload.
+
+Upload all files from your local dist/ folder (not the folder itself).
+
+
+After upload:
+
+Go back to Data Management -> Static website (in the Storage Account).
+
+Copy the Primary endpoint URL — it will look like:
+
+https://webgrapher.z33.web.core.windows.net/
+
+
+Open that URL — your Vue app is now live!
+
+
+
+API Allowed Origins
+===================
+
+To allow the Vue App to access the API, we need to add the URL to CORS Allowed Origins
+
+Go to Azure Portal -> Container Apps
+
+Select: graphingworkerservice-app
+
+Select Application -> Containers 
+
+Select Environment variables tab
+
+Edit:
+
+  Name: GraphingWebApi__AllowedOrigins
+
+  Source: Manual Entry
+
+  Value: Enter URL of Storage account primary endpoint plus the endpoint with port number (important - cors must match url exactly to work)
+  
+  Example value:
+  
+	https://webgrapher.z33.web.core.windows.net, https://webgrapher.z33.web.core.windows.net:443
+
+Click Save
+
+
+Go to Azure Portal -> Container Apps
+
+Select: streamingworkerservice-app
+
+Select Application -> Containers 
+
+Select Environment variables tab
+
+Edit:
+
+  Name: StreamingWebApi__AllowedOrigins
+
+  Source: Manual Entry
+
+  Value: Enter URL of Storage account primary endpoint plus the endpoint with port number (important - cors must match url exactly to work)
+  
+  Example value:
+  
+	https://webgrapher.z33.web.core.windows.net, https://webgrapher.z33.web.core.windows.net:443
+
+Click Save
+
+
+Restart container apps for settings to take effect. then test API calls can be made from Static view app.
+
+
+

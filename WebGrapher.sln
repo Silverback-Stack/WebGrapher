@@ -56,7 +56,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Setup-Console-Cli.txt = docs\Setup-Console-Cli.txt
 		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
 		docs\Setup-VS.txt = docs\Setup-VS.txt
-		Setup-Worker-Services.txt = Setup-Worker-Services.txt
+		Setup-Vue-App.txt = Setup-Vue-App.txt
+		docs\Setup-Worker-Services.txt = docs\Setup-Worker-Services.txt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Scraper.Tests", "tests\Service.Scraper.Tests\Service.Scraper.Tests.csproj", "{3BC7B8B4-70A9-4105-932A-B4B98BE39D47}"

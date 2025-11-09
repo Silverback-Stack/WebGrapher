@@ -291,13 +291,25 @@ Select Environment variables tab
 
 Click Add:
 
-  Name: WebApi__Host
+  Name: GraphingWebApi__Host
 
   Source: Manual Entry
 
   Value: http://0.0.0.0:8080 (this will start the api on port 8080 which will be mapped to by the public address)
 
 Click Save as new revision
+
+
+Click Add:
+
+  Name: GraphingWebApi__AllowedOrigins
+
+  Source: Manual Entry
+
+  Value: Leave blank (the url of Vue UI server be added here in a later step)
+
+Click Save as new revision
+
 
 Select Overview and Stop and Restart Container App
 
@@ -311,6 +323,7 @@ https://graphingworkerservice-app.ambitioushill-75e11e34.uksouth.azurecontainera
 
 
 
+
 Setup Web-API for Streaming
 ===========================
 
@@ -320,11 +333,37 @@ Under Environment variables:
 
 Click Add:
 
-  Name: Streaming__HostedSignaR__Host
+  Name: Streaming__SignalR__HostedSignalR__Host
 
   Source: Manual Entry
 
   Value: http://0.0.0.0:8080 (this will start the api on port 8080 which will be mapped to by the public address)
+
+Click Save as new revision
+
+
+Click Add:
+
+  Name: StreamingWebApi__Host
+
+  Source: Manual Entry
+
+  Value: http://0.0.0.0:8080 (this will start the api on port 8080 which will be mapped to by the public address)
+
+Click Save as new revision
+
+
+Click Add:
+
+  Name: StreamingWebApi__AllowedOrigins
+
+  Source: Manual Entry
+
+  Value: Leave blank (the url of Vue UI server be added here in a later step)
+
+Click Save as new revision
+
+
 
 Now visit the public Url secure connection:
 

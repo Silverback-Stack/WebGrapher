@@ -31,10 +31,6 @@ a,
   padding: 3px;
 }
 
-.navbar {
-  border-radius: 0 !important;
-}
-
 /* Make inner card content scrollable */
 .scrollable-content {
   max-height: 60vh; /* or whatever fits your modal */

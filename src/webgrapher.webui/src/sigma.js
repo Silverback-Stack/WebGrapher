@@ -30,71 +30,91 @@ export function setupFA2(sigmaGraph) {
   })
 }
 
-// --- Node/Stage highlighting ---
+// --- Node Events ---
 export function setupHighlighting(sigmaGraph, sigmaInstance, runFA2, highlightedNode, openNodeSidebar, nodeSubGraph, graphId) {
   sigmaInstance.on("clickNode", async ({ node }) => {
-
-    // Trigger Node Sidebar
-    if (typeof openNodeSidebar === "function") {
-      const nodeAttributes = sigmaGraph.getNodeAttributes(node)
-
-      //highlight neighbourhood
-      // Outgoing edges
-      const outgoingIds = sigmaGraph.outNeighbors(node)
-      const outgoingEdges = outgoingIds.map(id => {
-        const targetNode = sigmaGraph.getNodeAttributes(id);
-        return {
-          id: id,
-          title: targetNode?.label || id // fallback to URL if no label
-        };
-      });
-      // Incoming edges
-      const incomingIds = sigmaGraph.inNeighbors(node);
-      const incomingEdges = incomingIds.map(id => {
-        const sourceNode = sigmaGraph.getNodeAttributes(id);
-        return {
-          id: id,
-          title: sourceNode?.label || id
-        };
-      });
-
-      const nodeData = {
-        ...nodeAttributes,
-        id: node,
-        outgoingEdges,
-        incomingEdges
-      }
-
-      openNodeSidebar(nodeData)
-    }
-
-    if (highlightedNode.value === node) return
-
-    if (highlightedNode.value) resetHighlightNodeNeighborhood(sigmaGraph, sigmaInstance)
-
-    highlightedNode.value = node
-
-    highlightNodeNeighborhood(sigmaGraph, sigmaInstance, node)
-
-    runFA2(appConfig.fa2DurationFast_MS)
-
-    // --- fetch subgraph for clicked node ---
-    if (typeof nodeSubGraph === "function" && graphId.value) {
-      try {
-        await nodeSubGraph(graphId, node, sigmaGraph, runFA2)
-      } catch (err) {
-        console.error(`Failed to fetch subgraph for node ${node}:`, err)
-      }
-    }
+    await nodeClickHandler({
+      nodeId: node,
+      sigmaGraph,
+      sigmaInstance,
+      runFA2,
+      highlightedNode,
+      openNodeSidebar,
+      nodeSubGraph,
+      graphId,
+      panTo,
+      fa2Duration: appConfig.fa2DurationFast_MS
+    })
   })
 
+  //Click Stage Handler
   sigmaInstance.on("clickStage", () => {
-    if (highlightedNode.value) {
-      resetHighlightNodeNeighborhood(sigmaGraph, sigmaInstance)
-      highlightedNode.value = null
-    }
+    stageClickHandler(sigmaGraph, sigmaInstance, highlightedNode)
   })
 }
+
+
+// Node Click Handler - fires when a node is clicked
+export async function nodeClickHandler({
+  nodeId,
+  sigmaGraph,
+  sigmaInstance,
+  runFA2,
+  highlightedNode,
+  openNodeSidebar,
+  nodeSubGraph,
+  graphId,
+  panTo,
+  fa2Duration = appConfig.fa2DurationFast_MS
+}) {
+  if (!sigmaGraph?.hasNode(nodeId) || !sigmaInstance) return;
+
+  // Skip if node is already highlighted 
+  if (highlightedNode.value === nodeId) return
+
+  // Highlight node
+  highlightNode(sigmaGraph, sigmaInstance, runFA2, highlightedNode, nodeId, panTo, fa2Duration);
+
+  // Open sidebar if available
+  if (typeof openNodeSidebar === "function") {
+    const nodeData = getNodeAndNeighbors(sigmaGraph, nodeId);
+    openNodeSidebar(nodeData);
+  }
+
+  // Fetch node subgraph and populate graph
+  await getNodeSubgraph(graphId, nodeId, sigmaGraph, runFA2, nodeSubGraph);
+}
+
+
+// Stage Click Handler - fires when the stage is clicked
+export function stageClickHandler(sigmaGraph, sigmaInstance, highlightedNode) {
+  if (highlightedNode.value) {
+    restoreNodeNeighborhood(sigmaGraph, sigmaInstance)
+    highlightedNode.value = null
+  }
+}
+
+
+
+
+
+
+
+
+
+// Gets node subgraph data from data store
+export async function getNodeSubgraph(graphId, nodeId, sigmaGraph, runFA2, nodeSubGraph) {
+  if (typeof nodeSubGraph === "function" && graphId?.value) {
+    try {
+      await nodeSubGraph(graphId, nodeId, sigmaGraph, runFA2);
+    } catch (err) {
+      console.error(`Failed to fetch subgraph for node ${nodeId}:`, err);
+    }
+  }
+}
+
+
+
 
 // --- Node sizing ---
 // Dynamically adjusts node size based on incoming/outgoing edges
@@ -117,6 +137,7 @@ export function setupNodeSizing(sigmaGraph, sigmaInstance) {
   sigmaGraph.on("edgeAdded", ({ target }) => updateNodeSize(target))
   sigmaGraph.on("edgeDropped", ({ target }) => updateNodeSize(target))
 }
+
 
 // --- Reducer (image/circle switch by zoom) ---
 export function setupReducer(sigmaGraph, sigmaInstance, highlightedNodeRef) {
@@ -141,6 +162,31 @@ export function setupReducer(sigmaGraph, sigmaInstance, highlightedNodeRef) {
 
 
 // --- Graph utils ---
+// Gets the Nodes data including incoming an outgoing neighbors from graph
+export function getNodeAndNeighbors(sigmaGraph, nodeId) {
+  if (!sigmaGraph.hasNode(nodeId)) return null
+
+  const nodeAttributes = sigmaGraph.getNodeAttributes(nodeId);
+
+  const outgoingEdges = sigmaGraph.outNeighbors(nodeId).map(id => {
+    const targetNode = sigmaGraph.getNodeAttributes(id)
+    return { id, title: targetNode?.label || id }
+  });
+
+  const incomingEdges = sigmaGraph.inNeighbors(nodeId).map(id => {
+    const sourceNode = sigmaGraph.getNodeAttributes(id)
+    return { id, title: sourceNode?.label || id }
+  })
+
+  return {
+    ...nodeAttributes,
+    id: nodeId,
+    outgoingEdges,
+    incomingEdges,
+  }
+}
+
+
 export function addOrUpdateNode(sigmaGraph, n) {
   const pos = getRandomPosition(100);
   if (sigmaGraph.hasNode(n.id)) {
@@ -192,83 +238,6 @@ export function addEdge(sigmaGraph, e) {
 }
 
 
-// Highlights the given node and its neighbors by:
-// - Enlarging and emphasizing the selected node
-// - Highlighting its direct neighbors
-// - Visually de-emphasizing unrelated nodes (shrinking them and removing images)
-// - Updating edges so that only those within the neighborhood are emphasized
-export function highlightNodeNeighborhood(sigmaGraph, sigmaInstance, selectedNode) {
-  const neighbors = new Set(sigmaGraph.neighbors(selectedNode));
-  neighbors.add(selectedNode);
-
-  // Update nodes
-  sigmaGraph.forEachNode(n => {
-    const isNeighbor = neighbors.has(n);
-
-    sigmaGraph.updateNodeAttributes(n, oldAttr => {
-      // Use dynamic base size for scaling
-      const baseSize = oldAttr._baseSize ?? oldAttr.size;
-
-      let newSize;
-      if (n === selectedNode) {
-        newSize = baseSize * appConfig.nodeSizeSelectedRatio // enlarge selected node
-      } else if (isNeighbor) {
-        newSize = baseSize;                    // keep neighbor size
-      } else {
-        newSize = appConfig.minNodeSize        // shrink non-neighbors
-      }
-
-      return {
-        ...oldAttr,
-        size: newSize,
-        type: isNeighbor ? "image" : "circle",
-        color: isNeighbor ? appConfig.nodeSelectedColor : appConfig.nodeColor
-      }
-    })
-  })
-
-  // Update edges
-  sigmaGraph.forEachEdge((edge, attr, source, target) => {
-    const isConnected = neighbors.has(source) && neighbors.has(target);
-    sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
-      ...oldAttr,
-      color: isConnected ? appConfig.nodeSelectedEdgeColor : appConfig.nodeEdgeColor,
-      size: isConnected ? appConfig.nodeEdgeSelectedSize : appConfig.nodeEdgeSize
-    }))
-  })
-
-  sigmaInstance.refresh();
-}
-
-
-// Restores all nodes and edges to their default
-// visual state, removing any highlighting applied
-// by highlightNodeNeighborhood.
-export function resetHighlightNodeNeighborhood(sigmaGraph, sigmaInstance) {
-  // Reset all nodes to default image type, color, and original size
-  sigmaGraph.forEachNode(n => {
-    sigmaGraph.updateNodeAttributes(n, oldAttr => {
-      return {
-        ...oldAttr,
-        type: "image",
-        size: oldAttr._baseSize,  // restore to dynamic base size
-        color: appConfig.nodeColor
-      };
-    });
-  });
-
-  // Reset all edges to default color and size
-  sigmaGraph.forEachEdge((edge, attr) => {
-    sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
-      ...oldAttr,
-      color: appConfig.nodeEdgeColor,
-      size: 1
-    }));
-  });
-
-  sigmaInstance.refresh();
-}
-
 // Pan/zoom Sigma camera to a node or the center of the graph.
 export function panTo(sigmaGraph, sigmaInstance, node = null, options = {}) {
   const {
@@ -310,12 +279,14 @@ export function panTo(sigmaGraph, sigmaInstance, node = null, options = {}) {
   );
 }
 
+
 function getRandomPosition(maxRange = 100) {
   return {
     x: (Math.random() * 2 - 1) * maxRange,
     y: (Math.random() * 2 - 1) * maxRange
   }
 }
+
 
 function calculateNodeSize(incoming, outgoing) {
   const minNodeSize = appConfig.minNodeSize
@@ -326,4 +297,134 @@ function calculateNodeSize(incoming, outgoing) {
     minNodeSize +
     (Math.log10(total + 1) * (maxNodeSize - minNodeSize)) / Math.log10(1000)
   )
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// --- Focus & Highlight Node ---
+// Highlights a node and pans the camera to it.
+export function highlightNode(
+  sigmaGraph,
+  sigmaInstance,
+  runFA2,
+  highlightedNode,
+  nodeId,
+  panTo,
+  duration = appConfig.fa2DurationSlow_MS
+) {
+  if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
+
+  const nodeAttr = sigmaGraph.getNodeAttributes(nodeId)
+
+  // Reset any previous highlight
+  if (highlightedNode.value) {
+    restoreNodeNeighborhood(sigmaGraph, sigmaInstance)
+  }
+
+  // Highlight the selected node and its neighborhood
+  highlightedNode.value = nodeId
+  highlightNodeNeighborhood(sigmaGraph, sigmaInstance, nodeId)
+
+  // Run layout for smoother transition
+  runFA2(duration)
+
+  // Pan camera to node
+  panTo(sigmaGraph, sigmaInstance, nodeAttr)
+}
+
+
+// Highlights the given node and its neighbors by:
+// - Enlarging and emphasizing the selected node
+// - Highlighting its direct neighbors
+// - Visually de-emphasizing unrelated nodes (shrinking them and removing images)
+// - Updating edges so that only those within the neighborhood are emphasized
+export function highlightNodeNeighborhood(sigmaGraph, sigmaInstance, nodeId) {
+  const neighbors = new Set(sigmaGraph.neighbors(nodeId));
+  neighbors.add(nodeId);
+
+  // Update nodes
+  sigmaGraph.forEachNode(n => {
+    const isNeighbor = neighbors.has(n);
+
+    sigmaGraph.updateNodeAttributes(n, oldAttr => {
+      // Use dynamic base size for scaling
+      const baseSize = oldAttr._baseSize ?? oldAttr.size;
+
+      let newSize;
+      if (n === nodeId) {
+        newSize = baseSize * appConfig.nodeSizeSelectedRatio // enlarge selected node
+      } else if (isNeighbor) {
+        newSize = baseSize;                    // keep neighbor size
+      } else {
+        newSize = appConfig.minNodeSize        // shrink non-neighbors
+      }
+
+      return {
+        ...oldAttr,
+        size: newSize,
+        type: isNeighbor ? "image" : "circle",
+        color: isNeighbor ? appConfig.nodeSelectedColor : appConfig.nodeColor
+      }
+    })
+  })
+
+  // Update edges
+  sigmaGraph.forEachEdge((edge, attr, source, target) => {
+    const isConnected = neighbors.has(source) && neighbors.has(target);
+    sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
+      ...oldAttr,
+      color: isConnected ? appConfig.nodeSelectedEdgeColor : appConfig.nodeEdgeColor,
+      size: isConnected ? appConfig.nodeEdgeSelectedSize : appConfig.nodeEdgeSize
+    }))
+  })
+
+  sigmaInstance.refresh();
+}
+
+
+// Restores all nodes and edges to their default visual state,
+// removing any highlighting applied by to neighbors.
+export function restoreNodeNeighborhood(sigmaGraph, sigmaInstance) {
+  // Reset all nodes to default image type, color, and original size
+  sigmaGraph.forEachNode(n => {
+    sigmaGraph.updateNodeAttributes(n, oldAttr => {
+      return {
+        ...oldAttr,
+        type: "image",
+        size: oldAttr._baseSize,  // restore to dynamic base size
+        color: appConfig.nodeColor
+      };
+    });
+  });
+
+  // Reset all edges to default color and size
+  sigmaGraph.forEachEdge((edge, attr) => {
+    sigmaGraph.updateEdgeAttributes(edge, oldAttr => ({
+      ...oldAttr,
+      color: appConfig.nodeEdgeColor,
+      size: 1
+    }));
+  });
+
+  sigmaInstance.refresh();
 }

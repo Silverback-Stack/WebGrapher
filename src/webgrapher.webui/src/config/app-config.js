@@ -6,7 +6,7 @@ export default {
 
   //Crawl
   crawlMaxLinks: 200,
-  crawlMaxDepth: 3,
+  crawlMaxDepth: 6,
 
   //SubGraph Requests
   subGraphThrottle_MS: 10_000, //10 Seconds

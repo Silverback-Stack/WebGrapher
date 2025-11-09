@@ -281,7 +281,6 @@ namespace Normalisation.Core
             if (text == null) return string.Empty;
 
             text = TextNormaliser.DecodeHtml(text);
-            text = TextNormaliser.RemoveSpecialCharacters(text);
             text = TextNormaliser.CollapseWhitespace(text);
             text = TextNormaliser.Truncate(text, _normalisationSettings.MaxTitleLength);
 

@@ -116,7 +116,7 @@
     background-color: rgba(236, 240, 241, .9);
     border-left: 1px solid #ddd;
     box-shadow: 2px 0 6px rgba(0,0,0,0.2);
-    z-index: 1000; /* above graph but under modal */
+    z-index: 1000; /* above graph but under navbar and modals */
     display: flex;
     flex-direction: column;
     overflow: hidden;

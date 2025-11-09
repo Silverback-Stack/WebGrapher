@@ -116,7 +116,7 @@ namespace Streaming.WorkerService
                     webHost = BuildKestrelHost(streamingSettings, streamingWebApiSettings, authSettings);
                     await webHost.StartAsync();
                     hubContext = webHost.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();
-                    hubUrl = $"{streamingSettings.SignalR.HostedSignaR.Host}{streamingSettings.HubPath}";
+                    hubUrl = $"{streamingSettings.SignalR.HostedSignalR.Host}{streamingSettings.HubPath}";
                     break;
 
                 case StreamingProvider.AzureSignalRServerless:
@@ -141,7 +141,7 @@ namespace Streaming.WorkerService
         {
             return new WebHostBuilder()
                 .UseKestrel()
-                .UseUrls(streamingSettings.SignalR.HostedSignaR.Host)
+                .UseUrls(streamingSettings.SignalR.HostedSignalR.Host)
                 .ConfigureServices(services =>
                 {
                     services.AddStreamingWebApi(streamingSettings, streamingWebApiSettings, authSettings);

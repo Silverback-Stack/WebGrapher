@@ -70,29 +70,34 @@
   </header>
 </template>
 
-<style scoped>
+<style>
+  .navbar {
+    border-radius: 0 !important;
+    z-index: 2000 !important; /* position above graph and side bars but under modal */
+  }
+
+  .navbar .navbar-dropdown {
+    box-shadow: 0 8px 8px rgba(10, 10, 10, .1) !important;
+    /* alight menu to right */
+    right: 0 !important;
+    left: auto !important;
+  }
+
+  /* Restore background color of menu items */
+  .navbar .navbar-dropdown .navbar-item {
+    background-color: inherit !important;
+  }
+
   /*
-    Override bulmaswatch/flatly styles back to defaults
-    THis prevent text from dissapearing/colour
+    Override bulmaswatch/flatly styles back to defaults - prevents text from dissapearing/colour on smaller screens
   */
   .navbar-brand .navbar-item {
     color: inherit !important;
   }
 
   /* Restore square corners of navbar menu */
-  :deep(.navbar .navbar-menu) {
+  .navbar .navbar-menu {
     border-radius: inherit !important;
-  }
-
-  /* Restore background color of menu items */
-  .navbar-dropdown .navbar-item {
-    background-color: inherit !important;
-  }
-
-  /* apply this CSS to matching elements inside or outside this component, ignoring the scoped attribute */
-  :deep(.navbar-dropdown) {
-    right: 0 !important;
-    left: auto !important;
   }
 </style>
 
