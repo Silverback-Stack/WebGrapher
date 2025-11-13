@@ -181,15 +181,19 @@ namespace Graphing.Core
         {
             if (request.GraphId == Guid.Empty)
             {
+                //Default graph doesnt have an owner can be accessed by any user
+                var userId = string.Empty; 
+
                 //create default graph if not already exists:
-                var graph = await GetGraphByIdAsync(request.GraphId);
+                var graph = await GetGraphByIdAsync(request.GraphId, userId);
                 if (graph == null)
                 {
                     graph = await CreateGraphAsync(new GraphOptions
                     {
                         Id = request.GraphId,
+                        UserId = userId,
                         Name = "Default Graph",
-                        Description = "Automatically created when no graph identifier is provided in the request.",
+                        Description = "Default Graph automatically created when no graph identifier is provided in the request. The Default graph and can be accessed by all users.",
                         Url = request.Url,
                         MaxLinks = request.Options.MaxLinks,
                         MaxDepth = request.Options.MaxDepth,
@@ -231,9 +235,9 @@ namespace Graphing.Core
             };
         }
 
-        public async Task<Graph?> GetGraphByIdAsync(Guid graphId)
+        public async Task<Graph?> GetGraphByIdAsync(Guid graphId, string userId)
         {
-            return await _webGraph.GetGraphAsync(graphId);
+            return await _webGraph.GetGraphAsync(graphId, userId);
         }
 
         public async Task<Graph?> CreateGraphAsync(GraphOptions options)
@@ -241,20 +245,22 @@ namespace Graphing.Core
             return await _webGraph.CreateGraphAsync(options);
         }
 
-        public async Task<Graph?> UpdateGraphAsync(Graph graph)
+        public async Task<Graph?> UpdateGraphAsync(Graph graph, string userId)
         {
-            return await _webGraph.UpdateGraphAsync(graph);
+            return await _webGraph.UpdateGraphAsync(graph, userId);
         }
 
-        public async Task<Graph?> DeleteGraphAsync(Guid graphId)
+        public async Task<Graph?> DeleteGraphAsync(Guid graphId, string userId)
         {
-            return await _webGraph.DeleteGraphAsync(graphId);
+            return await _webGraph.DeleteGraphAsync(graphId, userId);
         }
 
-        public async Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize)
+        public async Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId)
         {
-            return await _webGraph.ListGraphsAsync(page, pageSize);
+            return await _webGraph.ListGraphsAsync(page, pageSize, userId);
         }
+
+
 
         public async Task<CrawlPageRequestDto> CrawlPageAsync(Guid graphId, GraphOptions options)
         {
@@ -290,7 +296,7 @@ namespace Graphing.Core
             return crawlPageRequest;
         }
 
-        public async Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
+        public async Task<SigmaGraphPayloadDto> PopulateClientGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
         {
             //Clamp values
             maxDepth = Math.Clamp(maxDepth, 0, _graphingSettings.MaxRequestDepthLimit);

@@ -42,7 +42,8 @@ namespace Normalisation.Core
             LogType type,
             string message,
             string? code = null,
-            Object? context = null)
+            Object? context = null //when using a dynamic object type we need to add hints to the strongly typed classes so that .net 9 serialized property names in camelCase
+            )
         {
             var clientLogEvent = new ClientLogEvent
             {

@@ -52,11 +52,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Node_Redirects.txt = docs\Node_Redirects.txt
 		docs\Priority_Queue_Concepts.txt = docs\Priority_Queue_Concepts.txt
 		docs\README.md = docs\README.md
+		docs\Setup-Auth-AzureAD.txt = docs\Setup-Auth-AzureAD.txt
+		docs\Setup-Auth-Auth0.txt = docs\Setup-Auth-Auth0.txt
 		docs\Setup-Azure.txt = docs\Setup-Azure.txt
 		docs\Setup-Console-Cli.txt = docs\Setup-Console-Cli.txt
+		docs\Setup-Static-Web-App.txt = docs\Setup-Static-Web-App.txt
 		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
 		docs\Setup-VS.txt = docs\Setup-VS.txt
-		Setup-Vue-App.txt = Setup-Vue-App.txt
 		docs\Setup-Worker-Services.txt = docs\Setup-Worker-Services.txt
 	EndProjectSection
 EndProject

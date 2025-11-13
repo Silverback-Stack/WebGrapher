@@ -43,10 +43,15 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             }
         }
 
-        public async Task<IEnumerable<dynamic>> ListGraphVerticesAsync(int start, int end)
+        public async Task<IEnumerable<dynamic>> ListGraphVerticesAsync(int start, int end, string userId = "")
         {
             var query = @"
                 g.V().hasLabel('graph')
+                .where(
+                    __.values('userId').is(userId)
+                    .or()
+                    .values('userId').is('')
+                 )
                  .order().by('createdAt', incr)
                  .range(start, end)
             ";
@@ -54,7 +59,8 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             var parameters = new Dictionary<string, object>
             {
                 ["start"] = start,
-                ["end"] = end
+                ["end"] = end,
+                ["userId"] = userId
             };
 
             try
@@ -97,6 +103,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 g.addV('graph')
                  .property('id', id)
                  .property('graphId', graphId)
+                 .property('userId', userId)
                  .property('name', name)
                  .property('description', description)
                  .property('url', url)
@@ -119,6 +126,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             {
                 ["id"] = graph.Id.ToString(),
                 ["graphId"] = graph.Id.ToString(),
+                ["userId"] = graph.UserId,
                 ["name"] = graph.Name,
                 ["description"] = graph.Description,
                 ["url"] = graph.Url,

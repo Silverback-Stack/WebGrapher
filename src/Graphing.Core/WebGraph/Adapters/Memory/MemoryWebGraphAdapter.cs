@@ -14,6 +14,116 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
         public MemoryWebGraphAdapter(ILogger logger, GraphingSettings graphingSettings) 
             : base(logger, graphingSettings) { }
 
+
+        //Graph Operations
+
+        public override Task<Graph?> GetGraphAsync(Guid graphId, string userId)
+        {
+            _graphTable.TryGetValue(graphId, out var graph);
+
+            if (graph == null)
+                return Task.FromResult<Graph?>(null);
+
+            // check userId is assigned but doesnt match
+            if (graph.UserId != string.Empty && graph.UserId != userId)
+                return Task.FromResult<Graph?>(null);
+
+            return Task.FromResult<Graph?>(graph);
+        }
+
+        public override Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 1;
+
+            // fetch graphs by userId & include unassiged user graphs
+            var filtered = _graphTable.Values
+                .Where(g => g.UserId == userId || string.IsNullOrEmpty(g.UserId));
+
+            var items = filtered
+                .Where(g => g.UserId == userId || g.UserId == string.Empty)
+                .OrderBy(g => g.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var result = new PagedResult<Graph>(
+                items,
+                filtered.Count(),
+                page,
+                pageSize);
+
+            return Task.FromResult(result);
+        }
+
+
+        public override Task<Graph> CreateGraphAsync(GraphOptions options)
+        {
+            var graph = new Graph
+            {
+                Id = options.Id ?? Guid.NewGuid(),
+                UserId = options.UserId,
+                Name = options.Name,
+                Description = options.Description,
+                Url = options.Url?.AbsoluteUri ?? string.Empty,
+                MaxDepth = options.MaxDepth,
+                MaxLinks = options.MaxLinks,
+                ExcludeExternalLinks = options.ExcludeExternalLinks,
+                ExcludeQueryStrings = options.ExcludeQueryStrings,
+                UrlMatchRegex = options.UrlMatchRegex,
+                TitleElementXPath = options.TitleElementXPath,
+                ContentElementXPath = options.ContentElementXPath,
+                SummaryElementXPath = options.SummaryElementXPath,
+                ImageElementXPath = options.ImageElementXPath,
+                RelatedLinksElementXPath = options.RelatedLinksElementXPath,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UserAgent = options.UserAgent,
+                UserAccepts = options.UserAccepts
+            };
+
+            // Save into Graph “table”
+            _graphTable[graph.Id] = graph;
+
+            // Initialise node storage for this graph
+            _nodeTable[graph.Id] = new Dictionary<string, Node>();
+
+            return Task.FromResult(graph);
+        }
+
+
+        public override Task<Graph> UpdateGraphAsync(Graph graph, string userId)
+        {
+            var existingGraph = GetGraphAsync(graph.Id, userId);
+
+            if (existingGraph == null)
+                throw new KeyNotFoundException($"Graph {graph.Id} not found.");
+
+            _graphTable[graph.Id] = graph;
+
+            return Task.FromResult(graph);
+        }
+
+
+        public override Task<Graph?> DeleteGraphAsync(Guid graphId, string userId)
+        {
+            var existingGraph = GetGraphAsync(graphId, userId).Result;
+
+            if (existingGraph == null)
+                return Task.FromResult<Graph?>(null);
+
+            // Remove graph metadata
+            _graphTable.Remove(graphId);
+
+            // Remove associated nodes (cascade delete)
+            _nodeTable.Remove(graphId);
+
+            return Task.FromResult<Graph?>(existingGraph);
+        }
+
+
+        // Node Operations
+
+
         public async override Task<Node?> GetNodeAsync(Guid graphId, string url)
         {
             if (_nodeTable.TryGetValue(graphId, out var nodes))
@@ -81,13 +191,6 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
             return Task.CompletedTask;
         }
 
-        protected override Task<int> GetPopularityScoreAsync(Guid graphId, Node node)
-        {
-            // Simple metric: sum of incoming + outgoing links
-            var score = node.IncomingLinks.Count + node.OutgoingLinks.Count;
-            return Task.FromResult(score);
-        }
-
         public async override Task CleanupOrphanedNodesAsync(Guid graphId)
         {
             if (!_nodeTable.TryGetValue(graphId, out var nodes))
@@ -127,6 +230,14 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
         }
 
 
+        protected override Task<int> GetPopularityScoreAsync(Guid graphId, Node node)
+        {
+            // Simple metric: sum of incoming + outgoing links
+            var score = node.IncomingLinks.Count + node.OutgoingLinks.Count;
+            return Task.FromResult(score);
+        }
+
+
         public override Task<IEnumerable<Node>> GetInitialGraphNodes(Guid graphId, int topN)
         {
             if (!_nodeTable.TryGetValue(graphId, out var nodes))
@@ -142,6 +253,7 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
             return Task.FromResult<IEnumerable<Node>>(popularNodes);
         }
 
+
         public override async Task<long> TotalPopulatedNodesAsync(Guid graphId)
         {
             if (_nodeTable.TryGetValue(graphId, out var nodes))
@@ -152,8 +264,6 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
 
             return await Task.FromResult(0);
         }
-
-
 
 
         public override async Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null)
@@ -196,93 +306,6 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
             }
 
             return await Task.FromResult(result);
-        }
-
-
-        public override Task<Graph?> GetGraphAsync(Guid graphId)
-        {
-            _graphTable.TryGetValue(graphId, out var graph);
-
-            return Task.FromResult(graph);
-        }
-
-        public override Task<Graph> CreateGraphAsync(GraphOptions options)
-        {
-            var graph = new Graph
-            {
-                Id = options.Id ?? Guid.NewGuid(),
-                Name = options.Name,
-                Description = options.Description,
-                Url = options.Url?.AbsoluteUri ?? string.Empty,
-                MaxDepth = options.MaxDepth,
-                MaxLinks = options.MaxLinks,
-                ExcludeExternalLinks = options.ExcludeExternalLinks,
-                ExcludeQueryStrings = options.ExcludeQueryStrings,
-                UrlMatchRegex = options.UrlMatchRegex,
-                TitleElementXPath = options.TitleElementXPath,
-                ContentElementXPath = options.ContentElementXPath,
-                SummaryElementXPath = options.SummaryElementXPath,
-                ImageElementXPath = options.ImageElementXPath,
-                RelatedLinksElementXPath = options.RelatedLinksElementXPath,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UserAgent = options.UserAgent,
-                UserAccepts = options.UserAccepts
-            };
-
-            // Save into Graph “table”
-            _graphTable[graph.Id] = graph;
-
-            // Initialise node storage for this graph
-            _nodeTable[graph.Id] = new Dictionary<string, Node>();
-
-            return Task.FromResult(graph);
-        }
-
-        public override Task<Graph> UpdateGraphAsync(Graph graph)
-        {
-            if (!_graphTable.ContainsKey(graph.Id))
-                throw new KeyNotFoundException($"Graph {graph.Id} not found.");
-
-            _graphTable[graph.Id] = graph;
-
-            return Task.FromResult(graph);
-        }
-
-        public override Task<Graph?> DeleteGraphAsync(Guid graphId)
-        {
-            // Try get the graph before removal
-            if (!_graphTable.TryGetValue(graphId, out var graph))
-            {
-                return Task.FromResult<Graph?>(null);
-            }
-
-            // Remove graph metadata
-            _graphTable.Remove(graphId);
-
-            // Remove associated nodes (cascade delete)
-            _nodeTable.Remove(graphId);
-
-            return Task.FromResult<Graph?>(graph);
-        }
-
-        public override Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize)
-        {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 1;
-
-            var items = _graphTable.Values
-                .OrderBy(g => g.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var result = new PagedResult<Graph>(
-                items,
-                _graphTable.Count,
-                page,
-                pageSize);
-
-            return Task.FromResult(result);
         }
 
 

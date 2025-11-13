@@ -30,12 +30,24 @@ namespace Auth.WebApi.Auth.IdentityProviders.Auth0
             return Task.FromResult<IEnumerable<Claim>>(claims);
         }
 
+        public string GetUserId(ClaimsPrincipal user)
+        {
+            // Auth0 uses "sub" for the stable user ID
+            var userId = user.FindFirst("sub")?.Value;
+
+            if (userId == null)
+                throw new InvalidOperationException("UserId claim is missing from the token.");
+
+            return userId;
+        }
+
         public UnauthorizedResponse GetUnauthorizedResponse()
         {
             return new UnauthorizedResponse
             {
                 IdentityProvider = _authSettings.IdentityProvider.ProviderType.ToString(),
                 LoginUrl = _authSettings.IdentityProvider.Auth0.LoginUrl,
+                LogoutUrl = _authSettings.IdentityProvider.Auth0.LogoutUrl,
                 Message = "Unauthorized. Login to authenticate."
             };
         }

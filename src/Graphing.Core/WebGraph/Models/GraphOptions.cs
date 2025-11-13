@@ -11,6 +11,7 @@ namespace Graphing.Core.WebGraph.Models
         public const string DEFAULT_USER_ACCEPTS = "text/html,text/plain";
 
         public Guid? Id { get; set; } = null;
+        public string UserId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public Uri? Url { get; set; } = null;

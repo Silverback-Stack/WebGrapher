@@ -17,6 +17,12 @@ namespace Auth.WebApi
         {
             ConfigureAuthentication(services, authSettings);
 
+            // Needed for accessing HttpContext.User
+            services.AddHttpContextAccessor();
+
+            // Register UserContext as scoped
+            services.AddScoped<UserContext>();
+
             //Add Auth Controllers
             services.AddControllers()
                 .AddApplicationPart(typeof(AuthController).Assembly);

@@ -4,23 +4,23 @@ namespace Graphing.Core.WebGraph
 {
     public interface IWebGraph
     {
+        Task<Graph?> GetGraphAsync(Guid graphId, string userId);
+
+        Task<Graph> CreateGraphAsync(GraphOptions options);
+
+        Task<Graph> UpdateGraphAsync(Graph graph, string userId);
+
+        Task<Graph?> DeleteGraphAsync(Guid graphId, string userId);
+
+        Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId);
+
+
         Task AddWebPageAsync(
             WebPageItem webPage, 
             bool forceRefresh,
             Func<Node, Task> nodePopulatedCallback, 
             Func<Node, Task> linkDiscoveredCallback,
             NodeEdgesUpdateMode linkUpdateMode = NodeEdgesUpdateMode.Append);
-
-        Task<Graph?> GetGraphAsync(Guid graphId);
-
-        Task<Graph> CreateGraphAsync(GraphOptions options);
-
-        Task<Graph> UpdateGraphAsync(Graph graph);
-
-        Task<Graph?> DeleteGraphAsync(Guid graphId);
-
-
-        Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize);
 
         Task<Node?> GetNodeAsync(Guid graphId, string url);
 

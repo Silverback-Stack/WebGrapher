@@ -149,6 +149,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             return new Graph
             {
                 Id = Guid.Parse(vertex["id"].ToString()),
+                UserId = GetPropString(props, "userId") ?? string.Empty,
                 Name = GetPropString(props, "name") ?? string.Empty,
                 Description = GetPropString(props, "description") ?? string.Empty,
                 Url = GetPropString(props, "url") ?? string.Empty,

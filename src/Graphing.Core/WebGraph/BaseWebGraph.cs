@@ -263,15 +263,15 @@ namespace Graphing.Core.WebGraph
 
 
         //Graph Abstrations
-        public abstract Task<Graph?> GetGraphAsync(Guid graphId);
+        public abstract Task<Graph?> GetGraphAsync(Guid graphId, string userId);
 
-        public abstract Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize);
+        public abstract Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId);
 
         public abstract Task<Graph> CreateGraphAsync(GraphOptions options);
 
-        public abstract Task<Graph> UpdateGraphAsync(Graph graph);
+        public abstract Task<Graph> UpdateGraphAsync(Graph graph, string userId);
 
-        public abstract Task<Graph?> DeleteGraphAsync(Guid graphId);
+        public abstract Task<Graph?> DeleteGraphAsync(Guid graphId, string userId);
 
 
         //Node Abstractions
