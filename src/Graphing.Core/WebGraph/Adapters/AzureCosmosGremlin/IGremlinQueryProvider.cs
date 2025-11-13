@@ -7,7 +7,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
     {
         // Graph queries
         Task<dynamic?> GetGraphVertexAsync(Guid graphId);
-        Task<IEnumerable<dynamic>> ListGraphVerticesAsync(int start, int end);
+        Task<IEnumerable<dynamic>> ListGraphVerticesAsync(int start, int end, string userId = "");
         Task<int> CountGraphVerticesAsync();
         Task<dynamic?> CreateGraphVertexAsync(Graph graph);
         Task UpdateGraphVertexAsync(Graph graph);

@@ -12,7 +12,16 @@ onMounted(() => {
   // Clear JWT token from localStorage
   localStorage.removeItem('jwt')
 
-  // Redirect to home page
-  router.replace({ path: '/' })
+  const logoutUrl = localStorage.getItem('logoutUrl')
+
+  if (logoutUrl) {
+    window.location.href = logoutUrl
+  } else {
+    router.replace('/')
+  }
+
+  // Clean up stored info
+  localStorage.removeItem('logoutUrl')
+  localStorage.removeItem('authProvider')
 })
 </script>

@@ -8,17 +8,17 @@ namespace Graphing.Core
         Task StartAsync();
         Task StopAsync();
 
-        Task<Graph?> GetGraphByIdAsync(Guid graphId);
+        Task<Graph?> GetGraphByIdAsync(Guid graphId, string userId);
 
         Task<Graph?> CreateGraphAsync(GraphOptions options);
 
-        Task<Graph?> UpdateGraphAsync(Graph graph);
+        Task<Graph?> UpdateGraphAsync(Graph graph, string userId);
 
-        Task<Graph?> DeleteGraphAsync(Guid graphId);
+        Task<Graph?> DeleteGraphAsync(Guid graphId, string userId);
 
-        Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize);
+        Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId);
 
-        Task<SigmaGraphPayloadDto> PopulateGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null);
+        Task<SigmaGraphPayloadDto> PopulateClientGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null);
 
         Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl, int maxDepth = 1, int? maxNodes = null);
 

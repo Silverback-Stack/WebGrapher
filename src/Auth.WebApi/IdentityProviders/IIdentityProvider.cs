@@ -7,6 +7,7 @@ namespace Auth.WebApi.Auth.IdentityProviders
     {
         Task<bool> ValidateCredentialsAsync(string username, string password);
         Task<IEnumerable<Claim>> GetClaimsAsync(string username);
+        string GetUserId(ClaimsPrincipal user);
         UnauthorizedResponse GetUnauthorizedResponse();
     }
 }

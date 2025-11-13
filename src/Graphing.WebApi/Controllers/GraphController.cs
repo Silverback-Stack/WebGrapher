@@ -1,9 +1,11 @@
-﻿using Graphing.Core;
+﻿using System;
+using Auth.WebApi;
+using Graphing.Core;
 using Graphing.Core.WebGraph.Dtos;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
+using Graph = Graphing.Core.WebGraph.Models.Graph;
 
 namespace Graphing.WebApi.Controllers
 {
@@ -14,18 +16,22 @@ namespace Graphing.WebApi.Controllers
     public class GraphController : ControllerBase
     {
         private readonly IPageGrapher _pageGrapher;
+        private readonly UserContext _userContext;
 
-        public GraphController(IPageGrapher pageGrapher)
+        public GraphController(IPageGrapher pageGrapher, UserContext userContext)
         {
             _pageGrapher = pageGrapher;
+            _userContext = userContext;
         }
 
         // GET existing graph
         [HttpGet("{graphId}", Name = "GetById")]
         public async Task<IActionResult> GetByIdAsync([FromRoute] Guid graphId)
         {
-            var graph = await _pageGrapher.GetGraphByIdAsync(graphId);
-            if (graph == null) return NotFound();
+            var useri = _userContext.UserId;
+            var graph = await _pageGrapher.GetGraphByIdAsync(graphId, _userContext.UserId);
+            if (graph == null) 
+                return NotFound();
 
             var graphDto = MapToDto(graph);
             return Ok(graphDto);
@@ -42,6 +48,7 @@ namespace Graphing.WebApi.Controllers
 
             var newGraph = await _pageGrapher.CreateGraphAsync(new GraphOptions
             {
+                UserId = _userContext.UserId, //assign owner from user context
                 Name = createGraph.Name,
                 Description = createGraph.Description,
                 UserAgent = userAgent ?? GraphOptions.DEFAULT_USER_AGENT
@@ -68,7 +75,7 @@ namespace Graphing.WebApi.Controllers
             if (updateGraph == null)
                 return BadRequest("Request body cannot be empty.");
 
-            var existingGraph = await _pageGrapher.GetGraphByIdAsync(graphId);
+            var existingGraph = await _pageGrapher.GetGraphByIdAsync(graphId, _userContext.UserId);
             if (existingGraph == null)
                 return NotFound();
 
@@ -96,7 +103,7 @@ namespace Graphing.WebApi.Controllers
             existingGraph.ImageElementXPath = updateGraph.ImageElementXPath;
             existingGraph.RelatedLinksElementXPath = updateGraph.RelatedLinksElementXPath;
 
-            var updatedGraph = await _pageGrapher.UpdateGraphAsync(existingGraph);
+            var updatedGraph = await _pageGrapher.UpdateGraphAsync(existingGraph, _userContext.UserId);
 
             if (updatedGraph == null)
             {
@@ -114,6 +121,8 @@ namespace Graphing.WebApi.Controllers
             if (crawlPage == null)
                 return BadRequest("Request body cannot be empty.");
 
+            var username = User.Identity?.Name;
+
             if (!Uri.TryCreate(crawlPage.Url, UriKind.Absolute, out var validatedUrl))
             {
                 ModelState.AddModelError(nameof(crawlPage.Url), "Invalid URL. Use format https://www.example.com");
@@ -123,7 +132,7 @@ namespace Graphing.WebApi.Controllers
             if (crawlPage.OverwriteDefaults)
             {
                 //overwrite graph defaults with new values from crawl page request
-                var existingGraph = await _pageGrapher.GetGraphByIdAsync(graphId);
+                var existingGraph = await _pageGrapher.GetGraphByIdAsync(graphId, _userContext.UserId);
                 if (existingGraph == null)
                     return NotFound();
 
@@ -139,7 +148,7 @@ namespace Graphing.WebApi.Controllers
                 existingGraph.ImageElementXPath = crawlPage.ImageElementXPath;
                 existingGraph.RelatedLinksElementXPath = crawlPage.RelatedLinksElementXPath;
 
-                var updatedGraph = await _pageGrapher.UpdateGraphAsync(existingGraph);
+                var updatedGraph = await _pageGrapher.UpdateGraphAsync(existingGraph, _userContext.UserId);
 
                 if (updatedGraph == null)
                 {
@@ -175,7 +184,7 @@ namespace Graphing.WebApi.Controllers
         [HttpDelete("{graphId}/delete", Name = "Delete")]
         public async Task<IActionResult> DeleteGraphAsync([FromRoute] Guid graphId)
         {
-            var deletedGraph = await _pageGrapher.DeleteGraphAsync(graphId);
+            var deletedGraph = await _pageGrapher.DeleteGraphAsync(graphId, _userContext.UserId);
 
             if (deletedGraph == null)
                 return NotFound();
@@ -189,7 +198,7 @@ namespace Graphing.WebApi.Controllers
         {
             if (pageSize > 20) pageSize = 20;
 
-            var result = await _pageGrapher.ListGraphsAsync(page, pageSize);
+            var result = await _pageGrapher.ListGraphsAsync(page, pageSize, _userContext.UserId);
 
             var dtoResult = new PagedResult<ListGraphDto>(
                 result.Items.Select(g => new ListGraphDto
@@ -209,9 +218,9 @@ namespace Graphing.WebApi.Controllers
         }
 
         [HttpGet("{graphId}/populate", Name = "Populate")]
-        public async Task<IActionResult> PopulateGraphAsync([FromRoute] Guid graphId, [FromQuery] int maxDepth, [FromQuery] int? maxNodes = null)
+        public async Task<IActionResult> PopulateClientGraphAsync([FromRoute] Guid graphId, [FromQuery] int maxDepth, [FromQuery] int? maxNodes = null)
         {
-            var data = await _pageGrapher.PopulateGraphAsync(graphId, maxDepth, maxNodes);
+            var data = await _pageGrapher.PopulateClientGraphAsync(graphId, maxDepth, maxNodes);
 
             if (data == null || !data.Nodes.Any())
             {

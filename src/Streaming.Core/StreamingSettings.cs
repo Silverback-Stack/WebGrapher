@@ -13,7 +13,7 @@ namespace Streaming.Core
     {
         public StreamingProvider Provider { get; set; } = StreamingProvider.HostedSignalR;
 
-        public HostedSignaRSettings HostedSignaR { get; set; } = new HostedSignaRSettings();
+        public HostedSignalRSettings HostedSignalR { get; set; } = new HostedSignalRSettings();
 
         public AzureSignalRDefaultSettings AzureSignalRDefault { get; set; } = new AzureSignalRDefaultSettings();
 
@@ -21,7 +21,7 @@ namespace Streaming.Core
 
     }
 
-    public class HostedSignaRSettings
+    public class HostedSignalRSettings
     {
         public string Host { get; set; } = "http://localhost:5100";
     }

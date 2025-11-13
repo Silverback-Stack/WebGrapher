@@ -1,0 +1,185 @@
+﻿Setup Azure Static Web App
+==========================
+
+From Azure Portal choose -> Static Web Apps
+
+Click Create
+
+  Subscription: Default
+
+  Resource Group: webgrapher-resources
+
+  Hosting region: Global
+
+  Static web app name: webgrapher-app
+
+  Hosting plan: Free
+
+  Deployment source: Other
+
+Click Next
+
+  Development configuration: Deployment token
+
+Click Next
+
+  Region for Functions and staging: West Europe
+
+Click Review & Create
+
+
+Once created, select Static web app -> Overview
+
+* Make note of the Url
+
+From the top of screen overview options select: Manage deployment token
+
+* Make note of the token
+
+
+
+Install Static Web Apps CLI (SWA CLI)
+=====================================
+
+From VS Powershell prompt navigate to the project root
+
+  cd src
+  cd webgrapher.webui
+
+Install static web app support
+
+  npm install -g @azure/static-web-apps-cli
+
+
+
+Configure App to support Static Web App
+=======================================
+
+From VS go to project apps/webgrapher.webui
+
+Create a JSON document in the root folder called: staticwebapp.config.json
+
+	{
+	  "navigationFallback": {
+		"rewrite": "/index.html",
+		"exclude": [ "/assets/*", "/*.css", "/*.js" ]
+	  },
+	  "responseOverrides": {
+		"404": {
+		  "rewrite": "/index.html",
+		  "statusCode": 200
+		}
+	  }
+	}
+
+
+This will allow to Vue router to resolve urls to routes that would normally throw 404
+
+Then from the project open package.json file and modify build step to add cpx:
+
+	"scripts": {
+	  "dev": "vite",
+	  "build": "vite build && cpx staticwebapp.config.json dist/",
+	  "preview": "vite preview",
+	  "lint": "eslint . --fix"
+	}
+
+This will copy the staticwebapp.config.json file to the dist folder on build action for deployment.
+
+
+Install CPX
+===========
+
+From VS Powershell prompt navigate to the project root
+
+  cd src
+  cd webgrapher.webui
+
+Then install CPX
+
+  npm install --save-dev cpx
+
+
+Build Production Web App
+========================
+
+From VS Powershell prompt navigate to the project root
+
+  cd src/webgrapher.webui
+
+Then build production ready app
+
+  npm run build
+
+Once done, check the staticwebapp.config.json has been copied to the dist folder.
+
+
+
+Deploy to Static Web App
+========================
+
+  swa deploy --app-name [APP_NAME] --env production --deployment-token [TOKEN] --verbose --output-location ./dist
+
+When done it will say:
+Project deployed to https://[WEB-APP-URL]
+
+
+
+
+Setup Allowed Origins for Graphing API
+======================================
+
+From the Azure Portal
+
+Select Container Apps
+
+* graphingworkerservice-app
+
+Select Application -> Containers -> Environment variables
+
+Create or Edit:
+
+  Name: GraphingWebApi__AllowedOrigins
+
+  Source: Manual Entry
+
+  Value: Enter URL of Storage account primary endpoint plus the endpoint with port number (important - cors must match url exactly to work)
+  
+  Example value:
+  
+  https://orange-sand-018f7a303.3.azurestaticapps.net, https://orange-sand-018f7a303.3.azurestaticapps.net:443
+
+Click Save as new revision.
+
+
+Setup Allowed Origins for Streaming API
+=======================================
+
+Repeat the above steps for:
+
+	streamingworkerservice-app
+
+Click Save as new revision.
+
+
+
+Restart Container Apps
+======================
+
+Restart container apps for settings to take effect. then test API calls can be made from Static view app.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

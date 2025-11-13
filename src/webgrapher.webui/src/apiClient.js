@@ -24,7 +24,20 @@ apiClient.interceptors.response.use(
     if (status === 401 && data) {
       const provider = data.identityProvider
       const loginUrl = data.loginUrl
-      const currentUrl = window.location.href
+      const logoutUrl = data.logoutUrl
+      const callbackUrl = `${window.location.origin}/callback`
+
+      // Store provider and logoutUrl for later use (logout page)
+      if (logoutUrl) {
+        // Encode return url
+        const returnUrl = encodeURIComponent(window.location.origin)
+
+        // Replace placeholder with encoded redirect URL
+        const returnToUrl = logoutUrl.replace("{return_url}", returnUrl)
+
+        localStorage.setItem('logoutUrl', returnToUrl)
+        localStorage.setItem('authProvider', provider)
+      }
 
       if (provider === 'Local') {
         // Local login flow
@@ -34,12 +47,16 @@ apiClient.interceptors.response.use(
           query: { redirect: currentRoute.fullPath }
         })
       }
-      else if (loginUrl) {
-        // External provider (AzureAD, Auth0, etc.)
-        const encodedReturnUrl = encodeURIComponent(currentUrl)
-        const redirectTo = `${loginUrl}?redirect_uri=${encodedReturnUrl}`
-        console.log(`Redirecting to ${provider} login:`, redirectTo)
-        window.location.href = redirectTo
+      else if (loginUrl) { // External provider (AzureAD, Auth0, etc.)
+
+        // Encode callback url
+        const redirectUrl = encodeURIComponent(callbackUrl);
+
+        // Replace placeholder with encoded redirect URL
+        const loginProviderUrl = loginUrl.replace("{callback_url}", redirectUrl)
+
+        console.log(`Redirecting to ${provider} login:`, loginProviderUrl)
+        window.location.href = loginProviderUrl
       }
       else {
         console.warn('Unauthorized with no login URL provided for redirect.')

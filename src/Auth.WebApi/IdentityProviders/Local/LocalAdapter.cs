@@ -25,11 +25,21 @@ namespace Auth.WebApi.Auth.IdentityProviders.AppSettings
         {
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, username),
-                new Claim(ClaimTypes.Role, "User")
+                new Claim(ClaimTypes.Name, username)
             };
 
             return Task.FromResult<IEnumerable<Claim>>(claims);
+        }
+
+        public string GetUserId(ClaimsPrincipal user)
+        {
+            // We use Username as the user ID
+            var userId = user.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (userId == null)
+                throw new InvalidOperationException("UserId claim is missing from the token.");
+
+            return userId;
         }
 
         public UnauthorizedResponse GetUnauthorizedResponse()
@@ -38,7 +48,8 @@ namespace Auth.WebApi.Auth.IdentityProviders.AppSettings
             return new UnauthorizedResponse
             {
                 IdentityProvider = _authSettings.IdentityProvider.ProviderType.ToString(),
-                LoginUrl = string.Empty, // the client knows to show local login form
+                LoginUrl = string.Empty, // the client app knows to show local login form
+                LogoutUrl = string.Empty, // the client app knows to show local logout page
                 Message = "Unauthorized. Login to authenticate."
             };
         }

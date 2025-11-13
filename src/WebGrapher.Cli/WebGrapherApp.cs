@@ -104,14 +104,14 @@ namespace WebGrapher.Cli
             var crawlPageRequest = new CrawlPageRequestDto
             {
                 Url = url,
-                GraphId = Guid.Empty, // Use default graph
+                GraphId = Guid.Empty, // Empty Guids are assigned to the default graph
                 CorrelationId = Guid.NewGuid(),
                 Attempt = 1,
                 Depth = 0,
                 Options = new CrawlPageRequestOptionsDto
                 {
                     MaxDepth = 1,
-                    MaxLinks = 10,
+                    MaxLinks = 5,
                     ExcludeExternalLinks = true,
                     ExcludeQueryStrings = true,
                     UrlMatchRegex = "",

@@ -40,10 +40,16 @@
         <b-button class="mr-2"
                   type="is-primary"
                   outlined
-                  @click="$emit('focus-node', node.id)">Focus</b-button>
+                  @click="$emit('focus-node', node.id)">
+          <span class="mdi mdi-target"></span>&nbsp;
+          Focus
+        </b-button>
         <b-button type="is-primary"
                   outlined
-                  @click="$emit('crawl-node', node.id)">Crawl</b-button>
+                  @click="$emit('crawl-node', node.id)">
+          <span class="mdi mdi-spider"></span>&nbsp;
+          Crawl
+        </b-button>
       </div>
 
       <!-- Outgoing Edges -->
@@ -51,7 +57,16 @@
         <p>Outgoing Links</p>
         <ul>
           <li v-for="(edge, index) in node.outgoingEdges" :key="edge.id" v-show="isOutgoingExpanded || index < 6">
-            <a href="#" @click.prevent="$emit('focus-node', edge.id)">{{ edge.title }}</a>
+            <!--Focus Node-->
+            <a href="#"
+               @click.prevent="$emit('focus-node', edge.id)">
+              <span class="mdi mdi-target"></span>
+            </a>
+            <!--Display Node-->
+            <a href="#"
+               @click.prevent="$emit('display-node', edge.id)">
+              {{ edge.title }}
+            </a>
           </li>
         </ul>
         <a v-if="node.outgoingEdges.length > 6"
@@ -69,7 +84,16 @@
         <p>Incoming Links</p>
         <ul>
           <li v-for="(edge, index) in node.incomingEdges" :key="edge.id" v-show="isIncomingExpanded || index < 6">
-            <a href="#" @click.prevent="$emit('focus-node', edge.id)">{{ edge.title }}</a>
+            <!--Focus Node-->
+            <a href="#"
+               @click.prevent="$emit('focus-node', edge.id)">
+              <span class="mdi mdi-target"></span>
+            </a>
+            <!--Display Node-->
+            <a href="#"
+               @click.prevent="$emit('display-node', edge.id)">
+              {{ edge.title }}
+            </a>
           </li>
         </ul>
         <a v-if="node.incomingEdges.length > 6"
@@ -86,6 +110,7 @@
       <div class="node-sidebar-source my-3">
         <p>Source</p>
         <a :href="node?.id" target="_blank" class="is-size-6 is-block has-text-break">
+          <span class="mdi mdi-open-in-new"></span>&nbsp;
           {{ node.id }}
         </a>
       </div>
@@ -109,7 +134,11 @@
   import { defineProps, defineEmits, ref } from 'vue'
   import { BTag, BTaglist } from "buefy"
 
-  const emit = defineEmits(["update:modelValue", "crawl-node", "focus-node"])
+  const emit = defineEmits([
+    "update:modelValue",
+    "crawl-node",
+    "focus-node",
+    "display-node"])
 
   const isSummaryExpanded = ref(false)
   const isOutgoingExpanded = ref(false)
@@ -176,21 +205,38 @@
   }
 
   .node-sidebar-tags .tags .tag {
-      margin-right: 0;
-      margin-bottom: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;   /* modern browsers */
+    word-break: break-all;       /* fallback for old browsers */
+    white-space: normal;         /* allow wrapping */
+    line-height: 1;               /* tighter line spacing */
   }
 
-  .node-sidebar-connections a {
-    display: block; /* allow width to apply */
-    max-width: 100%; /* don’t exceed container */
-    white-space: nowrap; /* prevent wrapping */
-    overflow: hidden; /* hide overflow */
-    text-overflow: ellipsis; /* show "..." at the end */
+  .node-sidebar-connections li {
+    display: flex;
+    align-items: center;
+  }
+
+  .node-sidebar-connections a:first-child {
+    flex: 0 0 auto; /* fixed width for icon link */
+  }
+
+  .node-sidebar-connections a:last-child {
+    flex: 1; /* take remaining width */
+    min-width: 0; /* critical so ellipsis works */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .node-sidebar-source a {
-    word-break: break-all; /* or break-word */
-    overflow-wrap: anywhere;
+    /*word-break: break-all;*/ /* or break-word */
+    /*overflow-wrap: anywhere;*/
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
 </style>

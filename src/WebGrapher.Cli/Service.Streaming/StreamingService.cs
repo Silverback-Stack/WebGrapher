@@ -90,8 +90,8 @@ namespace WebGrapher.Cli.Service.Streaming
             {
                 case StreamingProvider.HostedSignalR:
                 case StreamingProvider.AzureSignalRDefault:
-                    app.Urls.Add(streamingSettings.SignalR.HostedSignaR.Host);
-                    hubUrl = $"{streamingSettings.SignalR.HostedSignaR.Host}{streamingSettings.HubPath}";
+                    app.Urls.Add(streamingSettings.SignalR.HostedSignalR.Host);
+                    hubUrl = $"{streamingSettings.SignalR.HostedSignalR.Host}{streamingSettings.HubPath}";
                     break;
 
                 case StreamingProvider.AzureSignalRServerless:

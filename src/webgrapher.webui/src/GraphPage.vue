@@ -26,7 +26,8 @@
     <NodeSidebar v-model="nodeSidebarOpen"
                  :node="nodeSidebarData"
                  @crawl-node="handleCrawlNode"
-                 @focus-node="handleFocusNode" />
+                 @focus-node="handleFocusNode"
+                 @display-node="handleDisplayNode"/>
 
     <!-- Modal windows -->
     <b-modal v-if="modalView !== null"
@@ -109,8 +110,8 @@
     setupNodeSizing,
     addOrUpdateNode,
     addEdge,
-    resetHighlightNodeNeighborhood,
-    highlightNodeNeighborhood,
+    highlightNode,
+    nodeClickHandler,
     panTo
   } from "./sigma.js"
   import GraphNavbar from './components/graph-navbar.vue'
@@ -269,20 +270,30 @@
   }
 
   async function handleFocusNode(nodeId) {
-    if (!sigmaGraph.hasNode(nodeId) || !sigmaInstance) return
+    highlightNode(
+      sigmaGraph,
+      sigmaInstance,
+      runFA2,
+      highlightedNode,
+      nodeId,
+      panTo,
+      appConfig.fa2DurationSlow_MS
+    )
+  }
 
-    const nodeAttr = sigmaGraph.getNodeAttributes(nodeId);
-
-    if (highlightedNode.value) resetHighlightNodeNeighborhood(sigmaGraph, sigmaInstance)
-
-    // Highlight node
-    highlightedNode.value = nodeId;
-    highlightNodeNeighborhood(sigmaGraph, sigmaInstance, nodeId);
-
-    runFA2(appConfig.fa2DurationSlow_MS)
-
-    //pan camera to selected node
-    panTo(sigmaGraph, sigmaInstance, nodeAttr)
+  async function handleDisplayNode(nodeId) {
+    await nodeClickHandler({
+        nodeId,
+        sigmaGraph,
+        sigmaInstance,
+        runFA2,
+        highlightedNode,
+        openNodeSidebar,
+        nodeSubGraph,
+        graphId,
+        panTo,
+        fa2Duration: appConfig.fa2DurationFast_MS
+      });
   }
 
   function onConfirmAction(response) {

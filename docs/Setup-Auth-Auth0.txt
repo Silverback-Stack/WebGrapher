@@ -1,0 +1,85 @@
+Requirement: 
+First Setup-Static-Web-App to obtain public Url
+
+Setup Auth0
+===========
+
+Visit https://auth0.com/
+
+Signup for an account
+
+Create an Application
+
+  Name: WebGrapher App
+
+  Application Type: Single Page Web Application (Angular, React, Vue)
+
+Click Create
+
+Settings
+
+  Name: WebGrapher App
+
+  Description: WebGrapher is a scalable, microservices platform that crawls web pages, extracts relationships, and streams real-time graph visualizations.
+
+  Application Type: Single Page Web Application
+
+  Application Login Url: https://[STATIC-WEB-APP-URL]/login
+
+  Allowed Callback Urls: https://[STATIC-WEB-APP-URL]/callback
+
+  Allowed Logout Urls: https://[STATIC-WEB-APP-URL]
+
+  Allowed Web Origins: https://[STATIC-WEB-APP-URL]
+
+Click Save
+
+Note the following Application Settings:
+
+  [Domain]
+
+  [ClientId]
+
+  [ClientSecret]
+
+Paste these values into the Azure portal Worker Service Environment variables ...
+
+
+Configure Worker Services
+=========================
+
+From Azure Portal -> Container Apps
+
+Select -> graphingworkerservice-app -> Containers -> Environment variables
+
+Set:
+
+	Name:	Auth__IdentityProvider__ProviderType
+	Source:	Manual entry
+	Value:	Auth0
+
+	Name:	Auth__IdentityProvider__Auth0__Domain
+	Source:	Manual entry
+	Value:	[Domain]
+
+	Name:	Auth__IdentityProvider__Auth0__ClientId
+	Source:	Manual entry
+	Value:	[ClientId]
+
+	Name:	Auth__IdentityProvider__Auth0__Audience
+	Source:	Manual entry
+	Value:	https://[Domain]/api/v2/
+
+	Name:	Auth__IdentityProvider__Auth0__LoginUrl
+	Source:	Manual entry
+	Value:	https://[Domain]/authorize?response_type=token&audience=https://[Domain]/api/v2/&client_id=[ClientId]
+
+	Name:	Auth__IdentityProvider__Auth0__LogoutUrl
+	Source:	Manual entry
+	Value:	https://[Domain]/v2/logout?client_id=[ClientId]
+
+Click Save as new Revision
+
+Repeate above steps for: streamingworkerservice-app
+
+Important: Explain that you should setup a Key Vault to store secrets and can have multiple comntainer apps share those secrets but beyond the scope of this course.

@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Net.WebSockets;
 using Graphing.Core.WebGraph.Models;
 using Gremlin.Net.Driver;
 using Gremlin.Net.Structure.IO.GraphSON;
 using Microsoft.Extensions.Logging;
+using System.Net.WebSockets;
 using Graph = Graphing.Core.WebGraph.Models.Graph;
 
 namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
@@ -56,15 +56,23 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
         //Graph Operations
 
-        public override async Task<Graph?> GetGraphAsync(Guid graphId)
+        public override async Task<Graph?> GetGraphAsync(Guid graphId, string userId)
         {
             var vertex = await _gremlinQueryProvider.GetGraphVertexAsync(graphId);
-            if (vertex == null) return null;
 
-            return GremlinQueryHelper.HydrateGraphFromVertex(vertex);
+            if (vertex == null)
+                return null;
+
+            var graph = GremlinQueryHelper.HydrateGraphFromVertex(vertex);
+
+            // check userId is assigned but doesnt match
+            if (graph.UserId != string.Empty && graph.UserId != userId)
+                return null;
+
+            return graph;
         }
 
-        public override async Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize)
+        public override async Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 8;
@@ -74,7 +82,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
 
             var graphs = new List<Graph>();
 
-            var vertices = await _gremlinQueryProvider.ListGraphVerticesAsync(start, end);
+            var vertices = await _gremlinQueryProvider.ListGraphVerticesAsync(start, end, userId);
 
             foreach (var vertex in vertices)
             {
@@ -100,6 +108,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             var graph = new Graph
             {
                 Id = options.Id ?? Guid.NewGuid(),
+                UserId = options.UserId,
                 Name = options.Name,
                 Description = options.Description,
                 Url = options.Url?.AbsoluteUri ?? string.Empty,
@@ -124,22 +133,27 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             return GremlinQueryHelper.HydrateGraphFromVertex(vertex);
         }
 
-        public override async Task<Graph> UpdateGraphAsync(Graph graph)
+        public override async Task<Graph> UpdateGraphAsync(Graph graph, string userId)
         {
+            var existingGraph = await GetGraphAsync(graph.Id, userId);
+
+            if (existingGraph == null)
+                throw new KeyNotFoundException($"Graph {graph.Id} not found.");
+
             await _gremlinQueryProvider.UpdateGraphVertexAsync(graph);
 
             return graph;
         }
 
-        public override async Task<Graph?> DeleteGraphAsync(Guid graphId)
+        public override async Task<Graph?> DeleteGraphAsync(Guid graphId, string userId)
         {
-            // Fetch the graph first so we can return it after deletion
-            var graph = await GetGraphAsync(graphId);
-            if (graph == null) return null;
+            var existingGraph = await GetGraphAsync(graphId, userId);
+            if (existingGraph == null) return null;
 
-            await _gremlinQueryProvider.DeleteGraphVertexAsync(graphId);
+            await _gremlinQueryProvider.DeleteGraphVertexAsync(existingGraph.Id);
 
-            return graph;
+            // return the deleted graph
+            return existingGraph;
         }
 
 
@@ -167,6 +181,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             return node;
         }
 
+
         public override async Task<Node> SetNodeAsync(Node node)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
@@ -188,17 +203,20 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             return node;
         }
 
+
         protected async override Task<bool> AddOutgoingLinkAsync(Guid graphId, Node fromNode, Node toNode)
         {
             await _gremlinQueryProvider.AddNodeVertexEdgeAsync(fromNode, toNode, graphId);
             return true;
         }
 
+
         protected async override Task<bool> AddIncomingLinkAsync(Guid graphId, Node toNode, Node fromNode)
         {
             // Same as outgoing, just reversed
             return await AddOutgoingLinkAsync(graphId, fromNode, toNode);
         }
+
 
         protected async override Task ClearOutgoingLinksAsync(Guid graphId, Node node)
         {
@@ -210,10 +228,12 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
             await _gremlinQueryProvider.RemoveOrphanedNodeVerticesAsync(graphId);
         }
 
+
         protected async override Task<int> GetPopularityScoreAsync(Guid graphId, Node node)
         {
             return await _gremlinQueryProvider.CountNodeVertexEdgesAsync(graphId, node);
         }
+
 
         public override async Task<IEnumerable<Node>> GetInitialGraphNodes(Guid graphId, int topN)
         {
@@ -224,10 +244,12 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 GremlinQueryHelper.HydrateNodeFromVertex(v, graphId));
         }
 
+
         public override async Task<long> TotalPopulatedNodesAsync(Guid graphId)
         {
             return await _gremlinQueryProvider.CountNodeVerticesPopulatedAsync(graphId);
         }
+
 
         public override async Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(
             Guid graphId, string startUrl, int maxDepth, int? maxNodes = null)

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
+using System.Text.Json;
 
 namespace Streaming.WebApi
 {
@@ -34,7 +35,6 @@ namespace Streaming.WebApi
 
             // --- SignalR ---
             services.AddConfiguredSignalR(streamingSettings);
-
 
             return services;
         }
@@ -92,6 +92,12 @@ namespace Streaming.WebApi
                 default:
                     throw new NotSupportedException($"SignalR provider '{streamingSettings.SignalR.Provider}' is not supported.");
             }
+
+            services.AddSignalR().AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                options.PayloadSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+            });
 
             // Allow JWT from query string (for browser clients)
             services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>

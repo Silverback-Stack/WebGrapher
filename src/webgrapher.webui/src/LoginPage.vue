@@ -4,7 +4,7 @@
       <div class="card-content">
         <h1 class="title has-text-centered mb-5">WebGrapher</h1>
         <h2 class="has-text-centered mb-5">
-          WebGrapher is a distributed microservices platform that crawls web pages, extracts data, and streams it live for real-time visualisation.
+          WebGrapher is a distributed, scalable, event-driven microservices platform that crawls web pages, extracts and graphs relational data, and streams it live for real-time visualisation.
         </h2>
 
         <b-field label="Username">

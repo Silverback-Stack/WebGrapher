@@ -56,8 +56,6 @@ Apply Free Tier Discount: Apply
 
 Limit the total amount of throughput that can be provisioned on this account: True
 
-
-
 Click: Review & Create
 
 
@@ -71,7 +69,7 @@ Open Data Explorer (left sidebar).
 
 Click New Graph.
 
-Database id : WebGrapherDb 
+Use Exsiting Database id : WebGrapherDb 
 
 Graph id : WebGraph
 
@@ -82,7 +80,7 @@ Click OK / Create.
 
 From the left plane choose: Settings -> Keys
 
-Make a note of Gremlin endpoint and primary key.
+Make a note of Gremlin endpoint urk and primary key.
 
 Insert these into the appsesstings file in the graphing service application.
 
