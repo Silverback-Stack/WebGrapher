@@ -3,6 +3,7 @@
   <GraphNavbar :signalrStatus="signalrStatus"
                :graphTitle="graphTitle"
                :isAuthenticated="isAuthenticated"
+               :username="username"
                @reset-graph="resetGraph"
                @open-crawl="openCrawlGraph"
                @open-connect="openConnect"
@@ -122,8 +123,9 @@
 
 
   // --- Refs / State ---
-  // Authentication Token
+  // Authentication Token & user
   const isAuthenticated = computed(() => !!localStorage.getItem('jwt'))
+  const username = computed(() => localStorage.getItem('username'))
 
   // Sigma / Graph
   const container = ref(null)

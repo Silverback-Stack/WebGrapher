@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Auth.WebApi.Auth.IdentityProviders
+namespace Auth.WebApi.IdentityProviders
 {
     public enum IdentityProviderType
     {

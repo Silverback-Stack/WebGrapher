@@ -2,19 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Taylor Swift</title>
+  <title>{Album-Name}</title>
 </head>
 <body>
-  <h1>Taylor Swift</h1>
-  <img src="taylor-swift.jpg" alt="Taylor Swift photo" width="400">
+  <h1>{Album-Name}</h1>
+  <img src="{Album-Image}" alt="{Album-Name}" width="400">
   <p>
-    Taylor Swift is an American singer-songwriter renowned for her storytelling lyrics
-    and genre-spanning career. From country beginnings to pop superstardom and indie-folk,
-    she is one of the most successful and influential artists of her generation.
+      {Album-Description}
   </p>
-  <h2>Other Artists</h2>
+  <h2>Albums by {Artist-Name}</h2>
+    <ul>
+        <li>
+            <a href="/artist/{Artist-Name}/album/{Album-Name}">{Album-Name}</a>
+        </li>
+    </ul>
+  <h2>Related Artists</h2>
   <ul>
-    <li><a href="Adele.html">Adele</a></li>
+    <li></li>
   </ul>
 </body>
 </html>

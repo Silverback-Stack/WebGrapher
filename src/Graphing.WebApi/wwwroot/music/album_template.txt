@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{Artist-Name} - {Album-Name}</title>
+</head>
+<body>
+  <h1>
+	<a href="../{Artist-Name}.html">{Artist-Name}</a>
+	-
+	<span>{Album-Name}</span>
+  </h1>
+  <img src="{Album-Name}.png" alt="{Album-Name}" width="400">
+  <p>
+      {Album-Description}
+  </p>
+  <h2>Albums by {Artist-Name}</h2>
+    <ul>
+        <li>
+            <a href="{Album-Name}.html">{Album-Name}</a>
+        </li>
+    </ul>
+  <h2>Related Artists</h2>
+    <ul>
+        <li>
+            <a href="related.html">Related-Artist</a>
+        </li>
+    </ul>
+</body>
+</html>

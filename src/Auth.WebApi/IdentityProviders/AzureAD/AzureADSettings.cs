@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Auth.WebApi.Auth.IdentityProviders.AzureAD
+namespace Auth.WebApi.IdentityProviders.AzureAD
 {
     public class AzureADSettings
     {

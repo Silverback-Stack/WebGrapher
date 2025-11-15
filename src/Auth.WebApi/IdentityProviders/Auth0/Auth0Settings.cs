@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Auth.WebApi.Auth.IdentityProviders.Auth0
+namespace Auth.WebApi.IdentityProviders.Auth0
 {
     public class Auth0Settings
     {

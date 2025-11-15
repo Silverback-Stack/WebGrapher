@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System;
 
-namespace Auth.WebApi.Auth.IdentityProviders.Auth0
+namespace Auth.WebApi.IdentityProviders.Auth0
 {
     public static class Auth0Configuration
     {

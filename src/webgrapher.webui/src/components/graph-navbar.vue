@@ -57,10 +57,11 @@
             Login
           </b-navbar-item>
 
-          <b-navbar-item v-if="isAuthenticated"
+          <b-navbar-item v-if="isAuthenticated" class="username"
                          tag="router-link"
                          :to="{ name: 'Logout' }">
             Logout
+            <span>{{username}}</span>
           </b-navbar-item>
 
         </b-navbar-dropdown>
@@ -99,13 +100,21 @@
   .navbar .navbar-menu {
     border-radius: inherit !important;
   }
+
+  .username {
+    gap: 0.375rem !important;
+  }
+  .username span::first-letter {
+    text-transform: uppercase;
+  }
 </style>
 
 <script setup>
   defineProps({
     signalrStatus: String,
     graphTitle: String,
-    isAuthenticated: Boolean
+    isAuthenticated: Boolean,
+    username: String
   })
 
   defineEmits([

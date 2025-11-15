@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Security.Claims;
 
-namespace Auth.WebApi.Auth.IdentityProviders
+namespace Auth.WebApi.IdentityProviders
 {
     public interface IIdentityProvider
     {
-        Task<bool> ValidateCredentialsAsync(string username, string password);
-        Task<IEnumerable<Claim>> GetClaimsAsync(string username);
+        Task<IdentityUser?> ValidateCredentialsAsync(string username, string password);
+        Task<IEnumerable<Claim>> GetClaimsAsync(IdentityUser identityUser);
         string GetUserId(ClaimsPrincipal user);
         UnauthorizedResponse GetUnauthorizedResponse();
     }

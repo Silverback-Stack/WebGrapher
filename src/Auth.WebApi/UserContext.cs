@@ -1,4 +1,4 @@
-﻿using Auth.WebApi.Auth.IdentityProviders;
+﻿using Auth.WebApi.IdentityProviders;
 using Microsoft.AspNetCore.Http;
 
 namespace Auth.WebApi

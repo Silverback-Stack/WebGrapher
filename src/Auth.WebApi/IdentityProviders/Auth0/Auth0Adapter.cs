@@ -1,8 +1,7 @@
-﻿using Auth.WebApi.IdentityProviders;
-using System;
+﻿using System;
 using System.Security.Claims;
 
-namespace Auth.WebApi.Auth.IdentityProviders.Auth0
+namespace Auth.WebApi.IdentityProviders.Auth0
 {
     public class Auth0Adapter : IIdentityProvider
     {
@@ -13,21 +12,18 @@ namespace Auth.WebApi.Auth.IdentityProviders.Auth0
             _authSettings = authSettings;
         }
 
-        public Task<bool> ValidateCredentialsAsync(string username, string password)
+        public Task<IdentityUser?> ValidateCredentialsAsync(string username, string password)
         {
             // For Auth0 login, we don't validate locally.
             // Throw exception so the middleware sends 401 with metadata with the login url
             throw new UnauthorizedProviderException(GetUnauthorizedResponse());
         }
 
-        public Task<IEnumerable<Claim>> GetClaimsAsync(string username)
+        public Task<IEnumerable<Claim>> GetClaimsAsync(IdentityUser identityUser)
         {
-            // Claims are extracted from the JWT in the controller via [Authorize]
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, username)
-            };
-            return Task.FromResult<IEnumerable<Claim>>(claims);
+            // External providers do not issue claims here.
+            // JWT middleware supplies them directly from the token.
+            throw new NotSupportedException("Claims are provided by the external identity provider JWT.");
         }
 
         public string GetUserId(ClaimsPrincipal user)
