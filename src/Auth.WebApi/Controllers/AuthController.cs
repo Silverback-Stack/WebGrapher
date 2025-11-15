@@ -1,5 +1,4 @@
 ﻿using System;
-using Auth.WebApi.Auth.IdentityProviders;
 using Auth.WebApi.IdentityProviders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -33,16 +32,17 @@ namespace Auth.WebApi.Controllers
 
             try
             {
-                // Validate credentials
-                var isValid = await _identityProvider.ValidateCredentialsAsync(request.Username, request.Password);
-
-                if (!isValid)
+                // Validate credentials and get user
+                var user = await _identityProvider.ValidateCredentialsAsync(request.Username, request.Password);
+                if (user == null)
                 {
                     return Unauthorized("Invalid credentials.");
                 }
 
+                // Get claims
+                var claims = await _identityProvider.GetClaimsAsync(user);
+
                 // Generate JWT token
-                var claims = await _identityProvider.GetClaimsAsync(request.Username);
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authSettings.Jwt.Key));
 
                 var token = new JwtSecurityToken(
@@ -59,7 +59,8 @@ namespace Auth.WebApi.Controllers
                 {
                     Token = tokenString,
                     Expires = token.ValidTo,
-                    TokenType = "Bearer"
+                    TokenType = "Bearer",
+                    Username = user.Username
                 });
 
             }

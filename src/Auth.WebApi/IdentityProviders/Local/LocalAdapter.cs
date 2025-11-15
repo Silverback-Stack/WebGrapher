@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Claims;
 
-namespace Auth.WebApi.Auth.IdentityProviders.AppSettings
+namespace Auth.WebApi.IdentityProviders.Local
 {
     public class LocalAdapter : IIdentityProvider
     {
@@ -12,32 +12,47 @@ namespace Auth.WebApi.Auth.IdentityProviders.AppSettings
             _authSettings = authSettings;
         }
 
-        public Task<bool> ValidateCredentialsAsync(string username, string password)
+        public Task<IdentityUser?> ValidateCredentialsAsync(string username, string password)
         {
-            bool valid = _authSettings.IdentityProvider.Local.Users
-                .Any(u => u.Username == username && u.Password == password);
+            var localUser = _authSettings.IdentityProvider.Local.Users
+                .FirstOrDefault(u => u.Username == username && u.Password == password);
 
-            return Task.FromResult(valid);
+            if (localUser == null)
+                return Task.FromResult<IdentityUser?>(null);
+
+            //map local User to Provider-Agnostic IdentityUser
+            var user = new IdentityUser
+            {
+                UserId = localUser.Id.ToString(),
+                Username = localUser.Username,
+                Roles = localUser.Roles
+            };
+
+            return Task.FromResult<IdentityUser?>(user);
         }
 
 
-        public Task<IEnumerable<Claim>> GetClaimsAsync(string username)
+        public Task<IEnumerable<Claim>> GetClaimsAsync(IdentityUser identityUser)
         {
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, username)
+                new Claim(ClaimTypes.NameIdentifier, identityUser.UserId),
+                new Claim(ClaimTypes.Name, identityUser.Username)
             };
+
+            foreach (var role in identityUser.Roles)
+                claims.Add(new Claim(ClaimTypes.Role, role));
 
             return Task.FromResult<IEnumerable<Claim>>(claims);
         }
 
         public string GetUserId(ClaimsPrincipal user)
         {
-            // We use Username as the user ID
-            var userId = user.FindFirst(ClaimTypes.Name)?.Value;
+            // We use UserId as the user ID
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (userId == null)
-                throw new InvalidOperationException("UserId claim is missing from the token.");
+            if (string.IsNullOrEmpty(userId))
+                throw new InvalidOperationException("The NameIdentifier (UserId) claim is missing.");
 
             return userId;
         }

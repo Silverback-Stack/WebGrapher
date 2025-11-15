@@ -1,8 +1,8 @@
-﻿using Auth.WebApi.Auth.IdentityProviders.AppSettings;
-using Auth.WebApi.Auth.IdentityProviders.Auth0;
-using Auth.WebApi.Auth.IdentityProviders.AzureAD;
+﻿using Auth.WebApi.IdentityProviders.Auth0;
+using Auth.WebApi.IdentityProviders.AzureAD;
+using Auth.WebApi.IdentityProviders.Local;
 
-namespace Auth.WebApi.Auth.IdentityProviders
+namespace Auth.WebApi.IdentityProviders
 {
     public class IdentityProviderSettings
     {

@@ -31,16 +31,39 @@
     const token = params.access_token || params.id_token
 
     if (token) {
-      // Store token in localStorage for apiClient
-      localStorage.setItem('jwt', token)
-      // Redirect back to home
-      router.replace('/')
+      // Decode JWT to read claims
+      const claims = decodeJwt(token)
 
+      // Extract username
+      const username = getUsernameFromClaims(claims)
+
+      // Store in localStorage
+      localStorage.setItem('jwt', token)
+      localStorage.setItem('username', username ?? '')
+
+      router.replace('/')
     } else {
       console.error('Login callback did not contain token.', params)
       router.replace('/login')
     }
+
   })
+
+  function decodeJwt(token) {
+    const [, payload] = token.split('.')
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(decoded)
+  }
+
+  function getUsernameFromClaims(claims) {
+    return (
+      claims.preferred_username ||
+      claims.name ||
+      claims.email ||
+      claims.nickname ||
+      claims.sub
+    )
+  }
 </script>
 
 

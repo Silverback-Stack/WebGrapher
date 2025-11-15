@@ -84,9 +84,10 @@ async function login() {
     })
 
     // Store JWT and expiry tokens
-    const { token, expires } = response.data
+    const { token, expires, username: returnedUsername } = response.data
     localStorage.setItem('jwt', token)
     localStorage.setItem('jwt_expires', expires)
+    localStorage.setItem('username', returnedUsername)
 
     // Redirect back to the page user was trying to access
     const redirectTo = route.query.redirect || '/'

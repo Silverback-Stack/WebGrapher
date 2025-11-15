@@ -4,7 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Text;
 
-namespace Auth.WebApi.Auth.IdentityProviders.Local
+namespace Auth.WebApi.IdentityProviders.Local
 {
     public static class LocalConfiguration
     {

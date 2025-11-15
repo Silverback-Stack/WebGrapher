@@ -1,5 +1,4 @@
-﻿using Auth.WebApi;
-
+﻿
 namespace Graphing.WebApi
 {
     public class GraphingWebApiSettings

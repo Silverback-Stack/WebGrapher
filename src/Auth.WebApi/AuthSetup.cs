@@ -1,8 +1,7 @@
-﻿using Auth.WebApi.Auth.IdentityProviders;
-using Auth.WebApi.Auth.IdentityProviders.AppSettings;
-using Auth.WebApi.Auth.IdentityProviders.Auth0;
-using Auth.WebApi.Auth.IdentityProviders.AzureAD;
-using Auth.WebApi.Auth.IdentityProviders.Local;
+﻿using Auth.WebApi.IdentityProviders;
+using Auth.WebApi.IdentityProviders.Auth0;
+using Auth.WebApi.IdentityProviders.AzureAD;
+using Auth.WebApi.IdentityProviders.Local;
 using Auth.WebApi.Controllers;
 using Microsoft.Extensions.DependencyInjection;
 using System;

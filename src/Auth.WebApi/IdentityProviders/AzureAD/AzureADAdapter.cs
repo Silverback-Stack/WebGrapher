@@ -2,7 +2,7 @@
 using System;
 using System.Security.Claims;
 
-namespace Auth.WebApi.Auth.IdentityProviders.AzureAD
+namespace Auth.WebApi.IdentityProviders.AzureAD
 {
     public class AzureADAdapter : IIdentityProvider
     {
@@ -13,21 +13,18 @@ namespace Auth.WebApi.Auth.IdentityProviders.AzureAD
             _authSettings = authSettings;
         }
 
-        public Task<bool> ValidateCredentialsAsync(string username, string password)
+        public Task<IdentityUser?> ValidateCredentialsAsync(string username, string password)
         {
             // For AzureAD login, we don't validate locally.
             // Throw exception so the middleware sends 401 with metadata with the login url
             throw new UnauthorizedProviderException(GetUnauthorizedResponse());
         }
 
-        public Task<IEnumerable<Claim>> GetClaimsAsync(string username)
+        public Task<IEnumerable<Claim>> GetClaimsAsync(IdentityUser identityUser)
         {
-            // Claims come directly from the token.
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, username)
-            };
-            return Task.FromResult<IEnumerable<Claim>>(claims);
+            // External providers do not issue claims here.
+            // JWT middleware supplies them directly from the token.
+            throw new NotSupportedException("Claims are provided by the external identity provider JWT.");
         }
 
         public string GetUserId(ClaimsPrincipal user)

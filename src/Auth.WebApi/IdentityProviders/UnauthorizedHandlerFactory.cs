@@ -1,10 +1,9 @@
-﻿using Auth.WebApi.IdentityProviders;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 
-namespace Auth.WebApi.Auth.IdentityProviders
+namespace Auth.WebApi.IdentityProviders
 {
     public class UnauthorizedHandlerFactory
     {

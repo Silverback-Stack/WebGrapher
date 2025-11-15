@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System;
 
-namespace Auth.WebApi.Auth.IdentityProviders.AzureAD
+namespace Auth.WebApi.IdentityProviders.AzureAD
 {
     public static class AzureADConfiguration
     {
