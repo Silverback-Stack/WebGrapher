@@ -69,7 +69,7 @@ namespace WebGrapher.Cli.Service.Crawler
 
             // Create Crawler Service
             var crawlerService = CrawlerFactory.Create(
-                logger, eventBus, requestSender, sitePolicyResolver, crawlerSettings);
+                logger, eventBus, sitePolicyResolver, crawlerSettings);
 
             await crawlerService.StartAsync();
 

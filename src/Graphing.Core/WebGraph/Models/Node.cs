@@ -8,6 +8,7 @@
         public string Title { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
+        public bool ImageCors { get; set; } = true;
         public string Keywords { get; set; } = string.Empty;
         public IEnumerable<string> Tags { get; set; } = Enumerable.Empty<string>();
         public NodeState State { get; set; }

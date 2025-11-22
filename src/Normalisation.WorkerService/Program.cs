@@ -2,6 +2,7 @@ using Caching.Core;
 using Events.Core.Bus;
 using Logger.Core;
 using Normalisation.Core;
+using Requests.Core;
 using Serilog;
 using Settings.Core;
 
@@ -19,7 +20,9 @@ namespace Normalisation.WorkerService
 
             var configNormalisation = ConfigurationLoader.LoadConfiguration("Service.Normalisation");
             var normalisationSettings = configNormalisation.BindSection<NormalisationSettings>("Normalisation");
+            var metaCacheSettings = configNormalisation.BindSection<CacheSettings>("MetaCache");
             var blobCacheSettings = configNormalisation.BindSection<CacheSettings>("BlobCache");
+            var requestSenderSettings = configNormalisation.BindSection<RequestSenderSettings>("RequestSender");
 
 
             // Create Logger
@@ -44,17 +47,32 @@ namespace Normalisation.WorkerService
 
                 var eventBus = sp.GetRequiredService<IEventBus>();
 
-                // Create Blob Cache
-                var cache = CacheFactory.Create(
+                // Create Meta Cache for Request Sender
+                var metaCache = CacheFactory.Create(
+                    normalisationSettings.ServiceName,
+                    logger,
+                    metaCacheSettings);
+
+                // Create Blob Cache for Request Sender
+                var blobCache = CacheFactory.Create(
                     normalisationSettings.ServiceName,
                     logger,
                     blobCacheSettings);
 
+                // Create Request Sender
+                var requestSender = RequestFactory.Create(
+                    logger,
+                    metaCache,
+                    blobCache,
+                    requestSenderSettings);
+
+
                 // Create Normalisation Service
                 var normalisationService = NormalisationFactory.Create(
-                    logger, 
-                    cache, 
-                    eventBus, 
+                    logger,
+                    eventBus,
+                    requestSender,
+                    blobCache, 
                     normalisationSettings);
 
                 return normalisationService;

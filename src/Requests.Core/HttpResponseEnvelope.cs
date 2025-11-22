@@ -1,7 +1,4 @@
-﻿using System.Collections.Specialized;
-using System.Reflection.PortableExecutable;
-using System.Text;
-
+﻿
 namespace Requests.Core
 {
     public record HttpResponseEnvelope

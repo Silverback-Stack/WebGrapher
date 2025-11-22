@@ -2,7 +2,7 @@ import Sigma from "sigma"
 import { createNodeImageProgram } from "@sigma/node-image"
 import FA2Layout from "graphology-layout-forceatlas2/worker"
 import appConfig from "./config/app-config.js"
-
+import apiConfig from "./config/api-config.js"
 
 // --- Sigma setup ---
 export function setupSigma(sigmaGraph, container) {
@@ -187,22 +187,46 @@ export function getNodeAndNeighbors(sigmaGraph, nodeId) {
 }
 
 
+function resolveNodeImageUrl(n) {
+  const rawUrl = n.image; // original image
+
+  if (!rawUrl) return null;
+
+  if (n.imageCors === false) {
+    const encoded = encodeURIComponent(rawUrl);
+    return apiConfig.PROXY_IMAGE(encoded); // proxy URL of original image
+  }
+
+  return rawUrl;
+}
+
+
 export function addOrUpdateNode(sigmaGraph, n) {
   const pos = getRandomPosition(100);
+
+  const imageRaw = n.image; // original image url from server
+  const image = resolveNodeImageUrl(n); // proxy image if image server doesnt support CORS or original image if it does
+
   if (sigmaGraph.hasNode(n.id)) {
     sigmaGraph.updateNodeAttributes(n.id, oldAttr => ({
       _originalType: n.type, //used for reducer
       _originalSize: oldAttr._originalSize ?? oldAttr.size, // preserve highlight base
       _baseSize: oldAttr._baseSize ?? n.size,               // preserve dynamic base
+
       size: oldAttr.size,
       label: n.label,        
       color: oldAttr.color,  // preserve current color (highlighted or not)
-      image: n.image,        
+
+      image: image,
+      imageRaw: imageRaw,
+      imageCors: n.imageCors,
+
       type: n.type,
       summary: n.summary,
       tags: n.tags,
       sourceLastModified: n.sourceLastModified,
       createdAt: n.createdAt,
+
       x: oldAttr.x,          // preserve current x
       y: oldAttr.y           // preserve current y
     }))
@@ -211,16 +235,22 @@ export function addOrUpdateNode(sigmaGraph, n) {
       _originalType: n.type,   // for reducer
       _originalSize: n.size,   // for highlight reset
       _baseSize: n.size,       // for dynamic base size
+
       label: n.label,
       size: n.size,
       color: appConfig.nodeColor,
-      image: n.image,
+
+      image: image,
+      imageRaw: imageRaw,
+      imageCors: n.imageCors,
+
       opacity: 1,
       type: n.type,
       summary: n.summary,
       tags: n.tags,
       sourceLastModified: n.sourceLastModified,
       createdAt: n.createdAt,
+
       x: pos.x,
       y: pos.y
     })

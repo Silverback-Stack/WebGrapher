@@ -7,6 +7,8 @@ namespace Graphing.WebApi
 
         public IEnumerable<string> AllowedOrigins { get; set; } = new List<string>();
 
+        public int ProxyClientTimeOutSeconds { get; set; } = 10;
+
         public SwaggerSettings Swagger { get; set; } = new SwaggerSettings();
     }
 

@@ -29,6 +29,9 @@ namespace Normalisation.Core
         [JsonPropertyName("imageUrl")]
         public string? ImageUrl { get; init; }
 
+        [JsonPropertyName("imageCors")]
+        public bool ImageCors { get; init; }
+
         [JsonPropertyName("detectedLanguageIso3")]
         public string? DetectedLanguageIso3 { get; init; }
     }

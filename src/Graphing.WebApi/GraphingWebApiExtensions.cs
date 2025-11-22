@@ -2,6 +2,7 @@
 using Graphing.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
 
 namespace Graphing.WebApi
 {
@@ -31,6 +32,18 @@ namespace Graphing.WebApi
 
             // --- Authentication ---
             services.AddWebApiAuthentication(authSettings);
+
+            // --- Proxy for images that dont support CORS ---
+            services.AddHttpClient("ProxyClient", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(graphingWebApiSettings.ProxyClientTimeOutSeconds);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                //  For images (JPEG, PNG, GIF), servers already deliver them in a compressed format
+                //  optimized for the web. Trying to decompress them in the client wastes CPU and memory.
+                AutomaticDecompression = DecompressionMethods.None
+            });
 
             return services;
         }

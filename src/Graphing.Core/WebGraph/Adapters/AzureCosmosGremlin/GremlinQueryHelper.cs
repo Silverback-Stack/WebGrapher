@@ -192,6 +192,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 Title = GetPropString(props, "title") ?? string.Empty,
                 Summary = GetPropString(props, "summary") ?? string.Empty,
                 ImageUrl = GetPropString(props, "imageUrl") ?? string.Empty,
+                ImageCors = GetPropBool(props, "imageCors") ?? true,
                 Keywords = GetPropString(props, "keywords") ?? string.Empty,
                 Tags = GetPropStringList(props, "tags"),
                 State = nodeState,

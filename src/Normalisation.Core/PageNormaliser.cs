@@ -1,6 +1,4 @@
-﻿using System;
-using System.Text;
-using Caching.Core;
+﻿using Caching.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
@@ -8,21 +6,26 @@ using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core.Processors;
+using Requests.Core;
+using System;
+using System.Text;
 
 namespace Normalisation.Core
 {
     public class PageNormaliser : IPageNormaliser, IEventBusLifecycle
     {
         private readonly ILogger _logger;
-        private readonly ICache _blobCache;
         private readonly IEventBus _eventBus;
+        private readonly IRequestSender _requestSender;
+        private readonly ICache _blobCache;
         private readonly NormalisationSettings _normalisationSettings;
 
-        public PageNormaliser(ILogger logger, ICache blobCache, IEventBus eventBus, NormalisationSettings normalisationSettings)
+        public PageNormaliser(ILogger logger, IEventBus eventBus, IRequestSender requestSender, ICache blobCache, NormalisationSettings normalisationSettings)
         {
             _logger = logger;
-            _blobCache = blobCache;
             _eventBus = eventBus;
+            _requestSender = requestSender;
+            _blobCache = blobCache;
             _normalisationSettings = normalisationSettings;
         }
 
@@ -67,6 +70,7 @@ namespace Normalisation.Core
             IEnumerable<string>? tags,
             IEnumerable<Uri>? links,
             Uri? imageUrl,
+            bool imageCors,
             string? languageIso3)
         {
             var request = evt.CrawlPageRequest;
@@ -87,6 +91,7 @@ namespace Normalisation.Core
                 Tags = tags,
                 Links = links,
                 ImageUrl = imageUrl,
+                ImageCors = imageCors,
                 DetectedLanguageIso3 = languageIso3,
                 ContentFingerprint = contentFingerprint,
                 CreatedAt = DateTimeOffset.UtcNow
@@ -103,6 +108,7 @@ namespace Normalisation.Core
                     Tags = normalisedPageResult.Tags,
                     Links = normalisedPageResult.Links?.Select(l => l.AbsoluteUri),
                     ImageUrl = normalisedPageResult.ImageUrl?.AbsoluteUri,
+                    ImageCors = normalisedPageResult.ImageCors,
                     DetectedLanguageIso3 = normalisedPageResult.DetectedLanguageIso3
                 };
             }
@@ -181,6 +187,8 @@ namespace Normalisation.Core
             try
             {
                 var htmlParser = new HtmlParser(htmlDocument, _normalisationSettings);
+
+                // extract data
                 var extractedTitle = htmlParser.ExtractTitle(request.Options.TitleElementXPath);
                 var extractedSummary = htmlParser.ExtractContentAsPlainText(request.Options.SummaryElementXPath, "Summary Container");
                 var extractedContent = htmlParser.ExtractContentAsPlainText(request.Options.ContentElementXPath, "Content Container");
@@ -188,10 +196,13 @@ namespace Normalisation.Core
                 var extractedLinks = htmlParser.ExtractLinks(request.Options.RelatedLinksElementXPath);
                 var extractedImageUrl = htmlParser.ExtractImageUrl(request.Options.ImageElementXPath);
 
+                // normalise text
                 var normalisedTitle = NormaliseTitle(extractedTitle);
                 var normalisedSummary = NormaliseSummary(extractedSummary);
                 var normalisedKeywords = NormaliseKeywords(extractedContent, detectedLanguageIso3);
                 var normalisedTags = NormaliseTags(extractedContent, detectedLanguageIso3, _normalisationSettings.MaxKeywordTags);
+
+                // normalise links
                 var normalisedLinks = NormaliseLinks(
                     extractedLinks,
                     request.Url,
@@ -199,8 +210,25 @@ namespace Normalisation.Core
                     request.Options.ExcludeQueryStrings,
                     request.Options.MaxLinks,
                     request.Options.UrlMatchRegex);
-                var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
 
+                // normalise image
+                var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
+                var normaliedImageCors = true; // always default to true → no image → nothing to check (no proxy required)
+                if (normaliedImageUrl != null)
+                {
+                    // fetch image url
+                    var image = await _requestSender.FetchAsync(
+                        normaliedImageUrl,
+                        request.Options.UserAgent,
+                        request.Options.UserAccepts,
+                        0, // get headers only - no content downloaded
+                        request.RequestCompositeKey);
+                    if (image != null) 
+                        normaliedImageCors = image.Metadata.IsCorsAllowed;
+                }
+
+
+                // publish event
                 await PublishGraphEventAsync(
                     evt, 
                     normalisedTitle, 
@@ -208,7 +236,8 @@ namespace Normalisation.Core
                     normalisedKeywords, 
                     normalisedTags, 
                     normalisedLinks, 
-                    normaliedImageUrl, 
+                    normaliedImageUrl,
+                    normaliedImageCors,
                     detectedLanguageIso3);
 
             }

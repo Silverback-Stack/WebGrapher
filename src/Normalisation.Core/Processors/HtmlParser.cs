@@ -1,6 +1,5 @@
-﻿using System.Net;
-using System.Xml.XPath;
-using HtmlAgilityPack;
+﻿using HtmlAgilityPack;
+using System.Net;
 
 namespace Normalisation.Core.Processors
 {
@@ -8,6 +7,7 @@ namespace Normalisation.Core.Processors
     {
         private readonly HtmlDocument _htmlDocument;
         private readonly NormalisationSettings _normalisationSettings;
+        private readonly XPathEvaluator _xPathEvaluator;
 
         public HtmlParser(string htmlDocument, NormalisationSettings normalisationSettings) {
 
@@ -15,10 +15,13 @@ namespace Normalisation.Core.Processors
             _htmlDocument.OptionFixNestedTags = true;
             _htmlDocument.LoadHtml(htmlDocument);
             _normalisationSettings = normalisationSettings;
+            _xPathEvaluator = new XPathEvaluator(_htmlDocument);
         }
 
+
+
         /// <summary>
-        /// Extracts a title from nodes matching the XPath expression, 
+        /// Extracts a title from elements matching the XPath expression, 
         /// or falls back to the document <title> element.
         /// </summary>
         public string ExtractTitle(string xPathExpression = "")
@@ -27,16 +30,27 @@ namespace Normalisation.Core.Processors
             {
                 if (!string.IsNullOrWhiteSpace(xPathExpression))
                 {
-                    var nodes = GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>();
-                    var result = nodes
-                        .Select(n => n.InnerText?.Trim())
-                        .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
-                    if (!string.IsNullOrWhiteSpace(result))
-                        return result;
+                    var xPathResult = _xPathEvaluator.Evaluate(xPathExpression);
+
+                    switch (xPathResult.Type)
+                    {
+                        case XPathResultType.NodeSet:
+                            // Always get InnerText of first valid node
+                            return xPathResult.Nodes?
+                                .Select(n => n.InnerText?.Trim())
+                                .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t))
+                                ?? string.Empty;
+
+                        case XPathResultType.String:
+                            return xPathResult.StringValue 
+                                ?? string.Empty;
+                    }
                 }
 
                 // Fallback to <title>
-                var titleNode = _htmlDocument.DocumentNode.SelectSingleNode(_normalisationSettings.Processors.TitleXPath);
+                var titleNode = _htmlDocument.DocumentNode
+                    .SelectSingleNode(_normalisationSettings.Processors.TitleXPath);
+                
                 return titleNode?.InnerText.Trim() ?? string.Empty;
             }
             catch (Exception ex)
@@ -48,7 +62,7 @@ namespace Normalisation.Core.Processors
 
 
         /// <summary>
-        /// Extracts plain text content from nodes matching the XPath expression. 
+        /// Extracts plain text content from elements matching the XPath expression. 
         /// Falls back to the document root if no expression is provided.
         /// Returns an empty string if expression is provided but nothing matches.
         /// </summary>
@@ -56,17 +70,29 @@ namespace Normalisation.Core.Processors
         {
             try
             {
-                var nodes = string.IsNullOrWhiteSpace(xPathExpression)
-                    ? GetRoot()
-                    : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
+                if (string.IsNullOrWhiteSpace(xPathExpression))
+                    return _htmlDocument.DocumentNode.InnerText.Trim();
 
-                var result = string.Join(" ",
-                    nodes
-                        .Select(n => n.InnerText?.Trim())
-                        .Where(t => !string.IsNullOrWhiteSpace(t))
-                ).Trim();
+                var xPathResult = _xPathEvaluator.Evaluate(xPathExpression);
 
-                return result;
+                switch (xPathResult.Type)
+                {
+                    case XPathResultType.NodeSet:
+                        if (xPathResult.Nodes == null || xPathResult.Nodes.Count() == 0)
+                            return string.Empty;
+
+                        return string.Join(" ",
+                            xPathResult.Nodes
+                                .Select(n => n.InnerText.Trim())
+                                .Where(t => !string.IsNullOrWhiteSpace(t)));
+
+                    case XPathResultType.String:
+                        return xPathResult.StringValue?.Trim() ?? string.Empty;
+
+                    default:
+                        return string.Empty;
+                }
+                ;
             }
             catch (Exception ex)
             {
@@ -77,62 +103,60 @@ namespace Normalisation.Core.Processors
         }
 
 
-
-        /// <summary>
-        /// Extracts links found in nodes matching the XPath expression.
-        /// Falls back to entire document if no expression is provided.
-        /// </summary>
+        ///// <summary>
+        ///// Extracts links found in elements matching the XPath expression.
+        ///// Falls back to entire document if no expression is provided.
+        ///// </summary>
         public IEnumerable<string> ExtractLinks(string xPathExpression = "")
         {
             try
             {
-                // Normalize to IEnumerable<HtmlNode>
-                var nodes = string.IsNullOrWhiteSpace(xPathExpression)
-                    ? GetRoot()
-                    : GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>(); // empty if no match
+                var xPathResult = string.IsNullOrWhiteSpace(xPathExpression)
+                    ? new XPathResult { Type = XPathResultType.NodeSet, Nodes = new[] { _htmlDocument.DocumentNode } }
+                    : _xPathEvaluator.Evaluate(xPathExpression);
 
-                var links = nodes
-                    .SelectMany(node => node.SelectNodes(_normalisationSettings.Processors.LinksXPath) ?? Enumerable.Empty<HtmlNode>())
-                    .Select(tag => WebUtility.HtmlDecode(tag.GetAttributeValue("href", "")))
+                if (xPathResult.Type != XPathResultType.NodeSet || xPathResult.Nodes == null)
+                    return Enumerable.Empty<string>();
+
+                return xPathResult.Nodes
+                    .SelectMany(node => node.SelectNodes(_normalisationSettings.Processors.LinksXPath)
+                        ?? Enumerable.Empty<HtmlNode>())
+                    .Select(tag => WebUtility.HtmlDecode(tag.GetAttributeValue("href", string.Empty)))
                     .Where(href => !string.IsNullOrEmpty(href))
                     .ToHashSet();
-
-                return links;
             }
             catch (Exception ex)
             {
-                // Friendly message for client, include original exception internally
-                throw new NormalisationException($"Related Links Container XPath is invalid; check your expression.", ex);
+                throw new NormalisationException("Related Links Container XPath is invalid; check your expression.", ex);
             }
         }
 
 
         /// <summary>
-        /// Extracts the first valid image URL found in nodes matching the XPath expression.
+        /// Extracts the first valid image URL found in elements matching the XPath expression.
         /// </summary>
         public string ExtractImageUrl(string xPathExpression = "")
         {
             try
             {
-                if (string.IsNullOrEmpty(xPathExpression))
+                if (string.IsNullOrWhiteSpace(xPathExpression))
                     return string.Empty;
 
-                var nodes = GetNodes(xPathExpression) ?? Enumerable.Empty<HtmlNode>();
+                var xPathResult = _xPathEvaluator.Evaluate(xPathExpression);
 
-                foreach (var node in nodes)
+                if (xPathResult.Type != XPathResultType.NodeSet || xPathResult.Nodes == null)
+                    return string.Empty;
+
+                foreach (var node in xPathResult.Nodes)
                 {
-                    // Try src
                     var src = node.GetAttributeValue("src", string.Empty);
-                    if (!string.IsNullOrEmpty(src))
-                        return src;
+                    if (!string.IsNullOrEmpty(src)) return src;
 
-                    // Try srcset — get first URL
                     var srcset = node.GetAttributeValue("srcset", string.Empty);
                     if (!string.IsNullOrEmpty(srcset))
                     {
-                        var firstUrl = srcset.Split(',')[0].Trim().Split(' ')[0];
-                        if (!string.IsNullOrEmpty(firstUrl))
-                            return firstUrl;
+                        var first = srcset.Split(',')[0].Trim().Split(' ')[0];
+                        if (!string.IsNullOrEmpty(first)) return first;
                     }
                 }
 
@@ -140,52 +164,9 @@ namespace Normalisation.Core.Processors
             }
             catch (Exception ex)
             {
-                // Friendly message for client, include original exception internally
-                throw new NormalisationException($"Image Container XPath is invalid; check your expression.", ex);
+                throw new NormalisationException("Image Container XPath is invalid; check your expression.", ex);
             }
-
         }
 
-        /// <summary>
-        /// Returns the document root node.
-        /// </summary>
-        private IEnumerable<HtmlNode> GetRoot()
-        {
-            return new[] { _htmlDocument.DocumentNode };
-        }
-
-        /// <summary>
-        /// Picks filtered nodes or null.
-        /// </summary>
-        private IEnumerable<HtmlNode>? GetNodes(string xPathExpression)
-        {
-            if (IsValidExpression(xPathExpression))
-            {
-                var nodes = _htmlDocument.DocumentNode.SelectNodes(xPathExpression);
-                if (nodes != null && nodes.Any())
-                    return nodes;
-            }
-
-            return null;
-        }
-
-        private bool IsValidExpression(string xPathExpression)
-        {
-            if (string.IsNullOrWhiteSpace(xPathExpression))
-                return false;
-
-            try
-            {
-                // Validate XPath syntax
-                XPathExpression.Compile(xPathExpression);
-            }
-            catch (Exception)
-            {
-                //invalid Xpath syntax
-                return false;
-            }
-
-            return true;
-        }
     }
 }

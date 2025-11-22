@@ -18,6 +18,7 @@ namespace Events.Core.Dtos
         public IEnumerable<string>? Tags { get; init; }
         public IEnumerable<Uri>? Links { get; init; }
         public Uri? ImageUrl { get; init; }
+        public bool ImageCors { get; init; }
         public string? DetectedLanguageIso3 { get; init; }
 
         public required string ContentFingerprint { get; init; }

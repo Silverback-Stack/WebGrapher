@@ -78,6 +78,7 @@ async function setupSignalR(graphId, { sigmaGraph, runFA2, hubUrl, flushInterval
   // Receive node data
   connection.on("ReceiveGraphPayload", payload => {
     if (!payload) return
+
     payload.nodes.forEach(n => nodeBuffer.push(n))
     payload.edges.forEach(e => edgeBuffer.push(e))
   })

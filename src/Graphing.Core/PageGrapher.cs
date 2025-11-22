@@ -60,7 +60,7 @@ namespace Graphing.Core
             await _eventBus.PublishAsync(clientLogEvent);
         }
 
-        private async Task PublishGraphNodeAddedEventAsync(CrawlPageRequestDto request, Node node)
+        private async Task PublishStreamNodePayloadEventAsync(CrawlPageRequestDto request, Node node)
         {
             var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node, _graphingSettings);
             payload.CorrolationId = request.CorrelationId;
@@ -68,12 +68,12 @@ namespace Graphing.Core
             if (!payload.Nodes.Any() && !payload.Edges.Any())
                 return;
 
-            await _eventBus.PublishAsync(new GraphNodeAddedEvent
+            await _eventBus.PublishAsync(new StreamNodePayloadEvent
             {
                 SigmaGraphPayload = payload
             });
 
-            var logMessage = $"Graphing Node Populated: {node.Url} Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}";
+            var logMessage = $"Streaming node payload: {node.Url} Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}";
             _logger.LogInformation(logMessage);
 
             await PublishClientLogEventAsync(
@@ -156,7 +156,7 @@ namespace Graphing.Core
                 //Delegate : Called when Node is populated with data
                 Func<Node, Task> nodePopulatedCallback = async (node) =>
                 {
-                    await PublishGraphNodeAddedEventAsync(request, node);
+                    await PublishStreamNodePayloadEventAsync(request, node);
                 };
 
                 //Delegate : Called when Link is discovered
@@ -227,6 +227,7 @@ namespace Graphing.Core
                 Title = result.Title,
                 Summary = result.Summary,
                 ImageUrl = result.ImageUrl?.AbsoluteUri,
+                ImageCors = result.ImageCors,
                 Keywords = result.Keywords,
                 Tags = result.Tags,
                 Links = result.Links?.Select(l => l.AbsoluteUri) ?? Enumerable.Empty<string>(),

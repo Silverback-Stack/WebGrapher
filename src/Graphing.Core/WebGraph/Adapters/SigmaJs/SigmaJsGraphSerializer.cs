@@ -60,6 +60,7 @@ namespace Graphing.Core.WebGraph.Adapters.SigmaJs
                 State = node.State.ToString(), 
                 Summary = node.Summary,
                 Image = node.ImageUrl,
+                ImageCors = node.ImageCors,
                 Tags = node.Tags,
                 CreatedAt = node.CreatedAt,
                 SourceLastModified = node.SourceLastModified

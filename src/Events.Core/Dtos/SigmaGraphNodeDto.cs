@@ -28,6 +28,9 @@ namespace Events.Core.Dtos
         [JsonPropertyName("image")]
         public string? Image { get; set; }
 
+        [JsonPropertyName("imageCors")]
+        public bool ImageCors { get; set; }
+
         [JsonPropertyName("type")]
         public string? Type => Image != null ? "image" : "circle";
 
