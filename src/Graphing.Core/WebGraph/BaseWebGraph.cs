@@ -129,6 +129,7 @@ namespace Graphing.Core.WebGraph
             node.Title = webPage.Title ?? string.Empty;
             node.Summary = webPage.Summary ?? string.Empty;
             node.ImageUrl = webPage.ImageUrl ?? string.Empty;
+            node.ImageCors = webPage.ImageCors;
             node.Keywords = webPage.Keywords ?? string.Empty;
             node.Tags = webPage.Tags ?? Enumerable.Empty<string>();
             node.SourceLastModified = webPage.SourceLastModified;

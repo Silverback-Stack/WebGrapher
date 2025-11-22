@@ -14,5 +14,7 @@ export default {
   GRAPH_NODESUBGRAPH: (graphId) => `${apiUrl}/Graph/${graphId}/node-subgraph`,
   GRAPH_CRAWL: (graphId) => `${apiUrl}/Graph/${graphId}/crawl`,
 
+  PROXY_IMAGE: (imageUrl) => `${apiUrl}/Proxy/image?url=${imageUrl}`,
+
   SIGNALR_HUB: hubUrl
 };

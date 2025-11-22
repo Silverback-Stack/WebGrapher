@@ -371,6 +371,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                  .property('title', title)
                  .property('summary', summary)
                  .property('imageUrl', imageUrl)
+                 .property('imageCors', imageCors)
                  .property('keywords', keywords)
                  .property('tags', tags)
                  .property('state', state)
@@ -390,6 +391,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 ["title"] = node.Title,
                 ["summary"] = node.Summary,
                 ["imageUrl"] = node.ImageUrl,
+                ["imageCors"] = node.ImageCors,
                 ["keywords"] = node.Keywords,
                 ["tags"] = string.Join(",", node.Tags ?? Array.Empty<string>()),
                 ["state"] = node.State.ToString(),

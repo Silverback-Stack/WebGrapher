@@ -1,8 +1,8 @@
-﻿using System;
-using System.Net;
-using Caching.Core;
+﻿using Caching.Core;
 using Caching.Core.Helpers;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Net;
 
 namespace Requests.Core
 {
@@ -50,9 +50,7 @@ namespace Requests.Core
                 throw new ArgumentNullException(nameof(userAccepts));
 
             if (string.IsNullOrEmpty(compositeKey))
-            {
                 compositeKey = $"{url}|{userAgent}|{userAccepts}";
-            }
 
             try
             {
@@ -106,11 +104,11 @@ namespace Requests.Core
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
                 // Timeout occurred (not user-requested cancellation)
-                _logger.LogWarning($"Request to {url.AbsoluteUri} timed out.");
+                _logger.LogWarning(ex, $"Request to {url.AbsoluteUri} timed out.");
             }
             catch (TimeoutException ex)
             {
-                _logger.LogWarning($"Request to {url.AbsoluteUri} timed out: {ex.Message}");
+                _logger.LogWarning(ex, $"Request to {url.AbsoluteUri} timed out: {ex.Message}");
             }
             catch (HttpRequestException ex)
             {

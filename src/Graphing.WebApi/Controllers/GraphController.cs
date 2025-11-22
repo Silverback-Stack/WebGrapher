@@ -1,5 +1,4 @@
-﻿using System;
-using Auth.WebApi;
+﻿using Auth.WebApi;
 using Graphing.Core;
 using Graphing.Core.WebGraph.Dtos;
 using Graphing.Core.WebGraph.Models;
@@ -18,7 +17,9 @@ namespace Graphing.WebApi.Controllers
         private readonly IPageGrapher _pageGrapher;
         private readonly UserContext _userContext;
 
-        public GraphController(IPageGrapher pageGrapher, UserContext userContext)
+        public GraphController(
+            IPageGrapher pageGrapher, 
+            UserContext userContext)
         {
             _pageGrapher = pageGrapher;
             _userContext = userContext;
@@ -262,5 +263,8 @@ namespace Graphing.WebApi.Controllers
             ImageElementXPath = graph.ImageElementXPath,
             RelatedLinksElementXPath = graph.RelatedLinksElementXPath
         };
+
+
     }
+
 }

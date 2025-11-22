@@ -45,7 +45,7 @@ Normalisation service → emits NormalisePageResultDto
 
 Graph service → maps that into a Sigma-ready DTO (plus edges)
 
-Graph service → raises GraphNodeAddedEvent with only the Sigma payload that the streaming service can send straight to the client.
+Graph service → raises StreamNodeEvent with only the Sigma payload that the streaming service can send straight to the client.
 
 Streaming service → doesn’t care about internal web-page details — it just pushes whatever the event gives it to the browser.
 

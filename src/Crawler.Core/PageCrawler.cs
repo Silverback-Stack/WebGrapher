@@ -6,28 +6,24 @@ using Events.Core.Events;
 using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
-using Requests.Core;
 
 namespace Crawler.Core
 {
     public class PageCrawler : IPageCrawler, IEventBusLifecycle
     {
-        protected readonly IEventBus _eventBus;
         protected readonly ILogger _logger;
-        protected readonly IRequestSender _requestSender;
+        protected readonly IEventBus _eventBus;
         protected readonly ISitePolicyResolver _sitePolicyResolver;
         protected readonly CrawlerSettings _crawlerSettings;
 
         public PageCrawler(
             ILogger logger,
             IEventBus eventBus,
-            IRequestSender requestSender,
             ISitePolicyResolver sitePolicyResolver,
             CrawlerSettings crawlerSettings)
         {
             _eventBus = eventBus;
             _logger = logger;
-            _requestSender = requestSender;
             _sitePolicyResolver = sitePolicyResolver;
             _crawlerSettings = crawlerSettings;
         }

@@ -44,6 +44,8 @@ namespace Requests.Core
                 statusCode = HttpStatusCode.NotAcceptable;
             }
 
+            var isCorsAllowed = IsCorsAllowed(httpResponseMessage!.Headers);
+
             if (statusCode == HttpStatusCode.OK)
             {
                 data = await ReadAsByteArrayAsync(httpResponseMessage?.Content, contentMaxBytes, cancellationToken);
@@ -59,13 +61,14 @@ namespace Requests.Core
                     LastModified = lastModified,
                     Expires = expires,
                     RetryAfter = retryAfter,
+                    IsCorsAllowed = isCorsAllowed,
                     ResponseData = new HttpResponseDataItem
                     {
                         BlobId = blobId,
                         BlobContainer = blobContainer,
                         ContentType = contentType,
                         Encoding = encoding
-                    },
+                    }
                 },
                 Data = new HttpResponseData
                 {
@@ -74,6 +77,14 @@ namespace Requests.Core
                 IsFromCache = false
             };
         }
+
+        private static bool IsCorsAllowed(HttpHeaders headers)
+        {
+            if (headers == null) return false;
+
+            return headers.Contains("Access-Control-Allow-Origin");
+        }
+            
 
         /// <summary>
         /// Determines the media type of the given HTTP content from the header, 
