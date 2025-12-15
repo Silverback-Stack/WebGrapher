@@ -168,15 +168,21 @@ export function getNodeAndNeighbors(sigmaGraph, nodeId) {
 
   const nodeAttributes = sigmaGraph.getNodeAttributes(nodeId);
 
-  const outgoingEdges = sigmaGraph.outNeighbors(nodeId).map(id => {
+  // get incoming edges with id and title
+  let outgoingEdges = sigmaGraph.outNeighbors(nodeId).map(id => {
     const targetNode = sigmaGraph.getNodeAttributes(id)
     return { id, title: targetNode?.label || id }
-  });
+  })
+  // sort incoming edges alphabetically by title
+  outgoingEdges = sortBy(outgoingEdges, "title")
 
-  const incomingEdges = sigmaGraph.inNeighbors(nodeId).map(id => {
+  // get outgoing edges with id and title
+  let incomingEdges = sigmaGraph.inNeighbors(nodeId).map(id => {
     const sourceNode = sigmaGraph.getNodeAttributes(id)
     return { id, title: sourceNode?.label || id }
   })
+  // sort outgoing edges alphabetically by title
+  incomingEdges = sortBy(incomingEdges, "title")
 
   return {
     ...nodeAttributes,
@@ -184,6 +190,16 @@ export function getNodeAndNeighbors(sigmaGraph, nodeId) {
     outgoingEdges,
     incomingEdges,
   }
+}
+
+
+function sortBy(list, key) {
+  return list.sort((a, b) =>
+    String(a[key]).localeCompare(String(b[key]), undefined, {
+      sensitivity: "base",
+      ignorePunctuation: true
+    })
+  )
 }
 
 

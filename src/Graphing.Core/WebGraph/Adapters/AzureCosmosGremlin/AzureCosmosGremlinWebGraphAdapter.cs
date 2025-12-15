@@ -116,6 +116,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 MaxLinks = options.MaxLinks,
                 ExcludeExternalLinks = options.ExcludeExternalLinks,
                 ExcludeQueryStrings = options.ExcludeQueryStrings,
+                ConsolidateQueryStrings = options.ConsolidateQueryStrings,
                 UrlMatchRegex = options.UrlMatchRegex,
                 TitleElementXPath = options.TitleElementXPath,
                 ContentElementXPath = options.ContentElementXPath,

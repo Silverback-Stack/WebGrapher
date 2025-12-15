@@ -157,6 +157,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 MaxLinks = GetPropInt(props, "maxLinks") ?? 1,
                 ExcludeExternalLinks = GetPropBool(props, "excludeExternalLinks") ?? true,
                 ExcludeQueryStrings = GetPropBool(props, "excludeQueryStrings") ?? true,
+                ConsolidateQueryStrings = GetPropBool(props, "consolidateQueryStrings") ?? true,
                 UrlMatchRegex = GetPropString(props, "urlMatchRegex") ?? string.Empty,
                 TitleElementXPath = GetPropString(props, "titleElementXPath") ?? string.Empty,
                 ContentElementXPath = GetPropString(props, "contentElementXPath") ?? string.Empty,

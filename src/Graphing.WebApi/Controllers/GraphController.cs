@@ -97,6 +97,7 @@ namespace Graphing.WebApi.Controllers
             existingGraph.MaxLinks = Math.Max(1, updateGraph.MaxLinks);
             existingGraph.ExcludeExternalLinks = updateGraph.ExcludeExternalLinks;
             existingGraph.ExcludeQueryStrings = updateGraph.ExcludeQueryStrings;
+            existingGraph.ConsolidateQueryStrings = updateGraph.ConsolidateQueryStrings;
             existingGraph.UrlMatchRegex = updateGraph.UrlMatchRegex;
             existingGraph.TitleElementXPath = updateGraph.TitleElementXPath;
             existingGraph.ContentElementXPath = updateGraph.ContentElementXPath;
@@ -142,6 +143,7 @@ namespace Graphing.WebApi.Controllers
                 existingGraph.MaxLinks = Math.Max(1, crawlPage.MaxLinks);
                 existingGraph.ExcludeExternalLinks = crawlPage.ExcludeExternalLinks;
                 existingGraph.ExcludeQueryStrings = crawlPage.ExcludeQueryStrings;
+                existingGraph.ConsolidateQueryStrings = crawlPage.ConsolidateQueryStrings;
                 existingGraph.UrlMatchRegex = crawlPage.UrlMatchRegex;
                 existingGraph.TitleElementXPath = crawlPage.TitleElementXPath;
                 existingGraph.ContentElementXPath = crawlPage.ContentElementXPath;
@@ -167,6 +169,7 @@ namespace Graphing.WebApi.Controllers
                 MaxLinks = Math.Max(1, crawlPage.MaxLinks),
                 ExcludeExternalLinks = crawlPage.ExcludeExternalLinks,
                 ExcludeQueryStrings = crawlPage.ExcludeQueryStrings,
+                ConsolidateQueryStrings = crawlPage.ConsolidateQueryStrings,
                 UrlMatchRegex = crawlPage.UrlMatchRegex,
                 TitleElementXPath = crawlPage.TitleElementXPath,
                 ContentElementXPath = crawlPage.ContentElementXPath,
@@ -256,6 +259,7 @@ namespace Graphing.WebApi.Controllers
             MaxLinks = graph.MaxLinks,
             ExcludeExternalLinks = graph.ExcludeExternalLinks,
             ExcludeQueryStrings = graph.ExcludeQueryStrings,
+            ConsolidateQueryStrings = graph.ConsolidateQueryStrings,
             UrlMatchRegex = graph.UrlMatchRegex,
             TitleElementXPath = graph.TitleElementXPath,
             ContentElementXPath = graph.ContentElementXPath,

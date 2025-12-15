@@ -24,5 +24,9 @@ namespace Events.Core.Dtos
         public required string ContentFingerprint { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
 
+        public Uri CanonicalUrl => new Uri(Url.GetLeftPart(UriPartial.Path));
+
     }
+
+    
 }

@@ -199,6 +199,7 @@ namespace Graphing.Core
                         MaxDepth = request.Options.MaxDepth,
                         ExcludeExternalLinks = request.Options.ExcludeExternalLinks,
                         ExcludeQueryStrings = request.Options.ExcludeQueryStrings,
+                        ConsolidateQueryStrings = request.Options.ConsolidateQueryStrings,
                         UrlMatchRegex = request.Options.UrlMatchRegex,
                         TitleElementXPath = request.Options.TitleElementXPath,
                         ContentElementXPath = request.Options.ContentElementXPath,
@@ -217,10 +218,14 @@ namespace Graphing.Core
             var request = evt.CrawlPageRequest;
             var result = evt.NormalisePageResult;
 
+            var pageUrl = request.Options.ConsolidateQueryStrings
+                ? result.CanonicalUrl.AbsoluteUri
+                : result.Url.AbsoluteUri;
+
             return new WebPageItem
             {
                 GraphId = request.GraphId,
-                Url = result.Url.AbsoluteUri,
+                Url = pageUrl,
                 OriginalUrl = result.OriginalUrl.AbsoluteUri,
                 IsRedirect = result.IsRedirect,
                 SourceLastModified = result.SourceLastModified,
@@ -280,6 +285,7 @@ namespace Graphing.Core
                     MaxLinks = options.MaxLinks,
                     ExcludeExternalLinks = options.ExcludeExternalLinks,
                     ExcludeQueryStrings = options.ExcludeQueryStrings,
+                    ConsolidateQueryStrings = options.ConsolidateQueryStrings,
                     UrlMatchRegex = options.UrlMatchRegex,
                     TitleElementXPath = options.TitleElementXPath,
                     ContentElementXPath = options.ContentElementXPath,

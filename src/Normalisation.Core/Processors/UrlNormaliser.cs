@@ -131,22 +131,39 @@ namespace Normalisation.Core.Processors
         {
             if (string.IsNullOrWhiteSpace(regex)) return urls;
 
-            Regex pattern;
-            try
+            var patterns = new List<Regex>();
+
+            // Split form input on new lines
+            var lines = regex
+                .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
             {
-                // Compile the regex to validate syntax
-                pattern = new Regex(regex, RegexOptions.Compiled);
-            }
-            catch (Exception)
-            {
-                // Invalid regex — return original set
-                return urls;
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                try
+                {
+                    //compile valid patterns
+                    patterns.Add(new Regex(line.Trim(), RegexOptions.Compiled));
+                }
+                catch
+                {
+                    // Ignore invalid regex line
+                }
             }
 
+            // If nothing valid, return original set
+            if (patterns.Count == 0)
+                return urls;
+
+
             var filtered = new HashSet<Uri>();
+
             foreach (var url in urls)
             {
-                if (pattern.IsMatch(url.AbsoluteUri))
+                // Convert Url to string and try match any pattern
+                if (patterns.Any(p => p.IsMatch(url.AbsoluteUri)))
                 {
                     filtered.Add(url);
                 }

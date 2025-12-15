@@ -111,6 +111,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                  .property('maxLinks', maxLinks)
                  .property('excludeExternalLinks', excludeExternalLinks)
                  .property('excludeQueryStrings', excludeQueryStrings)
+                 .property('consolidateQueryStrings', consolidateQueryStrings)
                  .property('urlMatchRegex', urlMatchRegex)
                  .property('titleElementXPath', titleElementXPath)
                  .property('contentElementXPath', contentElementXPath)
@@ -134,6 +135,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 ["maxLinks"] = graph.MaxLinks,
                 ["excludeExternalLinks"] = graph.ExcludeExternalLinks,
                 ["excludeQueryStrings"] = graph.ExcludeQueryStrings,
+                ["consolidateQueryStrings"] = graph.ConsolidateQueryStrings,
                 ["urlMatchRegex"] = graph.UrlMatchRegex,
                 ["titleElementXPath"] = graph.TitleElementXPath,
                 ["contentElementXPath"] = graph.ContentElementXPath,
@@ -172,6 +174,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                  .property('maxLinks', maxLinks)
                  .property('excludeExternalLinks', excludeExternalLinks)
                  .property('excludeQueryStrings', excludeQueryStrings)
+                 .property('consolidateQueryStrings', consolidateQueryStrings)
                  .property('urlMatchRegex', urlMatchRegex)
                  .property('titleElementXPath', titleElementXPath)
                  .property('contentElementXPath', contentElementXPath)
@@ -193,6 +196,7 @@ namespace Graphing.Core.WebGraph.Adapters.AzureCosmosGremlin
                 ["maxLinks"] = graph.MaxLinks,
                 ["excludeExternalLinks"] = graph.ExcludeExternalLinks,
                 ["excludeQueryStrings"] = graph.ExcludeQueryStrings,
+                ["consolidateQueryStrings"] = graph.ConsolidateQueryStrings,
                 ["urlMatchRegex"] = graph.UrlMatchRegex,
                 ["titleElementXPath"] = graph.TitleElementXPath,
                 ["contentElementXPath"] = graph.ContentElementXPath,

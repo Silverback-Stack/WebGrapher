@@ -33,6 +33,7 @@
                         Options.MaxLinks.ToString(),
                         Options.ExcludeExternalLinks.ToString(),
                         Options.ExcludeQueryStrings.ToString(),
+                        Options.ConsolidateQueryStrings.ToString(),
                         Options.UrlMatchRegex ?? string.Empty,
                         Options.TitleElementXPath ?? string.Empty,
                         Options.ContentElementXPath ?? string.Empty,

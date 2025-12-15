@@ -1,6 +1,6 @@
 export default {
   //Graph Connect
-  defaultPageSize: 8,
+  defaultPageSize: 4,
   populateGraphMaxDepth: 2,
   populateGraphMaxNodes: 1000,
 

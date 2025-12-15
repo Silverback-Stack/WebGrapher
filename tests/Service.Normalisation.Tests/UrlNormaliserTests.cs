@@ -69,18 +69,20 @@ namespace Service.Normalisation.Tests
                 "adel.html",       // relative
                 "/top.html",       // root-relative
                 "./local.html",
-                "../up.html"
+                "../up.html",
+                "/path/"            // exactly matches base path with trailing slash
             };
 
             var results = UrlNormaliser.MakeAbsolute(urls, baseUrl);
             var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
 
-            Assert.That(resultsStrings.Count, Is.EqualTo(5));
+            Assert.That(resultsStrings.Count, Is.EqualTo(6));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/coldplay.html"));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/adel.html"));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/top.html")); // root-relative
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/local.html")); // ./ resolves to same folder
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/up.html")); // ../ resolves to parent
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/"));  // with trailing slash
         }
 
 
@@ -92,23 +94,26 @@ namespace Service.Normalisation.Tests
 
             var urls = new  List<string>
             {
-                "coldplay.html",   // relative
-                "adel.html",       // relative
-                "/top.html",       // root-relative
-                "./local.html",    // current folder
-                "../up.html"       // parent folder
+                "coldplay.html",    // relative
+                "adel.html",        // relative
+                "/top.html",        // root-relative
+                "./local.html",     // current folder
+                "../up.html",       // parent folder
+                "/path",            // exactly matches base path
             };
 
             var results = UrlNormaliser.MakeAbsolute(urls, baseUrl);
             var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
 
-            Assert.That(resultsStrings.Count, Is.EqualTo(5));
+            Assert.That(resultsStrings.Count, Is.EqualTo(6));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/coldplay.html"));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/adel.html"));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/top.html"));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path/local.html"));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/up.html"));
+            Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/path"));
         }
+
 
         [Test]
         public void FilterBySchema_FiltersUrlsByScheme()

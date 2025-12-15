@@ -61,14 +61,18 @@
 
           <!-- Advanced controls -->
           <div v-show="showAdvancedOptions">
-            <b-field label="Url Filter">
+            <b-field label="Url Filters">
               <p class="control">
-                <span class="button is-static">RegEx</span>
+                <b-tooltip label="Enter one RegEx per line. Each line is treated as a separate pattern." position="is-right">
+                  <span class="button is-static">RegEx</span>
+                </b-tooltip>
               </p>
               <p class="control is-expanded">
-                <b-input v-model="form.urlMatchRegex"></b-input>
+                <b-input v-model="form.urlMatchRegex"
+                         type="textarea" rows="2"></b-input>
               </p>
             </b-field>
+
             <b-field label="Title Container">
               <p class="control">
                 <span class="button is-static">XPath</span>
@@ -77,6 +81,7 @@
                 <b-input v-model="form.titleElementXPath"></b-input>
               </p>
             </b-field>
+
             <b-field label="Image Container">
               <p class="control">
                 <span class="button is-static">XPath</span>
@@ -85,6 +90,7 @@
                 <b-input v-model="form.imageElementXPath"></b-input>
               </p>
             </b-field>
+
             <b-field label="Content Container">
               <p class="control">
                 <span class="button is-static">XPath</span>
@@ -93,6 +99,7 @@
                 <b-input v-model="form.contentElementXPath"></b-input>
               </p>
             </b-field>
+
             <b-field label="Summary Container">
               <p class="control">
                 <span class="button is-static">XPath</span>
@@ -101,6 +108,7 @@
                 <b-input v-model="form.summaryElementXPath"></b-input>
               </p>
             </b-field>
+
             <b-field label="Related Links Container">
               <p class="control">
                 <span class="button is-static">XPath</span>
@@ -111,13 +119,20 @@
             </b-field>
 
             <b-field>
+              <b-checkbox v-model="form.excludeExternalLinks">
+                Exclude external links
+              </b-checkbox>
+            </b-field>
+
+            <b-field>
               <b-checkbox v-model="form.excludeQueryStrings">
                 Exclude query strings
               </b-checkbox>
             </b-field>
+
             <b-field>
-              <b-checkbox v-model="form.excludeExternalLinks">
-                Exclude external links
+              <b-checkbox v-model="form.consolidateQueryStrings">
+                Consolidate query strings
               </b-checkbox>
             </b-field>
 
@@ -292,6 +307,7 @@
     maxDepth: 1,
     excludeExternalLinks: true,
     excludeQueryStrings: true,
+    consolidateQueryStrings: true,
     urlMatchRegex: "",
     titleElementXPath: "",
     contentElementXPath: "",
