@@ -114,6 +114,7 @@ namespace WebGrapher.Cli
                     MaxLinks = 5,
                     ExcludeExternalLinks = true,
                     ExcludeQueryStrings = true,
+                    ConsolidateQueryStrings = true,
                     UrlMatchRegex = "",
                     TitleElementXPath = "",
                     ContentElementXPath = "",

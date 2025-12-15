@@ -11,6 +11,7 @@ namespace Graphing.Core.WebGraph.Dtos
         public required int MaxLinks { get; set; }
         public bool ExcludeExternalLinks { get; init; } = true;
         public bool ExcludeQueryStrings { get; init; } = true;
+        public bool ConsolidateQueryStrings { get; init; } = false;
         public string UrlMatchRegex { get; init; } = string.Empty;
         public string TitleElementXPath { get; init; } = string.Empty;
         public string ContentElementXPath { get; init; } = string.Empty;

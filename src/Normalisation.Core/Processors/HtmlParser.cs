@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace Normalisation.Core.Processors
 {
@@ -149,15 +150,33 @@ namespace Normalisation.Core.Processors
 
                 foreach (var node in xPathResult.Nodes)
                 {
-                    var src = node.GetAttributeValue("src", string.Empty);
-                    if (!string.IsNullOrEmpty(src)) return src;
-
+                    // Try srcset first - last image in set should be the highest resolution
                     var srcset = node.GetAttributeValue("srcset", string.Empty);
                     if (!string.IsNullOrEmpty(srcset))
                     {
-                        var first = srcset.Split(',')[0].Trim().Split(' ')[0];
-                        if (!string.IsNullOrEmpty(first)) return first;
+                        // Example srcset string:
+                        // "https://example.com/image1.jpg 190w, https://example.com/image2.jpg 285w, https://example.com/image3.jpg 380w"
+
+                        // Regex to match http or https URLs
+                        var urlPattern = @"https?://\S+";
+
+                        // Find all matches
+                        var urls = Regex.Matches(srcset, urlPattern)
+                                        .Cast<Match>()
+                                        .Select(m => m.Value)
+                                        .ToArray();
+
+                        // Return the last URL, which is typically the largest/highest-resolution image
+                        var largestImageUrl = urls.LastOrDefault();
+                        if (!string.IsNullOrEmpty(largestImageUrl))
+                            return largestImageUrl;
                     }
+
+                    // Fallback to src
+                    var src = node.GetAttributeValue("src", string.Empty);
+                    if (!string.IsNullOrEmpty(src)) 
+                        return src;
+
                 }
 
                 return string.Empty;

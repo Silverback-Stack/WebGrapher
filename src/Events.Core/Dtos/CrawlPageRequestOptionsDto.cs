@@ -6,6 +6,7 @@
         public int MaxLinks { get; init; }
         public bool ExcludeExternalLinks { get; init; }
         public bool ExcludeQueryStrings { get; init; }
+        public bool ConsolidateQueryStrings { get; init; }
         public string UrlMatchRegex { get; init; }
         public string TitleElementXPath { get; init; }
         public string ContentElementXPath { get; init; }

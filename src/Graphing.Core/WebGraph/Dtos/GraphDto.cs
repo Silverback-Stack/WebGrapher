@@ -14,6 +14,7 @@ namespace Graphing.Core.WebGraph.Dtos
         public int MaxDepth { get; set; } = 3;
         public bool ExcludeExternalLinks { get; init; } = true;
         public bool ExcludeQueryStrings { get; init; } = true;
+        public bool ConsolidateQueryStrings { get; init; } = true;
         public string UrlMatchRegex { get; init; } = string.Empty;
         public string TitleElementXPath { get; init; } = string.Empty;
         public string ContentElementXPath { get; init; } = string.Empty;

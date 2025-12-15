@@ -70,6 +70,7 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
                 MaxLinks = options.MaxLinks,
                 ExcludeExternalLinks = options.ExcludeExternalLinks,
                 ExcludeQueryStrings = options.ExcludeQueryStrings,
+                ConsolidateQueryStrings = options.ConsolidateQueryStrings,
                 UrlMatchRegex = options.UrlMatchRegex,
                 TitleElementXPath = options.TitleElementXPath,
                 ContentElementXPath = options.ContentElementXPath,
@@ -243,14 +244,13 @@ namespace Graphing.Core.WebGraph.Adapters.Memory
             if (!_nodeTable.TryGetValue(graphId, out var nodes))
                 return Task.FromResult(Enumerable.Empty<Node>());
 
-            var popularNodes = nodes.Values
+            var filteredNodes = nodes.Values
                 .Where(n => n.State == NodeState.Populated)  // only populated nodes
-                .OrderByDescending(n => n.PopularityScore)   // sort by popularity
-                .ThenByDescending(n => n.ModifiedAt)         // then by latest modified
+                .OrderBy(n => n.CreatedAt)                   // created first
                 .Take(topN)                                  // take top N
                 .ToList();
 
-            return Task.FromResult<IEnumerable<Node>>(popularNodes);
+            return Task.FromResult<IEnumerable<Node>>(filteredNodes);
         }
 
 
