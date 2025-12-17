@@ -58,13 +58,13 @@ npm -v
 
 ## 3. Download the Repository
 
-Clone or download the repository:
+Clone or download the WebGrapher repository:
 
 ```
 https://github.com/Silverback-Stack/WebGrapher
 ```
 
-Example local path:
+Install to your local drive. Example:
 
 ```
 C:\WebGrapher
@@ -76,7 +76,7 @@ C:\WebGrapher
 
 The Vue dev server runs over HTTPS. You’ll need a self-signed certificate for `localhost`.
 
-### 4.1 Create a certificate folder
+### 4.1 Create a certificate folder. Example:
 
 ```powershell
 mkdir C:\Certs
@@ -148,7 +148,7 @@ This prevents HTTPS browser warnings for localhost.
 Open the Vite config file:
 
 ```
-WebGrapher\src\webgrapher.webui\vite.config.js
+C:\WebGrapher\src\webgrapher.webui\vite.config.js
 ```
 
 Ensure the HTTPS section points to your certificate:
@@ -170,7 +170,7 @@ server: {
 1. Open the solution file:
 
 ```
-WebGrapher\WebGrapher.sln
+C:\WebGrapher\WebGrapher.sln
 ```
 
 2. Set the startup project to:
@@ -189,9 +189,9 @@ WebGrapher.Cli (Memory)
 
 ## 7. Run the UI (SPA)
 
-Open **Developer PowerShell** (or any terminal).
+Open **Developer PowerShell** in Visual Studio (or any terminal).
 
-Navigate to the web UI folder:
+Navigate to the project web UI folder:
 
 ```powershell
 cd src\webgrapher.webui
@@ -220,6 +220,18 @@ https://localhost:52924/
 ```
 
 You should now see the WebGrapher UI running over HTTPS.
+
+---
+
+## 9. Login
+
+Enter the default username and password.
+
+These can be found and changed in the app settings file:
+
+```
+C:\Users\georg\source\repos\WebGrapher\src\Settings.Core\Shared.Auth\appsettings.json
+```
 
 ---
 
