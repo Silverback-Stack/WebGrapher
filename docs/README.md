@@ -27,14 +27,10 @@ The following videos provide a visual and experiential overview of the WebGraphe
 
 A guided walkthrough of the WebGrapher user interface, highlighting real-time behaviour, graph interaction, and streaming updates as data flows through the system.
 
-<a href="https://youtu.be/VRlcI-ePMeQ" target="_blank">
-  <img src="/docs/webgrapher_product_walkthrough_screenshot.png" alt="Product Walkthrough">
-</a>
+[![Product Walkthrough](/docs/webgrapher_product_walkthrough_screenshot.png)](https://youtu.be/VRlcI-ePMeQ)
 
-<p>
-  ▶ Watch on YouTube:  
-  <a href="https://youtu.be/VRlcI-ePMeQ" target="_blank">Product Walkthrough Video</a>
-</p>
+▶ Watch on YouTube:  
+[Product Walkthrough Video](https://youtu.be/VRlcI-ePMeQ)
 
 ---
 
