@@ -43,6 +43,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebGrapher.Cli", "src\WebGr
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C0E6-4178-9ABD-D2C5CEFE9045}"
 	ProjectSection(SolutionItems) = preProject
+		getting-started.md = getting-started.md
 		docs\README.md = docs\README.md
 		docs\webgrapher_highlevel_architecture_screenshot.png = docs\webgrapher_highlevel_architecture_screenshot.png
 		docs\webgrapher_live_demo-screenshot.png = docs\webgrapher_live_demo-screenshot.png
