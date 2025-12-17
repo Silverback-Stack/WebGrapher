@@ -17,6 +17,36 @@ to a non-trivial, real-world domain without over-reliance on frameworks or platf
 
 ---
 
+## Visual Overview
+
+The following videos provide a visual and experiential overview of the WebGrapher platform. They are intended to complement the architectural documentation by showing how the system behaves in practice.
+
+### 🎥 Product Walkthrough
+A guided walkthrough of the WebGrapher user interface, highlighting real-time behaviour, graph interaction, and streaming updates as data flows through the system.
+
+▶ Watch on YouTube:  
+[Product Walkthrough Video](LINK_HERE)
+
+---
+
+### 🎥 High-Level Architecture Overview
+A conceptual walkthrough of the WebGrapher architecture, focusing on service responsibilities, event-driven communication, and system boundaries.
+
+▶ Watch on YouTube:  
+[High-Level Architecture Video](LINK_HERE)
+
+---
+
+### 🎥 Live System Demonstration
+A live demonstration of the platform crawling a website and incrementally building a real-time, interactive graph of relationships.
+
+In this example, a medical website is used to construct a medical knowledge graph as nodes and edges are discovered and streamed to the client.
+
+▶ Watch on YouTube:  
+[Live Demo Video](LINK_HERE)
+
+---
+
 ## Architecture at a Glance
 
 The system is composed of autonomous components that communicate **only through events**. There are no direct synchronous calls between services — all coordination happens via an event bus and pub/sub mechanisms.
