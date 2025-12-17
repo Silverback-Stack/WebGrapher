@@ -21,19 +21,19 @@ to a non-trivial, real-world domain without over-reliance on frameworks or platf
 
 The following videos provide a visual and experiential overview of the WebGrapher platform. They are intended to complement the architectural documentation by showing how the system behaves in practice.
 
-### 🎥 Product Walkthrough
-A guided walkthrough of the WebGrapher user interface, highlighting real-time behaviour, graph interaction, and streaming updates as data flows through the system.
-
-▶ Watch on YouTube:  
-[Product Walkthrough Video](LINK_HERE)
-
----
-
 ### 🎥 High-Level Architecture Overview
 A conceptual walkthrough of the WebGrapher architecture, focusing on service responsibilities, event-driven communication, and system boundaries.
 
 ▶ Watch on YouTube:  
 [High-Level Architecture Video](LINK_HERE)
+
+---
+
+### 🎥 Product Walkthrough
+A guided walkthrough of the WebGrapher user interface, highlighting real-time behaviour, graph interaction, and streaming updates as data flows through the system.
+
+▶ Watch on YouTube:  
+[Product Walkthrough Video](LINK_HERE)
 
 ---
 
