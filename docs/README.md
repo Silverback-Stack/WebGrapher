@@ -38,10 +38,10 @@ A guided walkthrough of the WebGrapher user interface, highlighting real-time be
 
 A live demonstration of the platform crawling a website and incrementally building a real-time, interactive graph of relationships.
 
-[![Live System Demonstration](/docs/webgrapher_live_demo-screenshot.png)](LINK_HERE)
+[![Live System Demonstration](/docs/webgrapher_live_demo-screenshot.png)](https://youtu.be/xJisRk_AHo8)
 
 ▶ Watch on YouTube:  
-[Live Demo Video](LINK_HERE)
+[Live Demo Video](https://youtu.be/xJisRk_AHo8)
 
 ---
 
