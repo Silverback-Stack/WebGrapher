@@ -49,10 +49,10 @@ A live demonstration of the platform crawling a website and incrementally buildi
 
 A conceptual walkthrough of the WebGrapher architecture, focusing on service responsibilities, event-driven communication, and system boundaries.
 
-[![High-Level Architecture Overview](/docs/webgrapher_highlevel_architecture_screenshot.png)](LINK_HERE)
+[![High-Level Architecture Overview](/docs/webgrapher_highlevel_architecture_screenshot.png)](https://youtu.be/cwHya5NpOBQ)
 
 ▶ Watch on YouTube:  
-[High-Level Architecture Video](LINK_HERE)
+[High-Level Architecture Video](https://youtu.be/cwHya5NpOBQ)
 
 ---
 
