@@ -178,3 +178,10 @@ This repository is intended as an **architectural reference implementation** tha
 - Demonstrates patterns such as adapter composition, factory setup, and dependency inversion  
 
 It is not just a crawler application — it is a **case study of robust architecture in action**.
+
+---
+
+## Documentation
+
+- 📘 **[Getting Started](docs/getting-started.md)**  
+  Local development setup, HTTPS configuration, and running the system
