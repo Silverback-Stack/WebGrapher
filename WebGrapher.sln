@@ -52,14 +52,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C
 		docs\Node_Redirects.txt = docs\Node_Redirects.txt
 		docs\Priority_Queue_Concepts.txt = docs\Priority_Queue_Concepts.txt
 		docs\README.md = docs\README.md
-		docs\Setup-Auth-AzureAD.txt = docs\Setup-Auth-AzureAD.txt
 		docs\Setup-Auth-Auth0.txt = docs\Setup-Auth-Auth0.txt
+		docs\Setup-Auth-AzureAD.txt = docs\Setup-Auth-AzureAD.txt
 		docs\Setup-Azure.txt = docs\Setup-Azure.txt
 		docs\Setup-Console-Cli.txt = docs\Setup-Console-Cli.txt
 		docs\Setup-Static-Web-App.txt = docs\Setup-Static-Web-App.txt
 		docs\Setup-UI-Project.txt = docs\Setup-UI-Project.txt
 		docs\Setup-VS.txt = docs\Setup-VS.txt
 		docs\Setup-Worker-Services.txt = docs\Setup-Worker-Services.txt
+		docs\webgrapher_highlevel_architecture_screenshot.png = docs\webgrapher_highlevel_architecture_screenshot.png
+		docs\webgrapher_live_demo-screenshot.png = docs\webgrapher_live_demo-screenshot.png
+		docs\webgrapher_product_walkthrough_screenshot.png = docs\webgrapher_product_walkthrough_screenshot.png
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Scraper.Tests", "tests\Service.Scraper.Tests\Service.Scraper.Tests.csproj", "{3BC7B8B4-70A9-4105-932A-B4B98BE39D47}"
