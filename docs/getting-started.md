@@ -227,7 +227,7 @@ You should now see the WebGrapher UI running over HTTPS.
 
 Enter the default username and password.
 
-These can be found and changed in the app settings file:
+These can be found and changed in the Shared.Auth app settings file:
 
 ```
 C:\Users\georg\source\repos\WebGrapher\src\Settings.Core\Shared.Auth\appsettings.json
