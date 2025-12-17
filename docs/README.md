@@ -1,48 +1,141 @@
-﻿Add information here
+# WebGrapher
 
-PROJECT SETUP
-=============
+## Overview
 
-+ Create directory file structure first, especially src folder
+**WebGrapher** is a distributed, scalable, event-driven microservices platform for crawling web pages, extracting and modelling relational data as a graph, and streaming results in real time for interactive visualization.
 
-+ Create empty project in visual studio
+The goal of this repository is to demonstrate architectural clarity in the design and implementation of **event-driven microservices**.
 
-+ Add the .gitignore to teh root folder to prevent GIT from versioning all sorts of crap
-  Make sure this entry is added to .gitignore to prevent GIT versioning logs:
-	# Logs
-	logs/
-	*.log
+WebGrapher demonstrates how to apply:
 
-+ 
+- Clean Architecture  
+- SOLID principles  
+- Event-driven design  
+- Adapter-based infrastructure abstraction  
 
-todo: add licence 
+to a non-trivial, real-world domain without over-reliance on frameworks or platform-specific code.
 
-Micro services architecture
+---
 
-[Crawler] → [Scraper] → [Parser] → [Normaliser] → [Graphing] → [Streaming] → [Browser Client] → Feeds crawl requests back to Crawler
+## Architecture at a Glance
 
+The system is composed of autonomous components that communicate **only through events**. There are no direct synchronous calls between services — all coordination happens via an event bus and pub/sub mechanisms.
 
-- The Graphing service stores node and edge data, possibly publishing domain events like NodeAdded, EdgeCreated.
+The event-driven pattern enables:
 
-- The Streaming service subscribes to those events (via internal bus, pub/sub, or a lightweight queue like Redis Streams).
-- 
-- It pushes deltas to connected clients over SignalR, formatted for Sigma.js (JSON node/edge structure).
-- 
-- Clients can optionally request context snapshots or paginate historical data.
+- Loose coupling  
+- Asynchronous, scalable operation  
+- Failure isolation and resilience  
 
+At its core, WebGrapher models the web as a graph:
 
-Streaming service:
-SignalR Core: Great choice. Native to ASP.NET Core, supports scale-out via Redis backplane or Azure SignalR Service.
+- **Nodes** represent web pages  
+- **Edges** represent hyperlinks between pages  
 
+Each component contributes to an event pipeline that starts with crawling and ends with graph streaming.
 
-Message Bus: Lightweight message forwarding:
-- In-memory
-- Redis Pub/Sub
-- Azure Service Bus / RabbitMQ for durability
+---
 
+## Clean Architecture & SOLID
 
-- Client Format: JSON Graph schema { nodes: [], edges: [] } tuned for Sigma.js or Cytoscape.
+The codebase adheres to Clean Architecture principles:
 
-Graphing Visualisations:
-https://js.cytoscape.org/
-https://www.sigmajs.org/
+- Core logic is infrastructure-agnostic  
+- Dependencies point inward  
+- Business rules are isolated from delivery mechanisms  
+
+By following SOLID principles — especially **Dependency Inversion** and **Interface Segregation** — the platform ensures:
+
+- High testability  
+- Clear separation of concerns  
+- Flexible composition across environments  
+
+Infrastructure concerns are introduced through interfaces and adapters, composed at the edge of the system.
+
+---
+
+## Supported Execution Models
+
+WebGrapher is designed to support multiple execution and deployment models without changes to core service logic. Hosting, scaling, and infrastructure concerns are treated as external composition details.
+
+### 🧰 In-Memory / Local
+
+For development, testing, and architectural exploration, the platform can run entirely locally using in-memory implementations of:
+
+- Event bus  
+- Caching  
+- Queues  
+
+This mode exercises the full event-driven pipeline while remaining lightweight and dependency-free.
+
+### 🖥 CLI-Hosted
+
+Microservices can be orchestrated from a command-line host, allowing the entire platform to run as a single local process while preserving service boundaries and event-driven communication.
+
+This execution model is intentionally decoupled from any specific web framework or container runtime.
+
+### ⚙️ Worker Services (Local or Cloud)
+
+Each microservice can also be hosted as an independent **Worker Service**, enabling true service isolation.
+
+Worker Services can:
+
+- Run locally for development
+- Be containerised using Docker
+- Be deployed to **Azure Container Apps**
+
+In this model, each service can scale independently based on load, queue depth, or resource usage, while remaining fully asynchronous and loosely coupled.
+
+---
+
+## Client Application
+
+The client is implemented as a Single Page Application (SPA) and is intentionally decoupled from backend hosting concerns.
+
+The SPA can:
+
+- Run locally during development
+- Be deployed as an **Azure Static Web Application** for cloud hosting
+
+It communicates with backend services via APIs and receives real-time updates through streaming hubs, allowing interactive visualisation of graph data as it is discovered.
+
+---
+
+## Adapter-Based Infrastructure Support
+
+WebGrapher decouples core logic from implementation detail using adapters. Supported adapters include:
+
+### Messaging & Event Bus
+- In-Memory bus (local development)  
+- Azure Service Bus  
+
+### Caching
+- In-Memory  
+- Azure Redis  
+
+### Graph Storage
+- In-Memory  
+- Azure Cosmos DB (Graph)  
+
+### Streaming
+- SignalR  
+- Azure SignalR Service  
+
+### Authentication
+- Configuration-based local auth  
+- Azure AD  
+- Auth0  
+
+Adapters can be swapped without touching core services, enabling seamless transition from local execution to cloud-based, horizontally scalable deployments.
+
+---
+
+## Philosophy & Audience
+
+This repository is intended as an **architectural reference implementation** that:
+
+- Illustrates how to build truly event-driven microservices  
+- Shows how to enforce Clean Architecture boundaries in a realistic system  
+- Demonstrates patterns such as adapter composition, factory setup, and dependency inversion  
+
+It is not just a crawler application — it is a **case study of robust architecture in action**.
