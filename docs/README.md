@@ -30,7 +30,7 @@ A guided walkthrough of the WebGrapher user interface, highlighting real-time be
 [![Product Walkthrough](/docs/webgrapher_product_walkthrough_screenshot.png)](LINK_HERE)
 
 ▶ Watch on YouTube:  
-[Product Walkthrough Video](LINK_HERE)
+[Product Walkthrough Video](https://youtu.be/VRlcI-ePMeQ)
 
 ---
 
