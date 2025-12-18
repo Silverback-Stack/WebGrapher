@@ -60,9 +60,7 @@ npm -v
 
 Clone or download the WebGrapher repository:
 
-```
 [https://github.com/Silverback-Stack/WebGrapher](https://github.com/Silverback-Stack/WebGrapher)
-```
 
 Install to your local drive. Example:
 
