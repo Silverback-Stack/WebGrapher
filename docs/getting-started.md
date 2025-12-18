@@ -61,7 +61,7 @@ npm -v
 Clone or download the WebGrapher repository:
 
 ```
-https://github.com/Silverback-Stack/WebGrapher
+[https://github.com/Silverback-Stack/WebGrapher](https://github.com/Silverback-Stack/WebGrapher)
 ```
 
 Install to your local drive. Example:
@@ -230,7 +230,7 @@ Enter the default username and password.
 These can be found and changed in the Shared.Auth app settings file:
 
 ```
-C:\Users\georg\source\repos\WebGrapher\src\Settings.Core\Shared.Auth\appsettings.json
+C:\WebGrapher\src\Settings.Core\Shared.Auth\appsettings.json
 ```
 
 ---
