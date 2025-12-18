@@ -185,3 +185,10 @@ It is not just a crawler application — it is a **case study of robust architec
 
 - 📘 **[Getting Started](/docs/getting-started.md)**  
   Local development setup, HTTPS configuration, and running the system
+
+---
+
+## License
+
+This course code is licensed under a custom educational license. See [LICENSE](../LICENSE.md) for details.
+
