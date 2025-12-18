@@ -56,6 +56,28 @@ A conceptual walkthrough of the WebGrapher architecture, focusing on service res
 
 ---
 
+## Core Characteristics
+
+- **Distributed** 
+  Services operate independently and coordinate asynchronously.
+
+- **Scalable** 
+  Services scale horizontally without coordination or shared runtime state.
+
+- **Event-Driven** 
+  Events are the primary mechanism for communication and workflow progression.
+
+- **Stateless** 
+  Service instances retain no in-memory workflow or session state.
+
+- **Single Responsibility** 
+  Each microservice encapsulates a narrowly defined concern.
+
+- **Technology-Agnostic** 
+  Service logic is decoupled from infrastructure and deployment technology.
+
+---
+
 ## Architecture at a Glance
 
 The system is composed of autonomous components that communicate **only through events**. There are no direct synchronous calls between services — all coordination happens via an event bus and pub/sub mechanisms.
@@ -173,7 +195,7 @@ Adapters can be swapped without touching core services, enabling seamless transi
 
 This repository is intended as an **architectural reference implementation** that:
 
-- Illustrates how to build truly event-driven microservices  
+- Illustrates how to build distributed event-driven microservices that scale
 - Shows how to enforce Clean Architecture boundaries in a realistic system  
 - Demonstrates patterns such as adapter composition, factory setup, and dependency inversion  
 
