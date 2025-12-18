@@ -44,7 +44,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BB7B2304-C0E6-4178-9ABD-D2C5CEFE9045}"
 	ProjectSection(SolutionItems) = preProject
 		docs\getting-started.md = docs\getting-started.md
-		LICENSE_README.md = LICENSE_README.md
+		LICENSE.md = LICENSE.md
 		docs\README.md = docs\README.md
 		docs\webgrapher_highlevel_architecture_screenshot.png = docs\webgrapher_highlevel_architecture_screenshot.png
 		docs\webgrapher_live_demo-screenshot.png = docs\webgrapher_live_demo-screenshot.png
