@@ -334,7 +334,7 @@ ASALocalRun/
 .mfractor/
 
 #license-checker files
-LICENSE.md
+!LICENSE.md
 license-error-*.md
 
 # Terraform
