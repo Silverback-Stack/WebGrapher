@@ -30,7 +30,7 @@ namespace Auth.WebApi.IdentityProviders.AzureAD
         public string GetUserId(ClaimsPrincipal user)
         {
 
-            // Azure AD for statble userId use 'oid' or 'sub' or fallback to 'objectidentifier'
+            // Azure AD for stable userId use 'oid' or 'sub' or fallback to 'objectidentifier'
             var userId = user.FindFirst("oid")?.Value
                             ?? user.FindFirst("sub")?.Value
                             ?? user.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
