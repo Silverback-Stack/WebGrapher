@@ -72,7 +72,7 @@ namespace Crawler.Core.SitePolicy
         }
 
         /// <summary>
-        /// PATTERN: Optermistic Concurrency with merge-on-write
+        /// PATTERN: Optimistic Concurrency with merge-on-write
         /// Rather than locking data as with pessimistic concurrency..
         /// Each service reads the latest version of the data, applies its changes and merges it with the latest version in the cache at write time
         /// </summary>

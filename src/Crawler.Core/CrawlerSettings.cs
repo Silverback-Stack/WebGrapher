@@ -1,5 +1,4 @@
-﻿
-using Crawler.Core.SitePolicy;
+﻿using Crawler.Core.SitePolicy;
 
 namespace Crawler.Core
 {

@@ -6,8 +6,8 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        //Enable full code page support(especially outside UTF-8 / UTF-16):
-        //Required for scraping reponses from servers.
+        // .NET only supports UTF encodings by default.
+        // Enable support for legacy encodings used by some web pages and older systems:
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); 
 
         try

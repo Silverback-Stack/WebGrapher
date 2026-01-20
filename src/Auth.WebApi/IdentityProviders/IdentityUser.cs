@@ -3,7 +3,7 @@
 namespace Auth.WebApi.IdentityProviders
 {
     /// <summary>
-    /// Provider-Agnostic Idenity User.
+    /// Provider-Agnostic Identity User.
     /// </summary>
     public class IdentityUser
     {
