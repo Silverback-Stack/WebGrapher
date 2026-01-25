@@ -1,10 +1,10 @@
+using App.Settings;
 using Caching.Core;
 using Events.Core.Bus;
-using Logger.Core;
+using Logging.Factories;
 using Requests.Core;
 using Scraper.Core;
 using Serilog;
-using Settings.Core;
 
 namespace Scraper.WorkerService
 {
@@ -15,10 +15,10 @@ namespace Scraper.WorkerService
             var builder = Host.CreateApplicationBuilder(args);
 
             // Load configurations
-            var configEvents = ConfigurationLoader.LoadConfiguration("Service.Events");
+            var configEvents = ConfigurationLoader.LoadConfiguration("Events");
             var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
 
-            var configScraper = ConfigurationLoader.LoadConfiguration("Service.Scraper");
+            var configScraper = ConfigurationLoader.LoadConfiguration("Scraper");
             var scraperSettings = configScraper.BindSection<ScraperSettings>("Scraper");
             var metaCacheSettings = configScraper.BindSection<CacheSettings>("MetaCache");
             var blobCacheSettings = configScraper.BindSection<CacheSettings>("BlobCache");

@@ -1,7 +1,7 @@
 ﻿
 using Microsoft.Extensions.Configuration;
 
-namespace Settings.Core
+namespace App.Settings
 {
     public static class ConfigurationExtensions
     {

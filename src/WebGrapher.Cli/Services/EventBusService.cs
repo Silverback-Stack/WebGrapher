@@ -1,16 +1,16 @@
-﻿using Events.Core.Bus;
-using Logger.Core;
+﻿using App.Settings;
+using Events.Core.Bus;
+using Logging.Factories;
 using Microsoft.Extensions.Logging;
-using Settings.Core;
 
-namespace WebGrapher.Cli.Service.Events
+namespace WebGrapher.Cli.Services
 {
     internal class EventBusService
     {
         public static Task<IEventBus> CreateAsync()
         {
             // Load Configuration
-            var configuration = ConfigurationLoader.LoadConfiguration("Service.Events");
+            var configuration = ConfigurationLoader.LoadConfiguration("Events");
             var eventBusSettings = configuration.BindSection<EventBusSettings>("EventBus");
 
 

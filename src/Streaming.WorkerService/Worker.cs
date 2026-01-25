@@ -1,6 +1,6 @@
+using App.Settings;
 using Events.Core.Bus;
 using Streaming.Core;
-using Settings.Core;
 using Streaming.WebApi;
 
 namespace Streaming.WorkerService

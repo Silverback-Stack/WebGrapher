@@ -1,8 +1,7 @@
+using App.Settings;
 using Events.Core.Bus;
 using Graphing.Core;
 using Graphing.WebApi;
-using Settings.Core;
-using System.Text.Json;
 
 namespace Graphing.WorkerService
 {

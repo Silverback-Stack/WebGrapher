@@ -1,10 +1,10 @@
+using App.Settings;
 using Auth.WebApi;
 using Events.Core.Bus;
 using Graphing.Core;
 using Graphing.WebApi;
-using Logger.Core;
+using Logging.Factories;
 using Serilog;
-using Settings.Core;
 
 namespace Graphing.WorkerService
 {
@@ -15,14 +15,14 @@ namespace Graphing.WorkerService
             var builder = Host.CreateApplicationBuilder(args);
 
             // Load configurations
-            var configEvents = ConfigurationLoader.LoadConfiguration("Service.Events");
+            var configEvents = ConfigurationLoader.LoadConfiguration("Events");
             var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
 
-            var configGraphing = ConfigurationLoader.LoadConfiguration("Service.Graphing");
+            var configGraphing = ConfigurationLoader.LoadConfiguration("Graphing");
             var graphingSettings = configGraphing.BindSection<GraphingSettings>("Graphing");
             var graphingWebApiSettings = configGraphing.BindSection<GraphingWebApiSettings>("GraphingWebApi");
 
-            var configAuth = ConfigurationLoader.LoadConfiguration("Shared.Auth");
+            var configAuth = ConfigurationLoader.LoadConfiguration("Auth");
             var authSettings = configAuth.BindSection<AuthSettings>("Auth");
 
 

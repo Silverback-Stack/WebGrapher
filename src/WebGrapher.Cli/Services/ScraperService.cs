@@ -1,19 +1,19 @@
-﻿using Caching.Core;
+﻿using App.Settings;
+using Caching.Core;
 using Events.Core.Bus;
-using Logger.Core;
+using Logging.Factories;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Scraper.Core;
-using Settings.Core;
 
-namespace WebGrapher.Cli.Service.Scraper
+namespace WebGrapher.Cli.Services
 {
     internal class ScraperService
     {
         public async static Task InitializeAsync(IEventBus eventBus)
         {
             // Load Configuration
-            var configScraper = ConfigurationLoader.LoadConfiguration("Service.Scraper");
+            var configScraper = ConfigurationLoader.LoadConfiguration("Scraper");
             var scraperSettings = configScraper.BindSection<ScraperSettings>("Scraper");
             var metaCacheSettings = configScraper.BindSection<CacheSettings>("MetaCache");
             var blobCacheSettings = configScraper.BindSection<CacheSettings>("BlobCache");

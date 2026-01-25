@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using App.Settings;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Extensions.Logging;
-using Settings.Core;
 
-namespace Logger.Core
+namespace Logging.Factories
 {
     public static class LoggingFactory
     {

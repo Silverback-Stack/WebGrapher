@@ -1,19 +1,19 @@
-﻿using Caching.Core;
+﻿using App.Settings;
+using Caching.Core;
 using Events.Core.Bus;
-using Logger.Core;
+using Logging.Factories;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core;
 using Requests.Core;
-using Settings.Core;
 
-namespace WebGrapher.Cli.Service.Normalisation
+namespace WebGrapher.Cli.Services
 {
     internal class NormalisationService
     {
         public static async Task InitializeAsync(IEventBus eventBus)
         {
             // Load Configuration
-            var configNormalisation = ConfigurationLoader.LoadConfiguration("Service.Normalisation");
+            var configNormalisation = ConfigurationLoader.LoadConfiguration("Normalisation");
             var normalisationSettings = configNormalisation.BindSection<NormalisationSettings>("Normalisation");
             var metaCacheSettings = configNormalisation.BindSection<CacheSettings>("MetaCache");
             var blobCacheSettings = configNormalisation.BindSection<CacheSettings>("BlobCache");

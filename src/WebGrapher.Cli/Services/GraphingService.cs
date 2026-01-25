@@ -1,16 +1,16 @@
 ﻿using Events.Core.Bus;
 using Graphing.Core;
-using Logger.Core;
+using Logging.Factories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Settings.Core;
 using Graphing.WebApi;
 using Auth.WebApi;
+using App.Settings;
 
-namespace WebGrapher.Cli.Service.Graphing
+namespace WebGrapher.Cli.Services
 {
     internal class GraphingService
     {
@@ -19,11 +19,11 @@ namespace WebGrapher.Cli.Service.Graphing
         public static async Task InitializeAsync(IEventBus eventBus)
         {
             // Load configurations
-            var configGraphing = ConfigurationLoader.LoadConfiguration("Service.Graphing");
+            var configGraphing = ConfigurationLoader.LoadConfiguration("Graphing");
             var graphingSettings = configGraphing.BindSection<GraphingSettings>("Graphing");
             var graphingWebApiSettings = configGraphing.BindSection<GraphingWebApiSettings>("GraphingWebApi");
 
-            var configAuth = ConfigurationLoader.LoadConfiguration("Shared.Auth");
+            var configAuth = ConfigurationLoader.LoadConfiguration("Auth");
             var authSettings = configAuth.BindSection<AuthSettings>("Auth");
 
 

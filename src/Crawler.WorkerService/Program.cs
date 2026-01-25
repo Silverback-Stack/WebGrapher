@@ -1,11 +1,11 @@
+using App.Settings;
 using Caching.Core;
 using Crawler.Core;
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
-using Logger.Core;
+using Logging.Factories;
 using Requests.Core;
 using Serilog;
-using Settings.Core;
 
 namespace Crawler.WorkerService
 {
@@ -16,10 +16,10 @@ namespace Crawler.WorkerService
             var builder = Host.CreateApplicationBuilder(args);
 
             // Load configurations
-            var configEvents = ConfigurationLoader.LoadConfiguration("Service.Events");
+            var configEvents = ConfigurationLoader.LoadConfiguration("Events");
             var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
 
-            var configCrawler = ConfigurationLoader.LoadConfiguration("Service.Crawler");
+            var configCrawler = ConfigurationLoader.LoadConfiguration("Crawler");
             var crawlerSettings = configCrawler.BindSection<CrawlerSettings>("Crawler");
             var metaCacheSettings = configCrawler.BindSection<CacheSettings>("MetaCache");
             var blobCacheSettings = configCrawler.BindSection<CacheSettings>("BlobCache");

@@ -15,8 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\App.Settings\App.Settings.csproj" />
     <ProjectReference Include="..\Graphing.Core\Graphing.Core.csproj" />
     <ProjectReference Include="..\Graphing.WebApi\Graphing.WebApi.csproj" />
-    <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
+    <ProjectReference Include="..\Logging.Factories\Logging.Factories.csproj" />
   </ItemGroup>
 </Project>

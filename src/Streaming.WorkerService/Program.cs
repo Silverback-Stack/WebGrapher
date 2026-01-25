@@ -1,10 +1,10 @@
+using App.Settings;
 using Auth.WebApi;
 using Events.Core.Bus;
-using Logger.Core;
+using Logging.Factories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
-using Settings.Core;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
 using Streaming.WebApi;
@@ -20,14 +20,14 @@ namespace Streaming.WorkerService
 
 
             // Load configurations
-            var configEvents = ConfigurationLoader.LoadConfiguration("Service.Events");
+            var configEvents = ConfigurationLoader.LoadConfiguration("Events");
             var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
 
-            var configStreaming = ConfigurationLoader.LoadConfiguration("Service.Streaming");
+            var configStreaming = ConfigurationLoader.LoadConfiguration("Streaming");
             var streamingSettings = configStreaming.BindSection<StreamingSettings>("Streaming");
             var streamingWebApiSettings = configStreaming.BindSection<StreamingWebApiSettings>("StreamingWebApi");
 
-            var configAuth = ConfigurationLoader.LoadConfiguration("Shared.Auth");
+            var configAuth = ConfigurationLoader.LoadConfiguration("Auth");
             var authSettings = configAuth.BindSection<AuthSettings>("Auth");
 
 

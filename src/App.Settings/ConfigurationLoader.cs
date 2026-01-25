@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Settings.Core
+namespace App.Settings
 {
     public static class ConfigurationLoader
     {
@@ -20,19 +20,19 @@ namespace Settings.Core
                 .SetBasePath(AppContext.BaseDirectory)
 
                 // Service settings
-                .AddJsonFile($"{serviceName}/appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"{serviceName}/appsettings.json", optional: false, reloadOnChange: true)
 
                 // Logging settings
-                .AddJsonFile($"Shared.Logging/appsettings.json", optional: true, reloadOnChange: true);
+                .AddJsonFile($"Logging/appsettings.json", optional: false, reloadOnChange: true);
 
             if (!string.IsNullOrEmpty(environment))
             {
-                // Service Environment overrides
+                // Service Environment overrides (optional = true)
                 builder.AddJsonFile($"{serviceName}/appsettings.{environment}.json", optional: true, reloadOnChange: true);
 
-                // Logging Environment overrides
-                builder.AddJsonFile($"Shared.Logging/appsettings.{environment}.json", optional: true, reloadOnChange: true);
-            };
+                // Logging Environment overrides (optional = true)
+                builder.AddJsonFile($"Logging/appsettings.{environment}.json", optional: true, reloadOnChange: true);
+            }
 
             var configuration = builder
                 .AddEnvironmentVariables()

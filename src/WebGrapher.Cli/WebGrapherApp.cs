@@ -3,12 +3,7 @@ using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
-using WebGrapher.Cli.Service.Crawler;
-using WebGrapher.Cli.Service.Events;
-using WebGrapher.Cli.Service.Graphing;
-using WebGrapher.Cli.Service.Normalisation;
-using WebGrapher.Cli.Service.Scraper;
-using WebGrapher.Cli.Service.Streaming;
+using WebGrapher.Cli.Services;
 
 namespace WebGrapher.Cli
 {
@@ -21,6 +16,19 @@ namespace WebGrapher.Cli
 
         public async Task InitializeAsync()
         {
+            /*
+             * This CLI hosts multiple microservice instances (Crawler, Scraper, Normalisation,
+             * Graphing, Streaming) within a single process for local development.
+             *
+             * Each service is initialized concurrently and runs on its own execution context,
+             * emulating separate microservice hosts while sharing an in-memory event bus.
+             *
+             * All services complete startup and event subscription before the event bus is
+             * started, ensuring deterministic initialization order and isolation semantics
+             * similar to a distributed environment.
+            */
+
+
             //Create Event Bus
             _eventBus = await EventBusService.CreateAsync();
 

@@ -1,6 +1,6 @@
+using App.Settings;
 using Crawler.Core;
 using Events.Core.Bus;
-using Settings.Core;
 using System;
 
 namespace Crawler.WorkerService

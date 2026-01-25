@@ -1,21 +1,21 @@
-﻿using Caching.Core;
+﻿using App.Settings;
+using Caching.Core;
 using Crawler.Core;
 using Crawler.Core.SitePolicy;
 using Events.Core.Bus;
-using Logger.Core;
+using Logging.Factories;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
-using Settings.Core;
 using System;
 
-namespace WebGrapher.Cli.Service.Crawler
+namespace WebGrapher.Cli.Services
 {
     internal class CrawlerService
     {
         public async static Task<IPageCrawler> InitializeAsync(IEventBus eventBus)
         {
             // Load Configuration
-            var configCrawler = ConfigurationLoader.LoadConfiguration("Service.Crawler");
+            var configCrawler = ConfigurationLoader.LoadConfiguration("Crawler");
             var crawlerSettings = configCrawler.BindSection<CrawlerSettings>("Crawler");
             var metaCacheSettings = configCrawler.BindSection<CacheSettings>("MetaCache");
             var blobCacheSettings = configCrawler.BindSection<CacheSettings>("BlobCache");

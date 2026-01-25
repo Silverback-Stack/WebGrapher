@@ -1,19 +1,19 @@
-﻿using Auth.WebApi;
+﻿using App.Settings;
+using Auth.WebApi;
 using Events.Core.Bus;
-using Logger.Core;
+using Logging.Factories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Settings.Core;
 using Streaming.Core;
 using Streaming.Core.Adapters.SignalR;
 using Streaming.WebApi;
 
 
-namespace WebGrapher.Cli.Service.Streaming
+namespace WebGrapher.Cli.Services
 {
     public class StreamingService
     {
@@ -22,11 +22,11 @@ namespace WebGrapher.Cli.Service.Streaming
         public static async Task InitializeAsync(IEventBus eventBus)
         {
             //Load Configurations
-            var configStreaming = ConfigurationLoader.LoadConfiguration("Service.Streaming");
+            var configStreaming = ConfigurationLoader.LoadConfiguration("Streaming");
             var streamingSettings = configStreaming.BindSection<StreamingSettings>("Streaming");
             var streamingWebApiSettings = configStreaming.BindSection<StreamingWebApiSettings>("StreamingWebApi");
 
-            var configAuth = ConfigurationLoader.LoadConfiguration("Shared.Auth");
+            var configAuth = ConfigurationLoader.LoadConfiguration("Auth");
             var authSettings = configAuth.BindSection<AuthSettings>("Auth");
 
 

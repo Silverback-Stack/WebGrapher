@@ -1,6 +1,6 @@
+using App.Settings;
 using Events.Core.Bus;
 using Normalisation.Core;
-using Settings.Core;
 
 namespace Normalisation.WorkerService
 {

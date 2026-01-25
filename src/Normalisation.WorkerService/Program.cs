@@ -1,10 +1,10 @@
+using App.Settings;
 using Caching.Core;
 using Events.Core.Bus;
-using Logger.Core;
+using Logging.Factories;
 using Normalisation.Core;
 using Requests.Core;
 using Serilog;
-using Settings.Core;
 
 namespace Normalisation.WorkerService
 {
@@ -15,10 +15,10 @@ namespace Normalisation.WorkerService
             var builder = Host.CreateApplicationBuilder(args);
 
             // Load Configuration
-            var configEvents = ConfigurationLoader.LoadConfiguration("Service.Events");
+            var configEvents = ConfigurationLoader.LoadConfiguration("Events");
             var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
 
-            var configNormalisation = ConfigurationLoader.LoadConfiguration("Service.Normalisation");
+            var configNormalisation = ConfigurationLoader.LoadConfiguration("Normalisation");
             var normalisationSettings = configNormalisation.BindSection<NormalisationSettings>("Normalisation");
             var metaCacheSettings = configNormalisation.BindSection<CacheSettings>("MetaCache");
             var blobCacheSettings = configNormalisation.BindSection<CacheSettings>("BlobCache");
