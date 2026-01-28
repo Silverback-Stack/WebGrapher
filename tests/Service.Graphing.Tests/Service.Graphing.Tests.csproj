@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Events.Core\Events.Core.csproj" />
     <ProjectReference Include="..\..\src\Graphing.Core\Graphing.Core.csproj" />
+    <ProjectReference Include="..\..\src\Graphing.Infrastructure\Graphing.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

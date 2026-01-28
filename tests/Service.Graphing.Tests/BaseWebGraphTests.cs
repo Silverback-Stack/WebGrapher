@@ -1,8 +1,8 @@
 ﻿using System.Runtime;
 using Graphing.Core;
 using Graphing.Core.WebGraph;
-using Graphing.Core.WebGraph.Adapters.Memory;
 using Graphing.Core.WebGraph.Models;
+using Graphing.Infrastructure.WebGraph.Adapters.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 

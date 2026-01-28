@@ -1,0 +1,22 @@
+﻿
+namespace Graphing.WebApi
+{
+    public class GraphingWebApiConfig
+    {
+        public string Host { get; set; } = string.Empty;
+
+        public IEnumerable<string> AllowedOrigins { get; set; } = new List<string>();
+
+        public int ProxyClientTimeOutSeconds { get; set; } = 10;
+
+        public SwaggerSettings Swagger { get; set; } = new SwaggerSettings();
+    }
+
+    public class SwaggerSettings
+    {
+        public string EndpointUrl { get; set; } = string.Empty;
+        public string EndpointName { get; set; } = string.Empty;
+        public string RoutePrefix { get; set; } = string.Empty;
+    }
+
+}

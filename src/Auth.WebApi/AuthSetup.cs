@@ -12,9 +12,9 @@ namespace Auth.WebApi
     {
         public static IServiceCollection AddWebApiAuthentication(
             this IServiceCollection services, 
-            AuthSettings authSettings)
+            AuthConfig authConfig)
         {
-            ConfigureAuthentication(services, authSettings);
+            ConfigureAuthentication(services, authConfig);
 
             // Needed for accessing HttpContext.User
             services.AddHttpContextAccessor();
@@ -29,28 +29,28 @@ namespace Auth.WebApi
             return services;
         }
 
-        private static void ConfigureAuthentication(IServiceCollection services, AuthSettings authSettings)
+        private static void ConfigureAuthentication(IServiceCollection services, AuthConfig authConfig)
         {
-            switch (authSettings.IdentityProvider.ProviderType)
+            switch (authConfig.IdentityProvider.ProviderType)
             {
                 case IdentityProviderType.Local:
-                    LocalConfiguration.Configure(services, authSettings);
+                    LocalConfiguration.Configure(services, authConfig);
                     services.AddSingleton<IIdentityProvider, LocalAdapter>();
                     break;
 
                 case IdentityProviderType.AzureAD:
-                    AzureADConfiguration.Configure(services, authSettings);
+                    AzureADConfiguration.Configure(services, authConfig);
                     services.AddSingleton<IIdentityProvider, AzureADAdapter>();
                     break;
 
                 case IdentityProviderType.Auth0:
-                    Auth0Configuration.Configure(services, authSettings);
+                    Auth0Configuration.Configure(services, authConfig);
                     services.AddSingleton<IIdentityProvider, Auth0Adapter>();
                     break;
 
                 default:
                     throw new NotSupportedException(
-                        $"Identity provider '{authSettings.IdentityProvider.ProviderType}' is not supported.");
+                        $"Identity provider '{authConfig.IdentityProvider.ProviderType}' is not supported.");
             }
         }
     }

@@ -11,6 +11,5 @@ namespace Streaming.Core
         Task StreamGraphPayloadAsync(Guid graphId, SigmaGraphPayloadDto payload);
 
         Task BroadcastGraphLogAsync(Guid graphId, ClientLogDto payload);
-
     }
 }

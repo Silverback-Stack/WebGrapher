@@ -1,8 +1,7 @@
+using App.Settings;
 using Events.Core.Bus;
 using Graphing.Core;
 using Graphing.WebApi;
-using Settings.Core;
-using System.Text.Json;
 
 namespace Graphing.WorkerService
 {
@@ -12,20 +11,20 @@ namespace Graphing.WorkerService
         private readonly IEventBus _eventBus;
         private readonly IPageGrapher _pageGrapher;
         private readonly IConfiguration _configuration;
-        private readonly GraphingWebApiSettings _graphingWebApiSettings;
+        private readonly GraphingWebApiConfig _graphingWebApiConfig;
 
         public Worker(
             ILogger<Worker> logger,
             IEventBus eventBus,
             IPageGrapher pageGrapher,
             IConfiguration configuration,
-            GraphingWebApiSettings graphingWebApiSettings)
+            GraphingWebApiConfig graphingWebApiConfig)
         {
             _logger = logger;
             _eventBus = eventBus;
             _pageGrapher = pageGrapher;
             _configuration = configuration;
-            _graphingWebApiSettings = graphingWebApiSettings;
+            _graphingWebApiConfig = graphingWebApiConfig;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -37,8 +36,8 @@ namespace Graphing.WorkerService
 
             _logger.LogInformation("Graphing service is starting using {EnvironmentName} configuration on {Host}/{Swagger}",
                 _configuration.GetEnvironmentName(),
-                _graphingWebApiSettings.Host,
-                _graphingWebApiSettings.Swagger.RoutePrefix);
+                _graphingWebApiConfig.Host,
+                _graphingWebApiConfig.Swagger.RoutePrefix);
 
             await _pageGrapher.StartAsync();
 

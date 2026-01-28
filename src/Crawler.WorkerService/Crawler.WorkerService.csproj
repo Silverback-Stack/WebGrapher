@@ -20,7 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\App.Settings\App.Settings.csproj" />
+    <ProjectReference Include="..\Caching.Factories\Caching.Factories.csproj" />
     <ProjectReference Include="..\Crawler.Core\Crawler.Core.csproj" />
-    <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
+    <ProjectReference Include="..\Crawler.Factories\Crawler.Factories.csproj" />
+    <ProjectReference Include="..\Events.Factories\Events.Factories.csproj" />
+    <ProjectReference Include="..\Logging.Factories\Logging.Factories.csproj" />
+    <ProjectReference Include="..\Requests.Factories\Requests.Factories.csproj" />
   </ItemGroup>
 </Project>

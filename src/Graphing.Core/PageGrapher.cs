@@ -1,11 +1,9 @@
-﻿using Azure.Core;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
 using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Graphing.Core.WebGraph;
-using Graphing.Core.WebGraph.Adapters.SigmaJs;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 using System;
@@ -19,13 +17,20 @@ namespace Graphing.Core
         private readonly IEventBus _eventBus;
         private readonly IWebGraph _webGraph;
         private readonly GraphingSettings _graphingSettings;
+        private readonly IWebGraphPayloadSerializer _graphPayloadSerializer;
 
-        public PageGrapher(ILogger logger, IEventBus eventBus, IWebGraph webGraph, GraphingSettings graphingSettings)
+        public PageGrapher(
+            ILogger logger, 
+            IEventBus eventBus, 
+            IWebGraph webGraph, 
+            GraphingSettings graphingSettings, 
+            IWebGraphPayloadSerializer graphPayloadSerializer)
         {
             _logger = logger;
             _eventBus = eventBus;
             _webGraph = webGraph;
             _graphingSettings = graphingSettings;
+            _graphPayloadSerializer = graphPayloadSerializer;
         }
 
         public async Task StartAsync()
@@ -62,7 +67,7 @@ namespace Graphing.Core
 
         private async Task PublishStreamNodePayloadEventAsync(CrawlPageRequestDto request, Node node)
         {
-            var payload = SigmaJsGraphPayloadBuilder.BuildPayload(node, _graphingSettings);
+            var payload = _graphPayloadSerializer.Serialize(node);
             payload.CorrolationId = request.CorrelationId;
 
             if (!payload.Nodes.Any() && !payload.Edges.Any())
@@ -320,17 +325,10 @@ namespace Graphing.Core
 
             // 3. If no nodes found, return empty payload
             if (!nodes.Any())
-            {
-                return new SigmaGraphPayloadDto
-                {
-                    GraphId = graphId,
-                    Nodes = Array.Empty<SigmaGraphNodeDto>(),
-                    Edges = Array.Empty<SigmaGraphEdgeDto>()
-                };
-            }
+                return _graphPayloadSerializer.Empty(graphId);
 
             // 4. Build and return payload
-            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId, _graphingSettings);
+            return _graphPayloadSerializer.Serialize(nodes, graphId);
         }
 
         public async Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl, int maxDepth = 1, int? maxNodes = null)
@@ -344,16 +342,10 @@ namespace Graphing.Core
                 : Enumerable.Empty<Node>();
 
             if (!nodes.Any())
-            {
-                return new SigmaGraphPayloadDto
-                {
-                    GraphId = graphId,
-                    Nodes = Array.Empty<SigmaGraphNodeDto>(),
-                    Edges = Array.Empty<SigmaGraphEdgeDto>()
-                };
-            }
+                return _graphPayloadSerializer.Empty(graphId);
 
-            return SigmaJsGraphPayloadBuilder.BuildPayload(nodes, graphId, _graphingSettings);
+
+            return _graphPayloadSerializer.Serialize(nodes, graphId);
         }
 
         private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto crawlPageRequest)

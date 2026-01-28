@@ -1,6 +1,6 @@
+using App.Settings;
 using Events.Core.Bus;
 using Scraper.Core;
-using Settings.Core;
 
 namespace Scraper.WorkerService
 {

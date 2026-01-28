@@ -7,7 +7,7 @@ namespace Auth.WebApi.IdentityProviders.AzureAD
 {
     public static class AzureADConfiguration
     {
-        public static void Configure(IServiceCollection services, AuthSettings settings)
+        public static void Configure(IServiceCollection services, AuthConfig settings)
         {
             var azure = settings.IdentityProvider.AzureAD;
 

@@ -14,13 +14,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\App.Settings\App.Settings.csproj" />
+    <ProjectReference Include="..\Caching.Factories\Caching.Factories.csproj" />
+    <ProjectReference Include="..\Crawler.Factories\Crawler.Factories.csproj" />
+    <ProjectReference Include="..\Events.Factories\Events.Factories.csproj" />
     <ProjectReference Include="..\Graphing.Core\Graphing.Core.csproj" />
+    <ProjectReference Include="..\Graphing.Factories\Graphing.Factories.csproj" />
     <ProjectReference Include="..\Graphing.WebApi\Graphing.WebApi.csproj" />
-    <ProjectReference Include="..\Logging.Core\Logging.Core.csproj" />
+    <ProjectReference Include="..\Logging.Factories\Logging.Factories.csproj" />
     <ProjectReference Include="..\Normalisation.Core\Normalisation.Core.csproj" />
     <ProjectReference Include="..\Crawler.Core\Crawler.Core.csproj" />
+    <ProjectReference Include="..\Normalisation.Factories\Normalisation.Factories.csproj" />
+    <ProjectReference Include="..\Requests.Factories\Requests.Factories.csproj" />
     <ProjectReference Include="..\Scraper.Core\Scraper.Core.csproj" />
+    <ProjectReference Include="..\Scraper.Factories\Scraper.Factories.csproj" />
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
+    <ProjectReference Include="..\Streaming.Factories\Streaming.Factories.csproj" />
     <ProjectReference Include="..\Streaming.WebApi\Streaming.WebApi.csproj" />
   </ItemGroup>
 

@@ -1,6 +1,6 @@
+using App.Settings;
 using Events.Core.Bus;
 using Streaming.Core;
-using Settings.Core;
 using Streaming.WebApi;
 
 namespace Streaming.WorkerService
@@ -11,20 +11,20 @@ namespace Streaming.WorkerService
         private readonly IEventBus _eventBus;
         private readonly IGraphStreamer _graphStreamer;
         private readonly IConfiguration _configuration;
-        private readonly StreamingWebApiSettings _streamingWebApiSettings;
+        private readonly StreamingWebApiConfig _streamingWebApiConfig;
 
         public Worker(
             ILogger<Worker> logger,
             IEventBus eventBus,
             IGraphStreamer graphStreamer,
             IConfiguration configuration,
-            StreamingWebApiSettings streamingWebApiSettings)
+            StreamingWebApiConfig streamingWebApiConfig)
         {
             _logger = logger;
             _configuration = configuration;
             _eventBus = eventBus;
             _graphStreamer = graphStreamer;
-            _streamingWebApiSettings = streamingWebApiSettings;
+            _streamingWebApiConfig = streamingWebApiConfig;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -37,8 +37,8 @@ namespace Streaming.WorkerService
 
             _logger.LogInformation("Streaming service is starting using {EnvironmentName} configuration on {Host}/{Swagger}",
                 _configuration.GetEnvironmentName(),
-                _streamingWebApiSettings.Host,
-                _streamingWebApiSettings.Swagger.RoutePrefix);
+                _streamingWebApiConfig.Host,
+                _streamingWebApiConfig.Swagger.RoutePrefix);
 
             // Start the streaming service
             await _graphStreamer.StartAsync();

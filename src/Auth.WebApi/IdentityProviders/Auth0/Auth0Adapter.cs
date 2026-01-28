@@ -5,11 +5,11 @@ namespace Auth.WebApi.IdentityProviders.Auth0
 {
     public class Auth0Adapter : IIdentityProvider
     {
-        private readonly AuthSettings _authSettings;
+        private readonly AuthConfig _authConfig;
 
-        public Auth0Adapter(AuthSettings authSettings)
+        public Auth0Adapter(AuthConfig authConfig)
         {
-            _authSettings = authSettings;
+            _authConfig = authConfig;
         }
 
         public Task<IdentityUser?> ValidateCredentialsAsync(string username, string password)
@@ -41,9 +41,9 @@ namespace Auth.WebApi.IdentityProviders.Auth0
         {
             return new UnauthorizedResponse
             {
-                IdentityProvider = _authSettings.IdentityProvider.ProviderType.ToString(),
-                LoginUrl = _authSettings.IdentityProvider.Auth0.LoginUrl,
-                LogoutUrl = _authSettings.IdentityProvider.Auth0.LogoutUrl,
+                IdentityProvider = _authConfig.IdentityProvider.ProviderType.ToString(),
+                LoginUrl = _authConfig.IdentityProvider.Auth0.LoginUrl,
+                LogoutUrl = _authConfig.IdentityProvider.Auth0.LogoutUrl,
                 Message = "Unauthorized. Login to authenticate."
             };
         }

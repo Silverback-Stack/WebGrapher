@@ -1,10 +1,12 @@
-using Caching.Core;
+using App.Settings;
+using Caching.Factories;
 using Events.Core.Bus;
-using Logger.Core;
+using Events.Factories;
+using Logging.Factories;
 using Normalisation.Core;
-using Requests.Core;
+using Normalisation.Factories;
+using Requests.Factories;
 using Serilog;
-using Settings.Core;
 
 namespace Normalisation.WorkerService
 {
@@ -14,20 +16,21 @@ namespace Normalisation.WorkerService
         {
             var builder = Host.CreateApplicationBuilder(args);
 
-            // Load Configuration
-            var configEvents = ConfigurationLoader.LoadConfiguration("Service.Events");
-            var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
+            // Load appsettings.json and environment overrides
+            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(path: "Events");
+            var normalisationAppSettings = ConfigurationLoader.LoadConfiguration(path: "Normalisation");
 
-            var configNormalisation = ConfigurationLoader.LoadConfiguration("Service.Normalisation");
-            var normalisationSettings = configNormalisation.BindSection<NormalisationSettings>("Normalisation");
-            var metaCacheSettings = configNormalisation.BindSection<CacheSettings>("MetaCache");
-            var blobCacheSettings = configNormalisation.BindSection<CacheSettings>("BlobCache");
-            var requestSenderSettings = configNormalisation.BindSection<RequestSenderSettings>("RequestSender");
+            // Bind configuration overrides onto settings objects
+            var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
+            var normalisationConfig = normalisationAppSettings.BindSection<NormalisationConfig>("Normalisation");
+            var metaCacheConfig = normalisationAppSettings.BindSection<CacheConfig>("MetaCache");
+            var blobCacheConfig = normalisationAppSettings.BindSection<CacheConfig>("BlobCache");
+            var requestsConfig = normalisationAppSettings.BindSection<RequestsConfig>("Requests");
 
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configNormalisation, normalisationSettings.ServiceName);
+                normalisationAppSettings, normalisationConfig.Settings.ServiceName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog();
 
@@ -36,7 +39,7 @@ namespace Normalisation.WorkerService
             builder.Services.AddSingleton<IEventBus>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IEventBus>>();
-                return EventBusFactory.Create(logger, eventsSettings);
+                return EventsFactory.CreateEventBus(logger, eventBusConfig);
             });
 
 
@@ -49,22 +52,22 @@ namespace Normalisation.WorkerService
 
                 // Create Meta Cache for Request Sender
                 var metaCache = CacheFactory.Create(
-                    normalisationSettings.ServiceName,
+                    normalisationConfig.Settings.ServiceName,
                     logger,
-                    metaCacheSettings);
+                    metaCacheConfig);
 
                 // Create Blob Cache for Request Sender
                 var blobCache = CacheFactory.Create(
-                    normalisationSettings.ServiceName,
+                    normalisationConfig.Settings.ServiceName,
                     logger,
-                    blobCacheSettings);
+                    blobCacheConfig);
 
                 // Create Request Sender
-                var requestSender = RequestFactory.Create(
+                var requestSender = RequestsFactory.Create(
                     logger,
                     metaCache,
                     blobCache,
-                    requestSenderSettings);
+                    requestsConfig);
 
 
                 // Create Normalisation Service
@@ -72,8 +75,8 @@ namespace Normalisation.WorkerService
                     logger,
                     eventBus,
                     requestSender,
-                    blobCache, 
-                    normalisationSettings);
+                    blobCache,
+                    normalisationConfig.Settings);
 
                 return normalisationService;
             });
@@ -91,7 +94,7 @@ namespace Normalisation.WorkerService
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, $"{normalisationSettings.ServiceName} terminated unexpectedly.");
+                Log.Fatal(ex, $"{normalisationConfig.Settings.ServiceName} terminated unexpectedly.");
             }
             finally
             {
