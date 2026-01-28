@@ -5,7 +5,7 @@ namespace Events.Core.Bus
 {
     public abstract class BaseEventBus : IEventBus
     {
-        internal readonly ILogger _logger;
+        protected readonly ILogger _logger;
 
         public BaseEventBus(ILogger logger)
         {

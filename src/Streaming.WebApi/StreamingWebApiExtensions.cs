@@ -2,9 +2,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
-using Streaming.Core;
-using Streaming.Core.Adapters.SignalR;
+using Streaming.Factories;
+using Streaming.Infrastructure.Adapters.SignalR;
 using System.Text.Json;
 
 namespace Streaming.WebApi
@@ -13,9 +14,9 @@ namespace Streaming.WebApi
     {
         public static IServiceCollection AddStreamingWebApi(
             this IServiceCollection services, 
-            StreamingSettings streamingSettings,
-            StreamingWebApiSettings streamingWenApiSettings,
-            AuthSettings authSettings)
+            StreamingConfig streamingConfig,
+            StreamingWebApiConfig streamingWebApiSettings,
+            AuthConfig authConfig)
         {
 
             // --- Swagger / OpenAPI ---
@@ -23,27 +24,27 @@ namespace Streaming.WebApi
             services.AddSwaggerGen();
 
             // --- Dependency Injection ---
-            services.AddSingleton(streamingWenApiSettings);
-            services.AddSingleton(authSettings);
+            services.AddSingleton(streamingWebApiSettings);
+            services.AddSingleton(authConfig);
 
             // --- CORS ---
-            services.AddConfiguredCors(streamingWenApiSettings);
+            services.AddConfiguredCors(streamingWebApiSettings);
 
             // --- Authentication & Authorization ---
-            services.AddWebApiAuthentication(authSettings);
+            services.AddWebApiAuthentication(authConfig);
             services.AddAuthorization();
 
             // --- SignalR ---
-            services.AddConfiguredSignalR(streamingSettings);
+            services.AddConfiguredSignalR(streamingConfig);
 
             return services;
         }
 
         public static IServiceCollection AddConfiguredCors(
             this IServiceCollection services,
-            StreamingWebApiSettings streamingWebApiSettings)
+            StreamingWebApiConfig streamingWebApiConfig)
         {
-            var allowedOrigins = streamingWebApiSettings.AllowedOrigins ?? Array.Empty<string>();
+            var allowedOrigins = streamingWebApiConfig.AllowedOrigins ?? Array.Empty<string>();
 
             services.AddCors(options =>
             {
@@ -72,28 +73,30 @@ namespace Streaming.WebApi
 
         public static IServiceCollection AddConfiguredSignalR(
             this IServiceCollection services,
-            StreamingSettings streamingSettings)
+            StreamingConfig streamingConfig)
         {
+            ISignalRBuilder signalR;
+
             // Choose provider
-            switch (streamingSettings.SignalR.Provider)
+            switch (streamingConfig.Provider)
             {
-                case StreamingProvider.HostedSignalR:
-                    services.AddSignalR();
+                case StreamingProvider.SignalRHosted:
+                    signalR = services.AddSignalR();
                     break;
 
-                case StreamingProvider.AzureSignalRDefault:
-                    services.AddSignalR()
-                        .AddAzureSignalR(streamingSettings.SignalR.AzureSignalRDefault.ConnectionString);
+                case StreamingProvider.SignalRAzureDefault:
+                    signalR = services.AddSignalR()
+                        .AddAzureSignalR(streamingConfig.SignalR.AzureDefault.ConnectionString);
                     break;
 
-                case StreamingProvider.AzureSignalRServerless:
+                case StreamingProvider.SignalRAzureServerless:
                     throw new NotSupportedException("Serverless mode only supported by Function Apps.");
 
                 default:
-                    throw new NotSupportedException($"SignalR provider '{streamingSettings.SignalR.Provider}' is not supported.");
+                    throw new NotSupportedException($"SignalR provider '{streamingConfig.Provider}' is not supported.");
             }
 
-            services.AddSignalR().AddJsonProtocol(options =>
+            signalR.AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                 options.PayloadSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
@@ -113,7 +116,7 @@ namespace Streaming.WebApi
 
                     // Allow token from query string for SignalR hub connections
                     if (!string.IsNullOrEmpty(accessToken) &&
-                        path.StartsWithSegments(streamingSettings.HubPath))
+                        path.StartsWithSegments(streamingConfig.SignalR.HubPath))
                     {
                         context.Token = accessToken;
                     }
@@ -130,26 +133,26 @@ namespace Streaming.WebApi
 
         // --- Pipeline setup ---
         public static void UseStreamingWebApi(
-            this WebApplication app, 
-            StreamingSettings streamingSettings,
-            StreamingWebApiSettings streamingWebApiSettings)
+            this WebApplication app,
+            StreamingConfig streamingConfig,
+            StreamingWebApiConfig streamingWebApiConfig)
         {
-            ConfigureStreamingPipeline(app, streamingSettings, streamingWebApiSettings);
+            ConfigureStreamingPipeline(app, streamingConfig, streamingWebApiConfig);
         }
 
         // Overload for WebApplication
         public static void UseStreamingWebApi(
-            this IApplicationBuilder app, 
-            StreamingSettings streamingSettings,
-            StreamingWebApiSettings streamingWebApiSettings)
+            this IApplicationBuilder app,
+            StreamingConfig streamingConfig,
+            StreamingWebApiConfig streamingWebApiConfig)
         {
-            ConfigureStreamingPipeline(app, streamingSettings, streamingWebApiSettings);
+            ConfigureStreamingPipeline(app, streamingConfig, streamingWebApiConfig);
         }
 
         private static void ConfigureStreamingPipeline(
-            IApplicationBuilder app, 
-            StreamingSettings streamingSettings,
-            StreamingWebApiSettings streamingWebApiSettings)
+            IApplicationBuilder app,
+            StreamingConfig streamingConfig,
+            StreamingWebApiConfig streamingWebApiConfig)
         {
             app.UseRouting();
             app.UseCors();
@@ -160,15 +163,14 @@ namespace Streaming.WebApi
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint(streamingWebApiSettings.Swagger.EndpointUrl, streamingWebApiSettings.Swagger.EndpointName);
-                options.RoutePrefix = streamingWebApiSettings.Swagger.RoutePrefix;
+                options.SwaggerEndpoint(streamingWebApiConfig.Swagger.EndpointUrl, streamingWebApiConfig.Swagger.EndpointName);
+                options.RoutePrefix = streamingWebApiConfig.Swagger.RoutePrefix;
             });
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapHub<GraphStreamerHub>(streamingSettings.HubPath)
+                endpoints.MapHub<GraphStreamerHub>(streamingConfig.SignalR.HubPath)
                     .RequireAuthorization();
-
 
                 endpoints.MapControllers();
 

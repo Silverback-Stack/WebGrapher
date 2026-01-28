@@ -11,8 +11,8 @@ namespace Graphing.WebApi
         public static IServiceCollection AddGraphingWebApi(
             this IServiceCollection services, 
             IPageGrapher pageGrapher, 
-            GraphingWebApiSettings graphingWebApiSettings,
-            AuthSettings authSettings)
+            GraphingWebApiConfig graphingWebApiConfig,
+            AuthConfig authConfig)
         {
             // --- Controllers ---
             services.AddControllers()
@@ -23,20 +23,20 @@ namespace Graphing.WebApi
             services.AddSwaggerGen();
 
             // --- Dependency Injection ---
-            services.AddSingleton(graphingWebApiSettings);
-            services.AddSingleton(authSettings);
+            services.AddSingleton(graphingWebApiConfig);
+            services.AddSingleton(authConfig);
             services.AddSingleton<IPageGrapher>(pageGrapher);
 
             // --- CORS ---
-            services.AddConfiguredCors(graphingWebApiSettings);
+            services.AddConfiguredCors(graphingWebApiConfig);
 
             // --- Authentication ---
-            services.AddWebApiAuthentication(authSettings);
+            services.AddWebApiAuthentication(authConfig);
 
             // --- Proxy for images that dont support CORS ---
             services.AddHttpClient("ProxyClient", client =>
             {
-                client.Timeout = TimeSpan.FromSeconds(graphingWebApiSettings.ProxyClientTimeOutSeconds);
+                client.Timeout = TimeSpan.FromSeconds(graphingWebApiConfig.ProxyClientTimeOutSeconds);
             })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
@@ -50,9 +50,9 @@ namespace Graphing.WebApi
 
         public static IServiceCollection AddConfiguredCors(
             this IServiceCollection services,
-            GraphingWebApiSettings graphingWebApiSettings)
+            GraphingWebApiConfig graphingWebApiConfig)
         {
-            var allowedOrigins = graphingWebApiSettings.AllowedOrigins ?? Array.Empty<string>();
+            var allowedOrigins = graphingWebApiConfig.AllowedOrigins ?? Array.Empty<string>();
 
             services.AddCors(options =>
             {
@@ -80,7 +80,7 @@ namespace Graphing.WebApi
 
         public static void UseGraphingWebApi(
             this WebApplication app, 
-            GraphingWebApiSettings graphingWebApiSettings)
+            GraphingWebApiConfig graphingWebApiConfig)
         {
             app.UseRouting();
             app.UseCors();
@@ -94,8 +94,8 @@ namespace Graphing.WebApi
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint(graphingWebApiSettings.Swagger.EndpointUrl, graphingWebApiSettings.Swagger.EndpointName);
-                options.RoutePrefix = graphingWebApiSettings.Swagger.RoutePrefix;
+                options.SwaggerEndpoint(graphingWebApiConfig.Swagger.EndpointUrl, graphingWebApiConfig.Swagger.EndpointName);
+                options.RoutePrefix = graphingWebApiConfig.Swagger.RoutePrefix;
             });
 
             app.MapControllers();

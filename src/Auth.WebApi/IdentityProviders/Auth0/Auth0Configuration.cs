@@ -7,7 +7,7 @@ namespace Auth.WebApi.IdentityProviders.Auth0
 {
     public static class Auth0Configuration
     {
-        public static void Configure(IServiceCollection services, AuthSettings settings)
+        public static void Configure(IServiceCollection services, AuthConfig settings)
         {
             var auth0 = settings.IdentityProvider.Auth0;
 

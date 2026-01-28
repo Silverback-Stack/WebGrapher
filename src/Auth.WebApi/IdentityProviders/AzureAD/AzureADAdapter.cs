@@ -6,11 +6,11 @@ namespace Auth.WebApi.IdentityProviders.AzureAD
 {
     public class AzureADAdapter : IIdentityProvider
     {
-        private readonly AuthSettings _authSettings;
+        private readonly AuthConfig _authConfig;
 
-        public AzureADAdapter(AuthSettings authSettings)
+        public AzureADAdapter(AuthConfig authConfig)
         {
-            _authSettings = authSettings;
+            _authConfig = authConfig;
         }
 
         public Task<IdentityUser?> ValidateCredentialsAsync(string username, string password)
@@ -45,9 +45,9 @@ namespace Auth.WebApi.IdentityProviders.AzureAD
         {
             return new UnauthorizedResponse
             {
-                IdentityProvider = _authSettings.IdentityProvider.ProviderType.ToString(),
-                LoginUrl = _authSettings.IdentityProvider.AzureAD.LoginUrl,
-                LogoutUrl = _authSettings.IdentityProvider.AzureAD.LogoutUrl,
+                IdentityProvider = _authConfig.IdentityProvider.ProviderType.ToString(),
+                LoginUrl = _authConfig.IdentityProvider.AzureAD.LoginUrl,
+                LogoutUrl = _authConfig.IdentityProvider.AzureAD.LogoutUrl,
                 Message = "Unauthorized. Login to authenticate."
             };
         }

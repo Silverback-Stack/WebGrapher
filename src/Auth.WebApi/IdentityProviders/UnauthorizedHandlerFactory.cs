@@ -7,7 +7,7 @@ namespace Auth.WebApi.IdentityProviders
 {
     public class UnauthorizedHandlerFactory
     {
-        public static JwtBearerEvents Create(AuthSettings settings)
+        public static JwtBearerEvents Create(AuthConfig settings)
         {
             return new JwtBearerEvents
             {

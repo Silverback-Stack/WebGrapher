@@ -1,12 +1,14 @@
 using App.Settings;
 using Auth.WebApi;
 using Events.Core.Bus;
+using Events.Factories;
 using Logging.Factories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
 using Streaming.Core;
-using Streaming.Core.Adapters.SignalR;
+using Streaming.Factories;
+using Streaming.Infrastructure.Adapters.SignalR;
 using Streaming.WebApi;
 
 namespace Streaming.WorkerService
@@ -18,22 +20,21 @@ namespace Streaming.WorkerService
             // Create generic host builder
             var builder = Host.CreateApplicationBuilder(args);
 
+            // Load appsettings.json and environment overrides
+            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(path: "Events");
+            var streamingAppSettings = ConfigurationLoader.LoadConfiguration(path: "Streaming");
+            var authAppSettings = ConfigurationLoader.LoadConfiguration(path: "Auth");
 
-            // Load configurations
-            var configEvents = ConfigurationLoader.LoadConfiguration("Events");
-            var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
-
-            var configStreaming = ConfigurationLoader.LoadConfiguration("Streaming");
-            var streamingSettings = configStreaming.BindSection<StreamingSettings>("Streaming");
-            var streamingWebApiSettings = configStreaming.BindSection<StreamingWebApiSettings>("StreamingWebApi");
-
-            var configAuth = ConfigurationLoader.LoadConfiguration("Auth");
-            var authSettings = configAuth.BindSection<AuthSettings>("Auth");
+            // Bind configuration overrides onto settings objects
+            var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
+            var streamingConfig = streamingAppSettings.BindSection<StreamingConfig>("Streaming");
+            var streamingWebApiConfig = streamingAppSettings.BindSection<StreamingWebApiConfig>("StreamingWebApi");
+            var authConfig = authAppSettings.BindSection<AuthConfig>("Auth");
 
 
             // Create logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configStreaming, streamingSettings.ServiceName);
+                streamingAppSettings, streamingConfig.Settings.ServiceName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog();
             var logger = loggerFactory.CreateLogger<IGraphStreamer>();
@@ -41,18 +42,18 @@ namespace Streaming.WorkerService
 
             // Start SignalR host (Kestrel) and get hub context & URL
             var (hubContext, hubUrl, webHost) = 
-                await InitializeSignalRHostAsync(streamingSettings, streamingWebApiSettings, authSettings);
+                await InitializeSignalRHostAsync(streamingConfig, streamingWebApiConfig, authConfig);
 
 
             // Register Event Bus in DI
             builder.Services.AddSingleton<IEventBus>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IEventBus>>();
-                return EventBusFactory.Create(logger, eventsSettings);
+                return EventsFactory.CreateEventBus(logger, eventBusConfig);
             });
 
             // Register Settings in DI
-            builder.Services.AddSingleton(streamingWebApiSettings);
+            builder.Services.AddSingleton(streamingWebApiConfig);
 
             // Register the Streaming Service in DI
             // Pass the HubContext to the StreamerFactory so the streamer can broadcast messages
@@ -61,11 +62,11 @@ namespace Streaming.WorkerService
                 var logger = sp.GetRequiredService<ILogger<IGraphStreamer>>();
                 var eventBus = sp.GetRequiredService<IEventBus>();
 
-                var streamerService = StreamerFactory.Create(
+                var streamerService = StreamingFactory.Create(
                     logger,
                     eventBus,
                     hubContext,
-                    streamingSettings);
+                    streamingConfig);
 
                 return streamerService;
             });
@@ -84,7 +85,7 @@ namespace Streaming.WorkerService
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, $"{streamingSettings.ServiceName} terminated unexpectedly.");
+                Log.Fatal(ex, $"{streamingConfig.Settings.ServiceName} terminated unexpectedly.");
             }
             finally
             {
@@ -100,32 +101,32 @@ namespace Streaming.WorkerService
         /// </summary>
         private static async Task<(IHubContext<GraphStreamerHub>? hubContext, string hubUrl, IWebHost? webHost)>
             InitializeSignalRHostAsync(
-                StreamingSettings streamingSettings,
-                StreamingWebApiSettings streamingWebApiSettings,
-                AuthSettings authSettings)
+                StreamingConfig streamingConfig,
+                StreamingWebApiConfig streamingWebApiConfig,
+                AuthConfig authConfig)
         {
             IWebHost? webHost = null;
             IHubContext<GraphStreamerHub>? hubContext = null;
             string hubUrl;
 
-            switch (streamingSettings.SignalR.Provider)
+            switch (streamingConfig.Provider)
             {
-                case StreamingProvider.HostedSignalR:
-                case StreamingProvider.AzureSignalRDefault:
+                case StreamingProvider.SignalRHosted:
+                case StreamingProvider.SignalRAzureDefault:
                     // Start local web server for hosted SignalR endpoint
-                    webHost = BuildKestrelHost(streamingSettings, streamingWebApiSettings, authSettings);
+                    webHost = BuildKestrelHost(streamingConfig, streamingWebApiConfig, authConfig);
                     await webHost.StartAsync();
                     hubContext = webHost.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();
-                    hubUrl = $"{streamingSettings.SignalR.HostedSignalR.Host}{streamingSettings.HubPath}";
+                    hubUrl = $"{streamingWebApiConfig.Host}{streamingConfig.SignalR.HubPath}";
                     break;
 
-                case StreamingProvider.AzureSignalRServerless:
+                case StreamingProvider.SignalRAzureServerless:
                     // Azure serverless: clients connect directly to Azure SignalR endpoint
-                    hubUrl = $"{streamingSettings.SignalR.AzureSignalRServerless.Endpoint}{streamingSettings.HubPath}";
+                    hubUrl = $"{streamingConfig.SignalR.AzureServerless.Endpoint}{streamingConfig.SignalR.HubPath}";
                     break;
 
                 default:
-                    throw new NotSupportedException($"SignalR provider '{streamingSettings.SignalR.Provider}' is not supported.");
+                    throw new NotSupportedException($"SignalR provider '{streamingConfig.Provider}' is not supported.");
             }
 
             return (hubContext, hubUrl, webHost);
@@ -135,20 +136,20 @@ namespace Streaming.WorkerService
         /// Builds an in-process Kestrel host for SignalR.
         /// </summary>
         private static IWebHost BuildKestrelHost(
-            StreamingSettings streamingSettings,
-            StreamingWebApiSettings streamingWebApiSettings,
-            AuthSettings authSettings)
+            StreamingConfig streamingConfig,
+            StreamingWebApiConfig streamingWebApiConfig,
+            AuthConfig authConfig)
         {
             return new WebHostBuilder()
                 .UseKestrel()
-                .UseUrls(streamingSettings.SignalR.HostedSignalR.Host)
+                .UseUrls(streamingWebApiConfig.Host)
                 .ConfigureServices(services =>
                 {
-                    services.AddStreamingWebApi(streamingSettings, streamingWebApiSettings, authSettings);
+                    services.AddStreamingWebApi(streamingConfig, streamingWebApiConfig, authConfig);
                 })
                 .Configure(app =>
                 {
-                    app.UseStreamingWebApi(streamingSettings, streamingWebApiSettings);
+                    app.UseStreamingWebApi(streamingConfig, streamingWebApiConfig);
                 })
                 .Build();
         }

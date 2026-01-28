@@ -12,7 +12,7 @@ namespace App.Settings
                 ?? "Production";
         }
 
-        public static IConfiguration LoadConfiguration(string serviceName)
+        public static IConfiguration LoadConfiguration(string path)
         {
             var environment = GetEnvironmentName();
 
@@ -20,7 +20,7 @@ namespace App.Settings
                 .SetBasePath(AppContext.BaseDirectory)
 
                 // Service settings
-                .AddJsonFile($"{serviceName}/appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"{path}/appsettings.json", optional: false, reloadOnChange: true)
 
                 // Logging settings
                 .AddJsonFile($"Logging/appsettings.json", optional: false, reloadOnChange: true);
@@ -28,7 +28,7 @@ namespace App.Settings
             if (!string.IsNullOrEmpty(environment))
             {
                 // Service Environment overrides (optional = true)
-                builder.AddJsonFile($"{serviceName}/appsettings.{environment}.json", optional: true, reloadOnChange: true);
+                builder.AddJsonFile($"{path}/appsettings.{environment}.json", optional: true, reloadOnChange: true);
 
                 // Logging Environment overrides (optional = true)
                 builder.AddJsonFile($"Logging/appsettings.{environment}.json", optional: true, reloadOnChange: true);

@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\App.Settings\App.Settings.csproj" />
     <ProjectReference Include="..\Auth.WebApi\Auth.WebApi.csproj" />
+    <ProjectReference Include="..\Events.Factories\Events.Factories.csproj" />
     <ProjectReference Include="..\Logging.Factories\Logging.Factories.csproj" />
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
     <ProjectReference Include="..\Streaming.WebApi\Streaming.WebApi.csproj" />

@@ -16,8 +16,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\App.Settings\App.Settings.csproj" />
+    <ProjectReference Include="..\Caching.Factories\Caching.Factories.csproj" />
+    <ProjectReference Include="..\Events.Factories\Events.Factories.csproj" />
     <ProjectReference Include="..\Logging.Factories\Logging.Factories.csproj" />
+    <ProjectReference Include="..\Requests.Factories\Requests.Factories.csproj" />
     <ProjectReference Include="..\Scraper.Core\Scraper.Core.csproj" />
+    <ProjectReference Include="..\Scraper.Factories\Scraper.Factories.csproj" />
   </ItemGroup>
 
   <ItemGroup>

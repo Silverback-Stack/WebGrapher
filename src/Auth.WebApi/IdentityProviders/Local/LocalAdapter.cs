@@ -5,16 +5,16 @@ namespace Auth.WebApi.IdentityProviders.Local
 {
     public class LocalAdapter : IIdentityProvider
     {
-        private readonly AuthSettings _authSettings;
+        private readonly AuthConfig _authConfig;
 
-        public LocalAdapter(AuthSettings authSettings)
+        public LocalAdapter(AuthConfig authConfig)
         {
-            _authSettings = authSettings;
+            _authConfig = authConfig;
         }
 
         public Task<IdentityUser?> ValidateCredentialsAsync(string username, string password)
         {
-            var localUser = _authSettings.IdentityProvider.Local.Users
+            var localUser = _authConfig.IdentityProvider.Local.Users
                 .FirstOrDefault(u => u.Username == username && u.Password == password);
 
             if (localUser == null)
@@ -62,7 +62,7 @@ namespace Auth.WebApi.IdentityProviders.Local
             // Local login happens via the API itself, so no external login URL
             return new UnauthorizedResponse
             {
-                IdentityProvider = _authSettings.IdentityProvider.ProviderType.ToString(),
+                IdentityProvider = _authConfig.IdentityProvider.ProviderType.ToString(),
                 LoginUrl = string.Empty, // the client app knows to show local login form
                 LogoutUrl = string.Empty, // the client app knows to show local logout page
                 Message = "Unauthorized. Login to authenticate."

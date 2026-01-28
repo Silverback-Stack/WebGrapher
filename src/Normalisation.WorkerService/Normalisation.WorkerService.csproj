@@ -16,7 +16,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\App.Settings\App.Settings.csproj" />
+    <ProjectReference Include="..\Caching.Factories\Caching.Factories.csproj" />
+    <ProjectReference Include="..\Events.Factories\Events.Factories.csproj" />
     <ProjectReference Include="..\Logging.Factories\Logging.Factories.csproj" />
     <ProjectReference Include="..\Normalisation.Core\Normalisation.Core.csproj" />
+    <ProjectReference Include="..\Normalisation.Factories\Normalisation.Factories.csproj" />
+    <ProjectReference Include="..\Requests.Factories\Requests.Factories.csproj" />
   </ItemGroup>
 </Project>

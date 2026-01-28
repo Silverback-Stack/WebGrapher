@@ -8,7 +8,7 @@ namespace Auth.WebApi.IdentityProviders.Local
 {
     public static class LocalConfiguration
     {
-        public static void Configure(IServiceCollection services, AuthSettings settings)
+        public static void Configure(IServiceCollection services, AuthConfig settings)
         {
             var jwt = settings.Jwt;
             var key = Encoding.UTF8.GetBytes(jwt.Key);

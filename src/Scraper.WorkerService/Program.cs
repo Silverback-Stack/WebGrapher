@@ -1,9 +1,11 @@
 using App.Settings;
-using Caching.Core;
+using Caching.Factories;
 using Events.Core.Bus;
+using Events.Factories;
 using Logging.Factories;
-using Requests.Core;
+using Requests.Factories;
 using Scraper.Core;
+using Scraper.Factories;
 using Serilog;
 
 namespace Scraper.WorkerService
@@ -14,20 +16,21 @@ namespace Scraper.WorkerService
         {
             var builder = Host.CreateApplicationBuilder(args);
 
-            // Load configurations
-            var configEvents = ConfigurationLoader.LoadConfiguration("Events");
-            var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
+            // Load appsettings.json and environment overrides
+            var configEvents = ConfigurationLoader.LoadConfiguration(path: "Events");
+            var configScraper = ConfigurationLoader.LoadConfiguration(path: "Scraper");
 
-            var configScraper = ConfigurationLoader.LoadConfiguration("Scraper");
-            var scraperSettings = configScraper.BindSection<ScraperSettings>("Scraper");
-            var metaCacheSettings = configScraper.BindSection<CacheSettings>("MetaCache");
-            var blobCacheSettings = configScraper.BindSection<CacheSettings>("BlobCache");
-            var requestSenderSettings = configScraper.BindSection<RequestSenderSettings>("RequestSender");
+            // Bind configuration overrides onto settings objects
+            var eventBusConfig = configEvents.BindSection<EventsConfig>("Events");
+            var scraperConfig = configScraper.BindSection<ScraperConfig>("Scraper");
+            var metaCacheConfig = configScraper.BindSection<CacheConfig>("MetaCache");
+            var blobCacheConfig = configScraper.BindSection<CacheConfig>("BlobCache");
+            var requestsConfig = configScraper.BindSection<RequestsConfig>("Requests");
 
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configScraper, scraperSettings.ServiceName);
+                configScraper, scraperConfig.Settings.ServiceName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog();
 
@@ -36,7 +39,7 @@ namespace Scraper.WorkerService
             builder.Services.AddSingleton<IEventBus>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IEventBus>>();
-                return EventBusFactory.Create(logger, eventsSettings);
+                return EventsFactory.CreateEventBus(logger, eventBusConfig);
             });
 
 
@@ -49,31 +52,31 @@ namespace Scraper.WorkerService
 
                 // Create Meta Cache for Request Sender
                 var metaCache = CacheFactory.Create(
-                    scraperSettings.ServiceName,
+                    scraperConfig.Settings.ServiceName,
                     logger,
-                    metaCacheSettings);
+                    metaCacheConfig);
 
 
                 // Create Blob Cache for Request Sender
                 var blobCache = CacheFactory.Create(
-                    scraperSettings.ServiceName,
+                    scraperConfig.Settings.ServiceName,
                     logger,
-                    blobCacheSettings);
+                    blobCacheConfig);
 
 
                 // Create Request Sender
-                var requestSender = RequestFactory.Create(
+                var requestSender = RequestsFactory.Create(
                     logger,
                     metaCache,
                     blobCache,
-                    requestSenderSettings);
+                    requestsConfig);
 
                 // Create Scraper Service
                 var scraperService = ScraperFactory.Create(
                     logger, 
                     eventBus, 
-                    requestSender, 
-                    scraperSettings);
+                    requestSender,
+                    scraperConfig.Settings);
 
                 return scraperService;
             });
@@ -90,7 +93,7 @@ namespace Scraper.WorkerService
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, $"{scraperSettings.ServiceName} terminated unexpectedly.");
+                Log.Fatal(ex, $"{scraperConfig.Settings.ServiceName} terminated unexpectedly.");
             }
             finally
             {

@@ -1,10 +1,11 @@
 ﻿using App.Settings;
-using Caching.Core;
+using Caching.Factories;
 using Events.Core.Bus;
 using Logging.Factories;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core;
-using Requests.Core;
+using Normalisation.Factories;
+using Requests.Factories;
 
 namespace WebGrapher.Cli.Services
 {
@@ -12,46 +13,48 @@ namespace WebGrapher.Cli.Services
     {
         public static async Task InitializeAsync(IEventBus eventBus)
         {
-            // Load Configuration
-            var configNormalisation = ConfigurationLoader.LoadConfiguration("Normalisation");
-            var normalisationSettings = configNormalisation.BindSection<NormalisationSettings>("Normalisation");
-            var metaCacheSettings = configNormalisation.BindSection<CacheSettings>("MetaCache");
-            var blobCacheSettings = configNormalisation.BindSection<CacheSettings>("BlobCache");
-            var requestSenderSettings = configNormalisation.BindSection<RequestSenderSettings>("RequestSender");
+            // Load appsettings.json and environment overrides
+            var normalisationAppSettings = ConfigurationLoader.LoadConfiguration(path: "Normalisation");
+
+            // Bind configuration overrides onto settings objects
+            var normalisationConfig = normalisationAppSettings.BindSection<NormalisationConfig>("Normalisation");
+            var metaCacheConfig = normalisationAppSettings.BindSection<CacheConfig>("MetaCache");
+            var blobCacheConfig = normalisationAppSettings.BindSection<CacheConfig>("BlobCache");
+            var requestsConfig = normalisationAppSettings.BindSection<RequestsConfig>("Requests");
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configNormalisation, normalisationSettings.ServiceName);
+                normalisationAppSettings, normalisationConfig.Settings.ServiceName);
             var logger = loggerFactory.CreateLogger<IPageNormaliser>();
 
 
             // Create Meta Cache for Request Sender
             var metaCache = CacheFactory.Create(
-                normalisationSettings.ServiceName,
+                normalisationConfig.Settings.ServiceName,
                 logger,
-                metaCacheSettings);
+                metaCacheConfig);
 
 
             // Create Blob Cache for Request Sender
             var blobCache = CacheFactory.Create(
-                normalisationSettings.ServiceName,
+                normalisationConfig.Settings.ServiceName,
                 logger,
-                blobCacheSettings);
+                blobCacheConfig);
 
 
             // Create Request Sender
-            var requestSender = RequestFactory.Create(
+            var requestSender = RequestsFactory.Create(
                 logger,
                 metaCache,
                 blobCache,
-                requestSenderSettings);
+                requestsConfig);
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                normalisationSettings.ServiceName, configNormalisation.GetEnvironmentName());
+                normalisationConfig.Settings.ServiceName, normalisationAppSettings.GetEnvironmentName());
 
             // Create Normalisation Service
-            var normalisationService = NormalisationFactory.Create(logger, eventBus, requestSender, blobCache, normalisationSettings);
+            var normalisationService = NormalisationFactory.Create(logger, eventBus, requestSender, blobCache, normalisationConfig.Settings);
             await normalisationService.StartAsync();
         }
     }

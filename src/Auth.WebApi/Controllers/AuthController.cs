@@ -15,11 +15,11 @@ namespace Auth.WebApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IIdentityProvider _identityProvider;
-        private readonly AuthSettings _authSettings;
+        private readonly AuthConfig _authConfig;
 
-        public AuthController(IIdentityProvider identityProvider, AuthSettings authSettings)
+        public AuthController(IIdentityProvider identityProvider, AuthConfig authConfig)
         {
-            _authSettings = authSettings;
+            _authConfig = authConfig;
             _identityProvider = identityProvider;
         }
 
@@ -43,13 +43,13 @@ namespace Auth.WebApi.Controllers
                 var claims = await _identityProvider.GetClaimsAsync(user);
 
                 // Generate JWT token
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authSettings.Jwt.Key));
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authConfig.Jwt.Key));
 
                 var token = new JwtSecurityToken(
-                    issuer: _authSettings.Jwt.Issuer,
-                    audience: _authSettings.Jwt.Audience,
+                    issuer: _authConfig.Jwt.Issuer,
+                    audience: _authConfig.Jwt.Audience,
                     claims: claims,
-                    expires: DateTime.UtcNow.AddMinutes(_authSettings.Jwt.ExpiresInMinutes),
+                    expires: DateTime.UtcNow.AddMinutes(_authConfig.Jwt.ExpiresInMinutes),
                     signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
                 );
 

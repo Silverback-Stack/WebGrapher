@@ -1,7 +1,9 @@
 using App.Settings;
 using Auth.WebApi;
 using Events.Core.Bus;
+using Events.Factories;
 using Graphing.Core;
+using Graphing.Factories;
 using Graphing.WebApi;
 using Logging.Factories;
 using Serilog;
@@ -14,21 +16,20 @@ namespace Graphing.WorkerService
         {
             var builder = Host.CreateApplicationBuilder(args);
 
-            // Load configurations
-            var configEvents = ConfigurationLoader.LoadConfiguration("Events");
-            var eventsSettings = configEvents.BindSection<EventBusSettings>("EventBus");
+            // Load appsettings.json and environment overrides
+            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(path: "Events");
+            var graphingAppSettings = ConfigurationLoader.LoadConfiguration(path: "Graphing");
+            var authAppSettings = ConfigurationLoader.LoadConfiguration(path: "Auth");
 
-            var configGraphing = ConfigurationLoader.LoadConfiguration("Graphing");
-            var graphingSettings = configGraphing.BindSection<GraphingSettings>("Graphing");
-            var graphingWebApiSettings = configGraphing.BindSection<GraphingWebApiSettings>("GraphingWebApi");
-
-            var configAuth = ConfigurationLoader.LoadConfiguration("Auth");
-            var authSettings = configAuth.BindSection<AuthSettings>("Auth");
+            var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
+            var graphingConfig = graphingAppSettings.BindSection<GraphingConfig>("Graphing");
+            var graphingWebApiConfig = graphingAppSettings.BindSection<GraphingWebApiConfig>("GraphingWebApi");
+            var authConfig = authAppSettings.BindSection<AuthConfig>("Auth");
 
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configGraphing, graphingSettings.ServiceName);
+                graphingAppSettings, graphingConfig.Settings.ServiceName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog();
 
@@ -37,12 +38,12 @@ namespace Graphing.WorkerService
             builder.Services.AddSingleton<IEventBus>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<IEventBus>>();
-                return EventBusFactory.Create(logger, eventsSettings);
+                return EventsFactory.CreateEventBus(logger, eventBusConfig);
             });
 
             // Register Settings in DI
-            builder.Services.AddSingleton(graphingWebApiSettings);
-            builder.Services.AddSingleton(authSettings);
+            builder.Services.AddSingleton(graphingWebApiConfig);
+            builder.Services.AddSingleton(authConfig);
 
             // Register Graphing Service in DI
             builder.Services.AddSingleton(sp =>
@@ -55,7 +56,7 @@ namespace Graphing.WorkerService
                 var graphingService = GraphingFactory.Create(
                     logger,
                     eventBus,
-                    graphingSettings);
+                    graphingConfig);
 
                 return graphingService;
             });
@@ -73,7 +74,7 @@ namespace Graphing.WorkerService
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, $"{graphingSettings.ServiceName} terminated unexpectedly.");
+                Log.Fatal(ex, $"{graphingConfig.Settings.ServiceName} terminated unexpectedly.");
             }
             finally
             {

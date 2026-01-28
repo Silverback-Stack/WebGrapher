@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Events.Core.Dtos
 {
+
+    // SigmaGraph* DTOs are the contract consumed by the web client (Sigma.js).
+    // They are intentionally Sigma-shaped and not intended as a generic graph representation.
+
     public record SigmaGraphPayloadDto
     {
         public required Guid GraphId { get; set; }

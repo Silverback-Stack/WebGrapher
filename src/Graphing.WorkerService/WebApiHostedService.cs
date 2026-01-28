@@ -10,18 +10,18 @@ namespace Graphing.WorkerService
     internal class WebApiHostedService : IHostedService
     {
         private readonly IPageGrapher _pageGrapher;
-        private readonly GraphingWebApiSettings _graphingWebApiSettings;
-        private readonly AuthSettings _authSettings;
+        private readonly GraphingWebApiConfig _graphingWebApiConfig;
+        private readonly AuthConfig _authConfig;
         private WebApplication? _app;
 
         public WebApiHostedService(
             IPageGrapher pageGrapher, 
-            GraphingWebApiSettings graphingWebApiSettings,
-            AuthSettings authSettings)
+            GraphingWebApiConfig graphingWebApiConfig,
+            AuthConfig authConfig)
         {
             _pageGrapher = pageGrapher;
-            _graphingWebApiSettings = graphingWebApiSettings;
-            _authSettings = authSettings;
+            _graphingWebApiConfig = graphingWebApiConfig;
+            _authConfig = authConfig;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -37,13 +37,13 @@ namespace Graphing.WorkerService
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
             // Add the Graphing API
-            builder.Services.AddGraphingWebApi(_pageGrapher, _graphingWebApiSettings, _authSettings);
+            builder.Services.AddGraphingWebApi(_pageGrapher, _graphingWebApiConfig, _authConfig);
 
             _app = builder.Build();
 
-            _app.UseGraphingWebApi(_graphingWebApiSettings);
+            _app.UseGraphingWebApi(_graphingWebApiConfig);
 
-            _app.Urls.Add(_graphingWebApiSettings.Host);
+            _app.Urls.Add(_graphingWebApiConfig.Host);
 
             await _app.StartAsync();
         }

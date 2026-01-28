@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Auth.WebApi\Auth.WebApi.csproj" />
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
+    <ProjectReference Include="..\Streaming.Factories\Streaming.Factories.csproj" />
   </ItemGroup>
 
 </Project>

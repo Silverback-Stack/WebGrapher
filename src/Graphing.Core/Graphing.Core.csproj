@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gremlin.Net" Version="3.7.4" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Events.Core\Events.Core.csproj" />
     <ProjectReference Include="..\Requests.Core\Requests.Core.csproj" />
   </ItemGroup>

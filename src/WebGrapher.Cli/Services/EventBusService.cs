@@ -1,5 +1,6 @@
 ﻿using App.Settings;
 using Events.Core.Bus;
+using Events.Factories;
 using Logging.Factories;
 using Microsoft.Extensions.Logging;
 
@@ -9,22 +10,24 @@ namespace WebGrapher.Cli.Services
     {
         public static Task<IEventBus> CreateAsync()
         {
-            // Load Configuration
-            var configuration = ConfigurationLoader.LoadConfiguration("Events");
-            var eventBusSettings = configuration.BindSection<EventBusSettings>("EventBus");
+            // Load appsettings.json and environment overrides
+            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(path: "Events");
+
+            // Bind configuration overrides onto settings objects
+            var eventsConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
 
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configuration, eventBusSettings.ServiceName);
+                eventsAppSettings, eventsConfig.Settings.ServiceName);
             var logger = loggerFactory.CreateLogger<IEventBus>();
 
 
             // Create Event Bus
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                eventBusSettings.ServiceName, configuration.GetEnvironmentName());
+                eventsConfig.Settings.ServiceName, eventsAppSettings.GetEnvironmentName());
 
-            var eventBus = EventBusFactory.Create(logger, eventBusSettings);
+            var eventBus = EventsFactory.CreateEventBus(logger, eventsConfig);
 
             return Task.FromResult(eventBus);
         }
