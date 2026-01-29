@@ -4,6 +4,6 @@ namespace Normalisation.Factories
 {
     public class NormalisationConfig
     {
-        public NormalisationSettings Settings = new();
+        public NormalisationSettings Settings { get; set; } = new NormalisationSettings();
     }
 }
