@@ -18,11 +18,15 @@ namespace Streaming.Factories
         {
             switch (streamingConfig.Provider)
             {
+                case StreamingProvider.SignalRAzureDefault:
+                case StreamingProvider.SignalRHosted:
+                    return new SignalRGraphStreamerAdapter(logger, eventBus, hubContext!, streamingConfig.Settings);
+
                 case StreamingProvider.SignalRAzureServerless:
                     return new SignalRServerlessGraphStreamerAdapter(logger, eventBus, streamingConfig.Settings);
 
                 default:
-                    return new SignalRGraphStreamerAdapter(logger, eventBus, hubContext!, streamingConfig.Settings);
+                    throw new NotSupportedException($"Streaming provider {streamingConfig.Provider} is not supported.");
             }
         }
     }
