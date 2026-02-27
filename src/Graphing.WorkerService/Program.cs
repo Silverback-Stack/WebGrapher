@@ -15,11 +15,15 @@ namespace Graphing.WorkerService
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
+            var environment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(path: "Events");
-            var graphingAppSettings = ConfigurationLoader.LoadConfiguration(path: "Graphing");
-            var authAppSettings = ConfigurationLoader.LoadConfiguration(path: "Auth");
+            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Events");
+            var graphingAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Graphing");
+            var authAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Auth");
 
             var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
             var graphingConfig = graphingAppSettings.BindSection<GraphingConfig>("Graphing");
@@ -28,10 +32,12 @@ namespace Graphing.WorkerService
 
 
             // Create Logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                graphingAppSettings, graphingConfig.Settings.ServiceName);
+            LoggingFactory.CreateLogger(
+                graphingAppSettings, 
+                graphingConfig.Settings.ServiceName,
+                environment.EnvironmentName);
             builder.Logging.ClearProviders();
-            builder.Logging.AddSerilog();
+            builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
 
             // Register Event Bus in DI

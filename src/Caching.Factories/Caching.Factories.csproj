@@ -12,7 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\App.Settings\App.Settings.csproj" />
     <ProjectReference Include="..\Caching.Core\Caching.Core.csproj" />
     <ProjectReference Include="..\Caching.Infrastructure\Caching.Infrastructure.csproj" />
   </ItemGroup>

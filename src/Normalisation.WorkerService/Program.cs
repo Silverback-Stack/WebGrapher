@@ -15,10 +15,13 @@ namespace Normalisation.WorkerService
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
+            var environment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(path: "Events");
-            var normalisationAppSettings = ConfigurationLoader.LoadConfiguration(path: "Normalisation");
+            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Events");
+            var normalisationAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Normalisation");
 
             // Bind configuration overrides onto settings objects
             var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
@@ -29,10 +32,12 @@ namespace Normalisation.WorkerService
 
 
             // Create Logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                normalisationAppSettings, normalisationConfig.Settings.ServiceName);
+            LoggingFactory.CreateLogger(
+                normalisationAppSettings, 
+                normalisationConfig.Settings.ServiceName,
+                environment.EnvironmentName);
             builder.Logging.ClearProviders();
-            builder.Logging.AddSerilog();
+            builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
 
             // Register Event Bus as a singleton in DI

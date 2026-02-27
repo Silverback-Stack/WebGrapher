@@ -1,4 +1,3 @@
-using App.Settings;
 using Crawler.Core;
 using Events.Core.Bus;
 using System;
@@ -10,29 +9,29 @@ namespace Crawler.WorkerService
         private readonly ILogger<Worker> _logger;
         private readonly IEventBus _eventBus;
         private readonly IPageCrawler _pageCrawler;
-        private readonly IConfiguration _configuration;
+        private readonly IHostEnvironment _hostEnvironment;
 
         public Worker(
             ILogger<Worker> logger,
             IEventBus eventBus,
             IPageCrawler pageCrawler,
-            IConfiguration configuration)
+            IHostEnvironment hostEnvironment)
         {
             _logger = logger;
             _eventBus = eventBus;
             _pageCrawler = pageCrawler;
-            _configuration = configuration;
+            _hostEnvironment = hostEnvironment;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Event bus is starting using {EnvironmentName} configuration.", 
-                _configuration.GetEnvironmentName());
+            _logger.LogInformation("Event bus is starting using {EnvironmentName} configuration.",
+                _hostEnvironment.EnvironmentName);
 
             await _eventBus.StartAsync();
 
             _logger.LogInformation("Crawler service is starting using {EnvironmentName} configuration.",
-                _configuration.GetEnvironmentName());
+                _hostEnvironment.EnvironmentName);
 
             await _pageCrawler.StartAsync();
 

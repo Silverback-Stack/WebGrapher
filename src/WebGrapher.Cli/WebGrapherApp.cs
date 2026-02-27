@@ -3,6 +3,7 @@ using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
+using Microsoft.Extensions.Hosting;
 using WebGrapher.Cli.Services;
 
 namespace WebGrapher.Cli
@@ -11,8 +12,11 @@ namespace WebGrapher.Cli
     {
         private IEventBus? _eventBus;
         private IPageCrawler? _pageCrawler;
+        private readonly IHostEnvironment _environment;
 
-        public WebGrapherApp() { }
+        public WebGrapherApp(IHostEnvironment environment) {
+            _environment = environment;
+        }
 
         public async Task InitializeAsync()
         {
@@ -30,18 +34,18 @@ namespace WebGrapher.Cli
 
 
             //Create Event Bus
-            _eventBus = await EventBusService.CreateAsync();
+            _eventBus = await EventBusService.InitializeAsync(_environment);
 
             // Kick off all service initializations concurrently
-            var crawlerTask = CrawlerService.InitializeAsync(_eventBus);
+            var crawlerTask = CrawlerService.InitializeAsync(_eventBus, _environment);
 
-            var scraperTask = ScraperService.InitializeAsync(_eventBus);
+            var scraperTask = ScraperService.InitializeAsync(_eventBus, _environment);
 
-            var normalisationTask = NormalisationService.InitializeAsync(_eventBus);
+            var normalisationTask = NormalisationService.InitializeAsync(_eventBus, _environment);
 
-            var graphingTask = GraphingService.InitializeAsync(_eventBus);
+            var graphingTask = GraphingService.InitializeAsync(_eventBus, _environment);
 
-            var streamingTask = StreamingService.InitializeAsync(_eventBus);
+            var streamingTask = StreamingService.InitializeAsync(_eventBus, _environment);
 
             // Wait for all services to finish subscribing events
             await Task.WhenAll(
@@ -53,37 +57,37 @@ namespace WebGrapher.Cli
             await _eventBus.StartAsync();
 
             await RunAsync();
-        }
-
-        private async Task RunAsync()
-        {
-            var exit = false;
-            while (!exit)
-            {
-                Console.WriteLine("Enter URL to crawl (or type 'exit' to quit):");
-
-                var input = GetInput();
-
-                if (string.Equals(input, "exit", StringComparison.OrdinalIgnoreCase)) {
-                    exit = true;
-                    continue;
-                }
-
-                var url = GetUri(input);
-                if (url != null)
-                {
-                    await SubmitUrlAsync(url);
-                } 
-                else
-                {
-                    Console.WriteLine("Invalid Url. Use format: https://www.example.com");
-                }               
-            }
 
             //cleanup
             await GraphingService.StopWebApiServerAsync();
             await StreamingService.StopHubServerAsync();
         }
+
+        private async Task RunAsync()
+        {
+            while (true)
+            {
+                // read input
+                Console.WriteLine("Enter URL to crawl (or type 'exit' to quit):");
+                var input = GetInput();
+
+                // check exit
+                if (string.Equals(input, "exit", StringComparison.OrdinalIgnoreCase))
+                    break;
+
+                // validate url
+                var url = ValidateUrl(input);
+                if (url == null)
+                {
+                    Console.WriteLine("Invalid URL. Use format: http[s]://www.example.com");
+                    continue;
+                }
+
+                // submit url
+                await SubmitUrlAsync(url);
+            }
+        }
+
 
         /// <summary>
         /// Reads the input from the console.
@@ -95,7 +99,7 @@ namespace WebGrapher.Cli
             return Console.ReadLine()?.Trim();
         }
 
-        private Uri? GetUri(string? input) =>
+        private Uri? ValidateUrl(string? input) =>
             Uri.TryCreate(input, UriKind.Absolute, out var result) ? result : null;
 
 

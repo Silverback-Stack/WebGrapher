@@ -1,5 +1,4 @@
-﻿using App.Settings;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Extensions.Logging;
@@ -8,12 +7,15 @@ namespace Logging.Factories
 {
     public static class LoggingFactory
     {
-        public static ILoggerFactory CreateLogger(IConfiguration configuration, string serviceName)
+        public static ILoggerFactory CreateLogger(
+            IConfiguration configuration,
+            string serviceName,
+            string environmentName)
         {
             var logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(configuration)
                 .Enrich.WithProperty("ServiceName", serviceName)
-                .Enrich.WithProperty("EnvironmentName", configuration.GetEnvironmentName())
+                .Enrich.WithProperty("EnvironmentName", environmentName)
                 // File sink for dynamic filenames
                 .WriteTo.File(
                     path: $"logs/{serviceName}.log",
