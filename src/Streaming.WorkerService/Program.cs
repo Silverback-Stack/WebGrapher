@@ -19,11 +19,15 @@ namespace Streaming.WorkerService
         {
             // Create generic host builder
             var builder = Host.CreateApplicationBuilder(args);
+            var environment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(path: "Events");
-            var streamingAppSettings = ConfigurationLoader.LoadConfiguration(path: "Streaming");
-            var authAppSettings = ConfigurationLoader.LoadConfiguration(path: "Auth");
+            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Events");
+            var streamingAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Streaming");
+            var authAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Auth");
 
             // Bind configuration overrides onto settings objects
             var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
@@ -33,11 +37,12 @@ namespace Streaming.WorkerService
 
 
             // Create logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                streamingAppSettings, streamingConfig.Settings.ServiceName);
+            LoggingFactory.CreateLogger(
+                streamingAppSettings, 
+                streamingConfig.Settings.ServiceName, 
+                environment.EnvironmentName);
             builder.Logging.ClearProviders();
-            builder.Logging.AddSerilog();
-            var logger = loggerFactory.CreateLogger<IGraphStreamer>();
+            builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
 
             // Start SignalR host (Kestrel) and get hub context & URL

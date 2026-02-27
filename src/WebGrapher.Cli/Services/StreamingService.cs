@@ -20,11 +20,15 @@ namespace WebGrapher.Cli.Services
     {
         private static IHost? _host;
 
-        public static async Task InitializeAsync(IEventBus eventBus)
+        public static async Task InitializeAsync(
+            IEventBus eventBus,
+            IHostEnvironment environment)
         {
             // Load appsettings.json and environment overrides
-            var streamingAppSettings = ConfigurationLoader.LoadConfiguration(path: "Streaming");
-            var authAppSettings = ConfigurationLoader.LoadConfiguration(path: "Auth");
+            var streamingAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Streaming");
+            var authAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Auth");
 
             // Bind configuration overrides onto settings objects
             var streamingConfig = streamingAppSettings.BindSection<StreamingConfig>("Streaming");
@@ -34,7 +38,9 @@ namespace WebGrapher.Cli.Services
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                streamingAppSettings, streamingConfig.Settings.ServiceName);
+                streamingAppSettings, 
+                streamingConfig.Settings.ServiceName, 
+                environment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IGraphStreamer>();
 
 
@@ -49,7 +55,7 @@ namespace WebGrapher.Cli.Services
             logger.LogInformation(
                 "{ServiceName} service is starting using {EnvironmentName} configuration on {HubUrl}",
                 streamingConfig.Settings.ServiceName,
-                streamingAppSettings.GetEnvironmentName(),
+                environment.EnvironmentName,
                 hubUrl);
 
             var hubContext = _host.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();

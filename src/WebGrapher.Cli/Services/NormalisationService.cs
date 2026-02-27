@@ -2,6 +2,7 @@
 using Caching.Factories;
 using Events.Core.Bus;
 using Logging.Factories;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Normalisation.Core;
 using Normalisation.Factories;
@@ -11,10 +12,13 @@ namespace WebGrapher.Cli.Services
 {
     internal class NormalisationService
     {
-        public static async Task InitializeAsync(IEventBus eventBus)
+        public static async Task InitializeAsync(
+            IEventBus eventBus,
+            IHostEnvironment environment)
         {
             // Load appsettings.json and environment overrides
-            var normalisationAppSettings = ConfigurationLoader.LoadConfiguration(path: "Normalisation");
+            var normalisationAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Normalisation");
 
             // Bind configuration overrides onto settings objects
             var normalisationConfig = normalisationAppSettings.BindSection<NormalisationConfig>("Normalisation");
@@ -24,7 +28,9 @@ namespace WebGrapher.Cli.Services
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                normalisationAppSettings, normalisationConfig.Settings.ServiceName);
+                normalisationAppSettings, 
+                normalisationConfig.Settings.ServiceName,
+                environment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IPageNormaliser>();
 
 
@@ -51,10 +57,11 @@ namespace WebGrapher.Cli.Services
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                normalisationConfig.Settings.ServiceName, normalisationAppSettings.GetEnvironmentName());
+                normalisationConfig.Settings.ServiceName, environment.EnvironmentName);
 
             // Create Normalisation Service
-            var normalisationService = NormalisationFactory.Create(logger, eventBus, requestSender, blobCache, normalisationConfig.Settings);
+            var normalisationService = NormalisationFactory.Create(
+                logger, eventBus, requestSender, blobCache, normalisationConfig.Settings);
             await normalisationService.StartAsync();
         }
     }

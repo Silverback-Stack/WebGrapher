@@ -15,10 +15,13 @@ namespace Scraper.WorkerService
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
+            var environment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var configEvents = ConfigurationLoader.LoadConfiguration(path: "Events");
-            var configScraper = ConfigurationLoader.LoadConfiguration(path: "Scraper");
+            var configEvents = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Events");
+            var configScraper = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Scraper");
 
             // Bind configuration overrides onto settings objects
             var eventBusConfig = configEvents.BindSection<EventsConfig>("Events");
@@ -29,10 +32,12 @@ namespace Scraper.WorkerService
 
 
             // Create Logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                configScraper, scraperConfig.Settings.ServiceName);
+            LoggingFactory.CreateLogger(
+                configScraper, 
+                scraperConfig.Settings.ServiceName, 
+                environment.EnvironmentName);
             builder.Logging.ClearProviders();
-            builder.Logging.AddSerilog();
+            builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
 
             // Register Event Bus as a singleton in DI

@@ -5,6 +5,7 @@ using Crawler.Core.SitePolicy;
 using Crawler.Factories;
 using Events.Core.Bus;
 using Logging.Factories;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Requests.Factories;
 using System;
@@ -13,10 +14,13 @@ namespace WebGrapher.Cli.Services
 {
     internal class CrawlerService
     {
-        public async static Task<IPageCrawler> InitializeAsync(IEventBus eventBus)
+        public async static Task<IPageCrawler> InitializeAsync(
+            IEventBus eventBus, 
+            IHostEnvironment environment)
         {
             // Load appsettings.json and environment overrides
-            var crawlerAppSettings = ConfigurationLoader.LoadConfiguration(path: "Crawler");
+            var crawlerAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Crawler");
 
             // Bind configuration overrides onto settings objects
             var crawlerConfig = crawlerAppSettings.BindSection<CrawlerConfig>("Crawler");
@@ -28,7 +32,9 @@ namespace WebGrapher.Cli.Services
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                crawlerAppSettings, crawlerConfig.Settings.ServiceName);
+                crawlerAppSettings, 
+                crawlerConfig.Settings.ServiceName,
+                environment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IPageCrawler>();
 
 
@@ -68,7 +74,7 @@ namespace WebGrapher.Cli.Services
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                crawlerConfig.Settings.ServiceName, crawlerAppSettings.GetEnvironmentName());
+                crawlerConfig.Settings.ServiceName, environment.EnvironmentName);
 
             // Create Crawler Service
             var crawlerService = CrawlerFactory.Create(

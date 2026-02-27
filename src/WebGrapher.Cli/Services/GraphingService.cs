@@ -17,11 +17,15 @@ namespace WebGrapher.Cli.Services
     {
         private static IHost? _host;
 
-        public static async Task InitializeAsync(IEventBus eventBus)
+        public static async Task InitializeAsync(
+            IEventBus eventBus,
+            IHostEnvironment environment)
         {
             // Load appsettings.json and environment overrides
-            var graphingAppSettings = ConfigurationLoader.LoadConfiguration(path: "Graphing");
-            var authAppSettings = ConfigurationLoader.LoadConfiguration(path: "Auth");
+            var graphingAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Graphing");
+            var authAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Auth");
 
             // Bind configuration overrides onto settings objects
             var graphingConfig = graphingAppSettings.BindSection<GraphingConfig>("Graphing");
@@ -31,13 +35,15 @@ namespace WebGrapher.Cli.Services
 
             // Setup Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                graphingAppSettings, graphingConfig.Settings.ServiceName);
+                graphingAppSettings, 
+                graphingConfig.Settings.ServiceName, 
+                environment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration on {Host}/{Swagger}",
                 graphingConfig.Settings.ServiceName,
-                graphingAppSettings.GetEnvironmentName(),
+                environment.EnvironmentName,
                 graphingWebApiConfig.Host,
                 graphingWebApiConfig.Swagger.RoutePrefix);
 

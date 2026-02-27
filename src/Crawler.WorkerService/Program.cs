@@ -16,10 +16,13 @@ namespace Crawler.WorkerService
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
+            var environment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(path: "Events");
-            var crawlerAppSettings = ConfigurationLoader.LoadConfiguration(path: "Crawler");
+            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Events");
+            var crawlerAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Crawler");
 
             // Bind configuration overrides onto settings objects
             var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
@@ -31,10 +34,12 @@ namespace Crawler.WorkerService
 
 
             // Create Logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                crawlerAppSettings, crawlerConfig.Settings.ServiceName);
+            LoggingFactory.CreateLogger(
+                crawlerAppSettings, 
+                crawlerConfig.Settings.ServiceName, 
+                environment.EnvironmentName);
             builder.Logging.ClearProviders();
-            builder.Logging.AddSerilog();
+            builder.Logging.AddSerilog(Log.Logger, dispose: false);
 
 
             // Register Event Bus as a singleton in DI

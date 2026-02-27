@@ -2,6 +2,7 @@
 using Caching.Factories;
 using Events.Core.Bus;
 using Logging.Factories;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
 using Requests.Factories;
@@ -11,10 +12,13 @@ namespace WebGrapher.Cli.Services
 {
     internal class ScraperService
     {
-        public async static Task InitializeAsync(IEventBus eventBus)
+        public async static Task InitializeAsync(
+            IEventBus eventBus,
+            IHostEnvironment environment)
         {
             // Load appsettings.json and environment overrides
-            var scraperAppSettings = ConfigurationLoader.LoadConfiguration(path: "Scraper");
+            var scraperAppSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging", "Scraper");
 
             // Bind configuration overrides onto settings objects
             var scraperConfig = scraperAppSettings.BindSection<ScraperConfig>("Scraper");
@@ -25,7 +29,9 @@ namespace WebGrapher.Cli.Services
 
             // Create Logger
             ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                scraperAppSettings, scraperConfig.Settings.ServiceName);
+                scraperAppSettings, 
+                scraperConfig.Settings.ServiceName, 
+                environment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IRequestSender>();
 
 
@@ -52,10 +58,11 @@ namespace WebGrapher.Cli.Services
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                scraperConfig.Settings.ServiceName, scraperAppSettings.GetEnvironmentName());
+                scraperConfig.Settings.ServiceName, environment.EnvironmentName);
 
             // Create Scraper Service
-            var scraperService = ScraperFactory.Create(logger, eventBus, requestSender, scraperConfig.Settings);
+            var scraperService = ScraperFactory.Create(
+                logger, eventBus, requestSender, scraperConfig.Settings);
 
             await scraperService.StartAsync();
         }
