@@ -15,27 +15,25 @@ namespace Scraper.WorkerService
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
-            var environment = builder.Environment;
+            var hostEnvironment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var configEvents = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Events");
-            var configScraper = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Scraper");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                hostEnvironment.EnvironmentName, "Logging", "Events", "Scraper");
 
             // Bind configuration overrides onto settings objects
-            var eventBusConfig = configEvents.BindSection<EventsConfig>("Events");
-            var scraperConfig = configScraper.BindSection<ScraperConfig>("Scraper");
-            var metaCacheConfig = configScraper.BindSection<CacheConfig>("MetaCache");
-            var blobCacheConfig = configScraper.BindSection<CacheConfig>("BlobCache");
-            var requestsConfig = configScraper.BindSection<RequestsConfig>("Requests");
+            var eventBusConfig = appSettings.BindSection<EventsConfig>("Events");
+            var scraperConfig = appSettings.BindSection<ScraperConfig>("Scraper");
+            var metaCacheConfig = appSettings.BindSection<CacheConfig>("MetaCache");
+            var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
+            var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
 
 
             // Create Logger
-            LoggingFactory.CreateLogger(
-                configScraper, 
+            LoggingFactory.CreateLoggerFactory(
+                appSettings, 
                 scraperConfig.Settings.ServiceName, 
-                environment.EnvironmentName);
+                hostEnvironment.EnvironmentName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 

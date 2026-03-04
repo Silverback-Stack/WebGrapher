@@ -19,28 +19,24 @@ namespace Streaming.WorkerService
         {
             // Create generic host builder
             var builder = Host.CreateApplicationBuilder(args);
-            var environment = builder.Environment;
+            var hostEnvironment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Events");
-            var streamingAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Streaming");
-            var authAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Auth");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                hostEnvironment.EnvironmentName, "Logging", "Events", "Streaming", "Auth");
 
             // Bind configuration overrides onto settings objects
-            var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
-            var streamingConfig = streamingAppSettings.BindSection<StreamingConfig>("Streaming");
-            var streamingWebApiConfig = streamingAppSettings.BindSection<StreamingWebApiConfig>("StreamingWebApi");
-            var authConfig = authAppSettings.BindSection<AuthConfig>("Auth");
+            var eventBusConfig = appSettings.BindSection<EventsConfig>("Events");
+            var streamingConfig = appSettings.BindSection<StreamingConfig>("Streaming");
+            var streamingWebApiConfig = appSettings.BindSection<StreamingWebApiConfig>("StreamingWebApi");
+            var authConfig = appSettings.BindSection<AuthConfig>("Auth");
 
 
             // Create logger
-            LoggingFactory.CreateLogger(
-                streamingAppSettings, 
+            LoggingFactory.CreateLoggerFactory(
+                appSettings, 
                 streamingConfig.Settings.ServiceName, 
-                environment.EnvironmentName);
+                hostEnvironment.EnvironmentName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 

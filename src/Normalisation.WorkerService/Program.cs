@@ -15,27 +15,25 @@ namespace Normalisation.WorkerService
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
-            var environment = builder.Environment;
+            var hostEnvironment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Events");
-            var normalisationAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Normalisation");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                hostEnvironment.EnvironmentName, "Logging", "Events", "Normalisation");
 
             // Bind configuration overrides onto settings objects
-            var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
-            var normalisationConfig = normalisationAppSettings.BindSection<NormalisationConfig>("Normalisation");
-            var metaCacheConfig = normalisationAppSettings.BindSection<CacheConfig>("MetaCache");
-            var blobCacheConfig = normalisationAppSettings.BindSection<CacheConfig>("BlobCache");
-            var requestsConfig = normalisationAppSettings.BindSection<RequestsConfig>("Requests");
+            var eventBusConfig = appSettings.BindSection<EventsConfig>("Events");
+            var normalisationConfig = appSettings.BindSection<NormalisationConfig>("Normalisation");
+            var metaCacheConfig = appSettings.BindSection<CacheConfig>("MetaCache");
+            var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
+            var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
 
 
             // Create Logger
-            LoggingFactory.CreateLogger(
-                normalisationAppSettings, 
+            LoggingFactory.CreateLoggerFactory(
+                appSettings, 
                 normalisationConfig.Settings.ServiceName,
-                environment.EnvironmentName);
+                hostEnvironment.EnvironmentName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 

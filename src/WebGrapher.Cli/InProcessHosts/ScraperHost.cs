@@ -8,30 +8,39 @@ using Requests.Core;
 using Requests.Factories;
 using Scraper.Factories;
 
-namespace WebGrapher.Cli.Services
+namespace WebGrapher.Cli.InProcessHosts
 {
-    internal class ScraperService
+    public class ScraperHost
     {
-        public async static Task InitializeAsync(
+        private readonly IEventBus _eventBus;
+        private readonly IHostEnvironment _hostEnvironment;
+
+        public ScraperHost(
             IEventBus eventBus,
-            IHostEnvironment environment)
+            IHostEnvironment hostEnvironment)
+        {
+            _eventBus = eventBus;
+            _hostEnvironment = hostEnvironment;
+        }
+
+        public async Task StartAsync() 
         {
             // Load appsettings.json and environment overrides
-            var scraperAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Scraper");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                _hostEnvironment.EnvironmentName, "Logging", "Scraper");
 
             // Bind configuration overrides onto settings objects
-            var scraperConfig = scraperAppSettings.BindSection<ScraperConfig>("Scraper");
-            var metaCacheConfig = scraperAppSettings.BindSection<CacheConfig>("MetaCache");
-            var blobCacheConfig = scraperAppSettings.BindSection<CacheConfig>("BlobCache");
-            var requestsConfig = scraperAppSettings.BindSection<RequestsConfig>("Requests");
+            var scraperConfig = appSettings.BindSection<ScraperConfig>("Scraper");
+            var metaCacheConfig = appSettings.BindSection<CacheConfig>("MetaCache");
+            var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
+            var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
 
 
             // Create Logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                scraperAppSettings, 
-                scraperConfig.Settings.ServiceName, 
-                environment.EnvironmentName);
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLoggerFactory(
+                appSettings, 
+                scraperConfig.Settings.ServiceName,
+                _hostEnvironment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IRequestSender>();
 
 
@@ -58,11 +67,11 @@ namespace WebGrapher.Cli.Services
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                scraperConfig.Settings.ServiceName, environment.EnvironmentName);
+                scraperConfig.Settings.ServiceName, _hostEnvironment.EnvironmentName);
 
             // Create Scraper Service
             var scraperService = ScraperFactory.Create(
-                logger, eventBus, requestSender, scraperConfig.Settings);
+                logger, _eventBus, requestSender, scraperConfig.Settings);
 
             await scraperService.StartAsync();
         }

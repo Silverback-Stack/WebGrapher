@@ -11,44 +11,50 @@ using Auth.WebApi;
 using App.Settings;
 using Graphing.Factories;
 
-namespace WebGrapher.Cli.Services
+namespace WebGrapher.Cli.InProcessHosts
 {
-    internal class GraphingService
+    public class GraphingHost
     {
+        private readonly IEventBus _eventBus;
+        private readonly IHostEnvironment _hostEnvironment;
         private static IHost? _host;
 
-        public static async Task InitializeAsync(
+        public GraphingHost(
             IEventBus eventBus,
-            IHostEnvironment environment)
+            IHostEnvironment hostEnvironment)
+        {
+            _eventBus = eventBus;
+            _hostEnvironment = hostEnvironment;
+        }
+
+        public async Task StartAsync()
         {
             // Load appsettings.json and environment overrides
-            var graphingAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Graphing");
-            var authAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Auth");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                _hostEnvironment.EnvironmentName, "Logging", "Graphing", "Auth");
 
             // Bind configuration overrides onto settings objects
-            var graphingConfig = graphingAppSettings.BindSection<GraphingConfig>("Graphing");
-            var graphingWebApiConfig = graphingAppSettings.BindSection<GraphingWebApiConfig>("GraphingWebApi");
-            var authConfig = authAppSettings.BindSection<AuthConfig>("Auth");
+            var graphingConfig = appSettings.BindSection<GraphingConfig>("Graphing");
+            var graphingWebApiConfig = appSettings.BindSection<GraphingWebApiConfig>("GraphingWebApi");
+            var authConfig = appSettings.BindSection<AuthConfig>("Auth");
 
 
             // Setup Logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                graphingAppSettings, 
-                graphingConfig.Settings.ServiceName, 
-                environment.EnvironmentName);
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLoggerFactory(
+                appSettings, 
+                graphingConfig.Settings.ServiceName,
+                _hostEnvironment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IPageGrapher>();
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration on {Host}/{Swagger}",
                 graphingConfig.Settings.ServiceName,
-                environment.EnvironmentName,
+                _hostEnvironment.EnvironmentName,
                 graphingWebApiConfig.Host,
                 graphingWebApiConfig.Swagger.RoutePrefix);
 
             // Create Graphing Service
-            var graphingService = GraphingFactory.Create(logger, eventBus, graphingConfig);
+            var graphingService = GraphingFactory.Create(logger, _eventBus, graphingConfig);
             await graphingService.StartAsync();
 
             //Start WEB.API:

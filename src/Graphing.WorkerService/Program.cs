@@ -15,27 +15,23 @@ namespace Graphing.WorkerService
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
-            var environment = builder.Environment;
+            var hostEnvironment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Events");
-            var graphingAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Graphing");
-            var authAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Auth");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                hostEnvironment.EnvironmentName, "Logging", "Events", "Graphing", "Auth");
 
-            var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
-            var graphingConfig = graphingAppSettings.BindSection<GraphingConfig>("Graphing");
-            var graphingWebApiConfig = graphingAppSettings.BindSection<GraphingWebApiConfig>("GraphingWebApi");
-            var authConfig = authAppSettings.BindSection<AuthConfig>("Auth");
+            var eventBusConfig = appSettings.BindSection<EventsConfig>("Events");
+            var graphingConfig = appSettings.BindSection<GraphingConfig>("Graphing");
+            var graphingWebApiConfig = appSettings.BindSection<GraphingWebApiConfig>("GraphingWebApi");
+            var authConfig = appSettings.BindSection<AuthConfig>("Auth");
 
 
             // Create Logger
-            LoggingFactory.CreateLogger(
-                graphingAppSettings, 
+            LoggingFactory.CreateLoggerFactory(
+                appSettings, 
                 graphingConfig.Settings.ServiceName,
-                environment.EnvironmentName);
+                hostEnvironment.EnvironmentName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 

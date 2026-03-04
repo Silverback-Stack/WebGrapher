@@ -16,28 +16,26 @@ namespace Crawler.WorkerService
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
-            var environment = builder.Environment;
+            var hostEnvironment = builder.Environment;
 
             // Load appsettings.json and environment overrides
-            var eventsAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Events");
-            var crawlerAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Crawler");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                hostEnvironment.EnvironmentName, "Logging", "Events", "Crawler");
 
             // Bind configuration overrides onto settings objects
-            var eventBusConfig = eventsAppSettings.BindSection<EventsConfig>("Events");
-            var crawlerConfig = crawlerAppSettings.BindSection<CrawlerConfig>("Crawler");
-            var metaCacheConfig = crawlerAppSettings.BindSection<CacheConfig>("MetaCache");
-            var blobCacheConfig = crawlerAppSettings.BindSection<CacheConfig>("BlobCache");
-            var requestsConfig = crawlerAppSettings.BindSection<RequestsConfig>("Requests");
-            var policyCacheConfig = crawlerAppSettings.BindSection<CacheConfig>("PolicyCache");
+            var eventBusConfig = appSettings.BindSection<EventsConfig>("Events");
+            var crawlerConfig = appSettings.BindSection<CrawlerConfig>("Crawler");
+            var metaCacheConfig = appSettings.BindSection<CacheConfig>("MetaCache");
+            var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
+            var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
+            var policyCacheConfig = appSettings.BindSection<CacheConfig>("PolicyCache");
 
 
             // Create Logger
-            LoggingFactory.CreateLogger(
-                crawlerAppSettings, 
+            LoggingFactory.CreateLoggerFactory(
+                appSettings, 
                 crawlerConfig.Settings.ServiceName, 
-                environment.EnvironmentName);
+                hostEnvironment.EnvironmentName);
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog(Log.Logger, dispose: false);
 

@@ -1,46 +1,55 @@
-﻿// See https://aka.ms/new-console-template for more information
-using App.Settings;
+﻿using App.Settings;
 using Logging.Factories;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text;
-using WebGrapher.Cli;
 
-internal class Program
+namespace WebGrapher.Cli
 {
-    private static async Task Main(string[] args)
+    internal class Program
     {
-        // Enable support for legacy encodings used by some web pages and older systems:
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-        // Create a host builder to retrieve the current application environment
-        var builder = Host.CreateApplicationBuilder(args);
-        var environment = builder.Environment;
-
-        // Load appsettings.json and environment overrides
-        var cliAppSettings = ConfigurationLoader.LoadConfiguration(
-            environment.EnvironmentName, "Logging");
-
-        // Create logger
-        ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-            cliAppSettings, "WebGrapher.Cli", environment.EnvironmentName);
-        var logger = loggerFactory.CreateLogger<Program>();
-
-        // Global exception handler
-        try
+        private static async Task Main(string[] args)
         {
-            logger.LogInformation("WebGrapher.Cli is starting using {EnvironmentName} configuration.",
+            // Enable support for legacy encodings used by some web pages and older systems:
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+
+            // Create a host builder and retrieve the application environment
+            var builder = Host.CreateApplicationBuilder(args);
+            var environment = builder.Environment;
+            var serviceName = typeof(Program).Namespace!;
+
+
+            // Load appsettings.json and environment overrides
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                environment.EnvironmentName, "Logging");
+
+
+            // Create logger
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLoggerFactory(
+                appSettings,
+                serviceName,
                 environment.EnvironmentName);
+            var logger = loggerFactory.CreateLogger<Program>();
 
-            var webGrapherApp = new WebGrapherApp(environment);
-            await webGrapherApp.InitializeAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.LogCritical(ex, "The application was terminated due to a fatal error.");
+            logger.LogInformation("WebGrapher.Cli is starting using {EnvironmentName} configuration.",
+                    environment.EnvironmentName);
+            logger.LogDebug("DEBUG output is enabled.");
 
-            Console.ReadKey();
+
+            // Global exception handler
+            try
+            {
+                var webGrapherApp = new WebGrapherApp(environment);
+                await webGrapherApp.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "The application was terminated due to a fatal error.");
+
+                Console.ReadKey();
+            }
         }
+
     }
-
 }
