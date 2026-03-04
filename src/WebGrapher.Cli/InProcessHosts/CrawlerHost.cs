@@ -10,31 +10,40 @@ using Microsoft.Extensions.Logging;
 using Requests.Factories;
 using System;
 
-namespace WebGrapher.Cli.Services
+namespace WebGrapher.Cli.InProcessHosts
 {
-    internal class CrawlerService
+    public class CrawlerHost
     {
-        public async static Task<IPageCrawler> InitializeAsync(
-            IEventBus eventBus, 
-            IHostEnvironment environment)
+        private readonly IEventBus _eventBus;
+        private readonly IHostEnvironment _hostEnvironment;
+
+        public CrawlerHost(
+            IEventBus eventBus,
+            IHostEnvironment hostEnvironment)
+        {
+            _eventBus = eventBus;
+            _hostEnvironment = hostEnvironment;
+        }
+
+        public async Task<IPageCrawler> StartAsync()
         {
             // Load appsettings.json and environment overrides
-            var crawlerAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Crawler");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                _hostEnvironment.EnvironmentName, "Logging", "Crawler");
 
             // Bind configuration overrides onto settings objects
-            var crawlerConfig = crawlerAppSettings.BindSection<CrawlerConfig>("Crawler");
-            var metaCacheConfig = crawlerAppSettings.BindSection<CacheConfig>("MetaCache");
-            var blobCacheConfig = crawlerAppSettings.BindSection<CacheConfig>("BlobCache");
-            var requestsConfig = crawlerAppSettings.BindSection<RequestsConfig>("Requests");
-            var policyCacheConfig = crawlerAppSettings.BindSection<CacheConfig>("PolicyCache");
+            var crawlerConfig = appSettings.BindSection<CrawlerConfig>("Crawler");
+            var metaCacheConfig = appSettings.BindSection<CacheConfig>("MetaCache");
+            var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
+            var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
+            var policyCacheConfig = appSettings.BindSection<CacheConfig>("PolicyCache");
 
 
             // Create Logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                crawlerAppSettings, 
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLoggerFactory(
+                appSettings, 
                 crawlerConfig.Settings.ServiceName,
-                environment.EnvironmentName);
+                _hostEnvironment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IPageCrawler>();
 
 
@@ -74,11 +83,11 @@ namespace WebGrapher.Cli.Services
 
 
             logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                crawlerConfig.Settings.ServiceName, environment.EnvironmentName);
+                crawlerConfig.Settings.ServiceName, _hostEnvironment.EnvironmentName);
 
             // Create Crawler Service
             var crawlerService = CrawlerFactory.Create(
-                logger, eventBus, sitePolicyResolver, crawlerConfig);
+                logger, _eventBus, sitePolicyResolver, crawlerConfig);
 
             await crawlerService.StartAsync();
 

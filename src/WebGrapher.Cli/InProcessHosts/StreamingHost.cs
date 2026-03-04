@@ -14,38 +14,44 @@ using Streaming.Infrastructure.Adapters.SignalR;
 using Streaming.WebApi;
 
 
-namespace WebGrapher.Cli.Services
+namespace WebGrapher.Cli.InProcessHosts
 {
-    public class StreamingService
+    public class StreamingHost
     {
+        private readonly IEventBus _eventBus;
+        private readonly IHostEnvironment _hostEnvironment;
         private static IHost? _host;
 
-        public static async Task InitializeAsync(
+        public StreamingHost(
             IEventBus eventBus,
-            IHostEnvironment environment)
+            IHostEnvironment hostEnvironment)
+        {
+            _eventBus = eventBus;
+            _hostEnvironment = hostEnvironment;
+        }
+
+        public async Task StartAsync()
         {
             // Load appsettings.json and environment overrides
-            var streamingAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Streaming");
-            var authAppSettings = ConfigurationLoader.LoadConfiguration(
-                environment.EnvironmentName, "Logging", "Auth");
+            var appSettings = ConfigurationLoader.LoadConfiguration(
+                _hostEnvironment.EnvironmentName, "Logging", "Streaming", "Auth");
 
             // Bind configuration overrides onto settings objects
-            var streamingConfig = streamingAppSettings.BindSection<StreamingConfig>("Streaming");
-            var streamingWebApiConfig = streamingAppSettings.BindSection<StreamingWebApiConfig>("StreamingWebApi");          
-            var authConfig = authAppSettings.BindSection<AuthConfig>("Auth");
+            var streamingConfig = appSettings.BindSection<StreamingConfig>("Streaming");
+            var streamingWebApiConfig = appSettings.BindSection<StreamingWebApiConfig>("StreamingWebApi");          
+            var authConfig = appSettings.BindSection<AuthConfig>("Auth");
 
 
             // Create Logger
-            ILoggerFactory loggerFactory = LoggingFactory.CreateLogger(
-                streamingAppSettings, 
-                streamingConfig.Settings.ServiceName, 
-                environment.EnvironmentName);
+            ILoggerFactory loggerFactory = LoggingFactory.CreateLoggerFactory(
+                appSettings, 
+                streamingConfig.Settings.ServiceName,
+                _hostEnvironment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IGraphStreamer>();
 
 
             // Start SignalR host and get hub context & URL
-            var (host, hubUrl) = await InitializeSignalRHostAsync(
+            var (host, hubUrl) = await StartSignalRHostAsync(
                 streamingConfig, 
                 streamingWebApiConfig,
                 authConfig);
@@ -55,7 +61,7 @@ namespace WebGrapher.Cli.Services
             logger.LogInformation(
                 "{ServiceName} service is starting using {EnvironmentName} configuration on {HubUrl}",
                 streamingConfig.Settings.ServiceName,
-                environment.EnvironmentName,
+                _hostEnvironment.EnvironmentName,
                 hubUrl);
 
             var hubContext = _host.Services.GetRequiredService<IHubContext<GraphStreamerHub>>();
@@ -64,14 +70,14 @@ namespace WebGrapher.Cli.Services
             // Create Streaming Service
             var streamingService = StreamingFactory.Create(
                 logger, 
-                eventBus, 
+                _eventBus, 
                 hubContext,
                 streamingConfig);
 
             await streamingService.StartAsync();
         }
 
-        private async static Task<(IHost host, string hubUrl)> InitializeSignalRHostAsync(
+        private async static Task<(IHost host, string hubUrl)> StartSignalRHostAsync(
             StreamingConfig streamingConfig,
             StreamingWebApiConfig streamingWebApiConfig,
             AuthConfig authConfig)
@@ -115,7 +121,7 @@ namespace WebGrapher.Cli.Services
             return (app, hubUrl);
         }
 
-        public static async Task StopHubServerAsync()
+        public static async Task StopSignalRHostAsync()
         {
             if (_host != null)
             {

@@ -1,10 +1,10 @@
-﻿using System;
-using Crawler.Core;
+﻿using Crawler.Core;
 using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
 using Microsoft.Extensions.Hosting;
-using WebGrapher.Cli.Services;
+using System;
+using WebGrapher.Cli.InProcessHosts;
 
 namespace WebGrapher.Cli
 {
@@ -12,55 +12,69 @@ namespace WebGrapher.Cli
     {
         private IEventBus? _eventBus;
         private IPageCrawler? _pageCrawler;
-        private readonly IHostEnvironment _environment;
+        private readonly IHostEnvironment _hostEnvironment;
 
-        public WebGrapherApp(IHostEnvironment environment) {
-            _environment = environment;
+        public WebGrapherApp(IHostEnvironment hostEnvironment) {
+            _hostEnvironment = hostEnvironment;
         }
 
         public async Task InitializeAsync()
         {
             /*
-             * This CLI hosts multiple microservice instances (Crawler, Scraper, Normalisation,
+             * This CLI hosts multiple microservice cores (Crawler, Scraper, Normalisation,
              * Graphing, Streaming) within a single process for local development.
              *
-             * Each service is initialized concurrently and runs on its own execution context,
+             * Each in-process host is initialized concurrently and runs on its own execution context,
              * emulating separate microservice hosts while sharing an in-memory event bus.
              *
-             * All services complete startup and event subscription before the event bus is
+             * All hosts complete startup and event subscription before the event bus is
              * started, ensuring deterministic initialization order and isolation semantics
              * similar to a distributed environment.
             */
 
 
-            //Create Event Bus
-            _eventBus = await EventBusService.InitializeAsync(_environment);
+            // Event Bus
+            _eventBus = EventBusComposition.Create(_hostEnvironment);
 
-            // Kick off all service initializations concurrently
-            var crawlerTask = CrawlerService.InitializeAsync(_eventBus, _environment);
+            // Crawler Host
+            var crawlerHost = new CrawlerHost(_eventBus, _hostEnvironment);
+            var crawlerTask = crawlerHost.StartAsync();
 
-            var scraperTask = ScraperService.InitializeAsync(_eventBus, _environment);
+            // Scraper Host
+            var scraperHost = new ScraperHost(_eventBus, _hostEnvironment);
+            var scraperTask = scraperHost.StartAsync();
 
-            var normalisationTask = NormalisationService.InitializeAsync(_eventBus, _environment);
+            // Normalisation Host
+            var normalisationHost = new NormalisationHost(_eventBus, _hostEnvironment);
+            var normalisationTask = normalisationHost.StartAsync();
 
-            var graphingTask = GraphingService.InitializeAsync(_eventBus, _environment);
+            // Graphing Host
+            var graphingHost = new GraphingHost(_eventBus, _hostEnvironment);
+            var graphingTask = graphingHost.StartAsync();
 
-            var streamingTask = StreamingService.InitializeAsync(_eventBus, _environment);
+            // Streaming Host
+            var streamingHost = new StreamingHost(_eventBus, _hostEnvironment);
+            var streamingTask = streamingHost.StartAsync();
 
-            // Wait for all services to finish subscribing events
+            // Wait for all hosts to be ready (subscribing events etc)
             await Task.WhenAll(
-                crawlerTask, scraperTask, normalisationTask, graphingTask, streamingTask);
+                crawlerTask, 
+                scraperTask, 
+                normalisationTask, 
+                graphingTask, 
+                streamingTask);
 
             _pageCrawler = await crawlerTask;
 
             // Start event bus after all services are ready
             await _eventBus.StartAsync();
 
+            // Command loop
             await RunAsync();
 
-            //cleanup
-            await GraphingService.StopWebApiServerAsync();
-            await StreamingService.StopHubServerAsync();
+            // Cleanup
+            await GraphingHost.StopWebApiServerAsync();
+            await StreamingHost.StopSignalRHostAsync();
         }
 
         private async Task RunAsync()
