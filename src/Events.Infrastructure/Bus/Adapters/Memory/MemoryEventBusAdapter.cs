@@ -37,10 +37,30 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
 
         public override async Task Subscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
         {
-            // Ensure semaphore exists for this event type
-            var semaphore = _semaphores.GetOrAdd(typeof(TEvent), _ => new SemaphoreSlim(_maxConcurrencyLimitPerEvent));
+            // Ensure a concurrency semaphore exists for this event type.
+            // In-memory adapter controls parallel handler execution locally.
+            var semaphore = _semaphores.GetOrAdd(typeof(TEvent), _ 
+                => new SemaphoreSlim(_maxConcurrencyLimitPerEvent));
+
+            // ------------------------------------------------------------
+            // Event Dispatch Flow (In-Memory Adapter)
+            // ------------------------------------------------------------
+            // 1. Event is published in-process.
+            // 2. Dispatch to subscribed handler.
+            // 3. Concurrency is limited via SemaphoreSlim.
+            // 4. On success  -> no settlement required (no broker).
+            // 5. On failure  -> error is logged only.
+            //
+            // No retries.
+            // No dead-letter queue.
+            // No durability.
+            //
+            // This adapter is intended for local development and
+            // architectural validation — not production guarantees.
+            // ------------------------------------------------------------
 
             // Wrap the handler with concurrency control
+
             Func<TEvent, Task> wrapped = async evt =>
             {
                 await semaphore.WaitAsync();
@@ -54,6 +74,7 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
                 }
             };
 
+            // Register the wrapped handler
             _handlers.AddOrUpdate(typeof(TEvent),
                 _ => new List<Delegate> { wrapped },
                 (_, list) =>
@@ -84,22 +105,24 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
             DateTimeOffset? scheduledEnqueueTime = null,
             CancellationToken cancellationToken = default) where TEvent : class
         {
-
-            // In-memory bus doesnt support priority queues
+            // Priority not supported for in-memory adapter
+            if (priority != 0)
+                _logger.LogDebug("[InMemory] Priority {Priority} requested but not supported; ignoring.", priority);
 
             // Create scheduled delay if provided
             var delay = scheduledEnqueueTime.HasValue
                     ? scheduledEnqueueTime.Value - DateTimeOffset.UtcNow
                     : TimeSpan.Zero;
 
+            if (delay < TimeSpan.Zero)
+                delay = TimeSpan.Zero;
 
-            //Use a background thread to prevent main thread being blocked
+            // Use a background thread to prevent main thread being blocked
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    // Scheduled event:
-                    // In-memory bus doesnt support scheduled events so we simulate it using Task.Delay
+                    // Scheduled event not supported -> simulate it using Task.Delay
                     if (delay > TimeSpan.Zero)
                         await Task.Delay(delay, cancellationToken);
 
@@ -127,6 +150,7 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
                     try
                     {
                         await handler(@event);
+                        await HandleSuccessAsync(typeof(TEvent), cancellationToken);
 
                         var scheduled = delay.TotalSeconds > 0 ? $"scheduled in {delay.TotalSeconds} seconds." : string.Empty;
 
@@ -134,7 +158,7 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Handler execution failed for event {EventType}", typeof(TEvent).Name);
+                        await HandleFailureAsync(typeof(TEvent), ex, cancellationToken);
                     }
                 }
             }
@@ -151,6 +175,23 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
             _handlers.Clear();
 
             _logger.LogDebug($"Disposing event bus {typeof(MemoryEventBusAdapter).Name}, handlers cleared.");
+        }
+
+
+        private Task HandleSuccessAsync(Type eventType, CancellationToken ct)
+        {
+            // In-memory: nothing to settle/acknowledge
+            return Task.CompletedTask;
+        }
+
+        private Task HandleFailureAsync(Type eventType, Exception ex, CancellationToken ct)
+        {
+            // In-memory: no retries/DLQ. We only log.
+            _logger.LogError(ex,
+                "[InMemory] Handler failed for {EventType}. Retries/DLQ not supported in memory adapter.",
+                eventType.Name);
+
+            return Task.CompletedTask;
         }
     }
 }

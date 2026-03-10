@@ -22,6 +22,7 @@ namespace Events.Factories
                         logger,
                         eventsConfig.AzureServiceBus.ConnectionString,
                         eventsConfig.AzureServiceBus.MaxConcurrencyLimitPerEvent,
+                        eventsConfig.AzureServiceBus.MaxDeliveryCount,
                         eventsConfig.AzureServiceBus.PrefetchCount);
 
                 default:

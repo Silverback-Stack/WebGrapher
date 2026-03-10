@@ -1,17 +1,16 @@
-﻿using Crawler.Core;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
 using Microsoft.Extensions.Hosting;
-using System;
 using WebGrapher.Cli.InProcessHosts;
+using System;
+
 
 namespace WebGrapher.Cli
 {
     public class WebGrapherApp
     {
-        private IEventBus? _eventBus;
-        private IPageCrawler? _pageCrawler;
+        private IEventBus _eventBus;
         private readonly IHostEnvironment _hostEnvironment;
 
         public WebGrapherApp(IHostEnvironment hostEnvironment) {
@@ -34,7 +33,8 @@ namespace WebGrapher.Cli
 
 
             // Event Bus
-            _eventBus = EventBusComposition.Create(_hostEnvironment);
+            _eventBus = EventBusComposition.Create(_hostEnvironment)
+                ?? throw new InvalidOperationException("EventBus could not be created.");
 
             // Crawler Host
             var crawlerHost = new CrawlerHost(_eventBus, _hostEnvironment);
@@ -63,8 +63,6 @@ namespace WebGrapher.Cli
                 normalisationTask, 
                 graphingTask, 
                 streamingTask);
-
-            _pageCrawler = await crawlerTask;
 
             // Start event bus after all services are ready
             await _eventBus.StartAsync();
@@ -124,7 +122,8 @@ namespace WebGrapher.Cli
         /// <returns></returns>
         private async Task SubmitUrlAsync(Uri url)
         {
-            if (_pageCrawler is null) return;
+            if (_eventBus is null) 
+                return;
 
             //create a crawl page request
             var crawlPageRequest = new CrawlPageRequestDto
@@ -160,7 +159,7 @@ namespace WebGrapher.Cli
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
-            await _pageCrawler.EvaluatePageForCrawling(crawlPageEvent);
+            await _eventBus.PublishAsync(crawlPageEvent);
         }
 
 
