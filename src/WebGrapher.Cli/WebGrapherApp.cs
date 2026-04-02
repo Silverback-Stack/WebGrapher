@@ -10,8 +10,9 @@ namespace WebGrapher.Cli
 {
     public class WebGrapherApp
     {
-        private IEventBus _eventBus;
         private readonly IHostEnvironment _hostEnvironment;
+
+        private IEventBus _eventBus;
 
         public WebGrapherApp(IHostEnvironment hostEnvironment) {
             _hostEnvironment = hostEnvironment;
@@ -122,8 +123,7 @@ namespace WebGrapher.Cli
         /// <returns></returns>
         private async Task SubmitUrlAsync(Uri url)
         {
-            if (_eventBus is null) 
-                return;
+            if (_eventBus is null) return;
 
             //create a crawl page request
             var crawlPageRequest = new CrawlPageRequestDto

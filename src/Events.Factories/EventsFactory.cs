@@ -15,7 +15,7 @@ namespace Events.Factories
                 case EventBusProvider.Memory:
                     return new MemoryEventBusAdapter(
                         logger,
-                        eventsConfig.MemoryEventBus.MaxConcurrencyLimitPerEvent);
+                        eventsConfig.MemoryEventBus);
 
                 case EventBusProvider.AzureServiceBus:
                     return new AzureServiceBusAdapter(

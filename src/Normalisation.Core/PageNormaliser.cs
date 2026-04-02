@@ -31,12 +31,12 @@ namespace Normalisation.Core
 
         public async Task StartAsync()
         {
-            await _eventBus.Subscribe<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
+            await _eventBus.SubscribeAsync<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
         }
 
         public async Task StopAsync()
         {
-            await _eventBus.Unsubscribe<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
+            await _eventBus.UnsubscribeAsync<NormalisePageEvent>(_normalisationSettings.ServiceName, NormalisePageContentAsync);
         }
 
         public async Task PublishClientLogEventAsync(

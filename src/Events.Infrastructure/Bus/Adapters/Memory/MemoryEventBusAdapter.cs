@@ -14,33 +14,33 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
         private readonly ConcurrentDictionary<Type, SemaphoreSlim> _semaphores = new();
 
         // Concurrency limit per event type
-        private readonly int _maxConcurrencyLimitPerEvent;
+        private readonly MemoryEventBusSettings _memoryEventBusSettings;
 
         public MemoryEventBusAdapter(
             ILogger logger,
-            int maxConcurrencyLimitPerEvent) : base(logger)
+            MemoryEventBusSettings memoryEventBusSettings) : base(logger)
         {
-            _maxConcurrencyLimitPerEvent = maxConcurrencyLimitPerEvent;
+            _memoryEventBusSettings = memoryEventBusSettings;
         }
 
-        public async override Task StartAsync()
+        public override async Task StartAsync()
         {
             //nothing to do for in-memory implementation
             _logger.LogDebug($"Started event bus {typeof(MemoryEventBusAdapter).Name}");
         }
 
-        public async override Task StopAsync()
+        public override async Task StopAsync()
         {
             //nothing to do for in-memory implementation
             _logger.LogDebug($"Stopped event bus {typeof(MemoryEventBusAdapter).Name}");
         }
 
-        public override async Task Subscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
+        public override async Task SubscribeAsync<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
         {
             // Ensure a concurrency semaphore exists for this event type.
             // In-memory adapter controls parallel handler execution locally.
             var semaphore = _semaphores.GetOrAdd(typeof(TEvent), _ 
-                => new SemaphoreSlim(_maxConcurrencyLimitPerEvent));
+                => new SemaphoreSlim(_memoryEventBusSettings.MaxConcurrencyLimitPerEvent));
 
             // ------------------------------------------------------------
             // Event Dispatch Flow (In-Memory Adapter)
@@ -60,7 +60,6 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
             // ------------------------------------------------------------
 
             // Wrap the handler with concurrency control
-
             Func<TEvent, Task> wrapped = async evt =>
             {
                 await semaphore.WaitAsync();
@@ -86,7 +85,7 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
             _logger.LogDebug($"{serviceName} service subscribed to event {typeof(TEvent).Name}");
         }
 
-        public override async Task Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
+        public override async Task UnsubscribeAsync<TEvent>(string serviceName, Func<TEvent, Task> handler) where TEvent : class
         {
             if (_handlers.TryGetValue(typeof(TEvent), out var subscribers))
             {
@@ -109,6 +108,7 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
             if (priority != 0)
                 _logger.LogDebug("[InMemory] Priority {Priority} requested but not supported; ignoring.", priority);
 
+
             // Create scheduled delay if provided
             var delay = scheduledEnqueueTime.HasValue
                     ? scheduledEnqueueTime.Value - DateTimeOffset.UtcNow
@@ -116,6 +116,7 @@ namespace Events.Infrastructure.Bus.Adapters.Memory
 
             if (delay < TimeSpan.Zero)
                 delay = TimeSpan.Zero;
+
 
             // Use a background thread to prevent main thread being blocked
             _ = Task.Run(async () =>

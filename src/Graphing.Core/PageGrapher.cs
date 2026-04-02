@@ -35,12 +35,12 @@ namespace Graphing.Core
 
         public async Task StartAsync()
         {
-            await _eventBus.Subscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
+            await _eventBus.SubscribeAsync<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
         }
 
         public async Task StopAsync()
         {
-            await _eventBus.Unsubscribe<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
+            await _eventBus.UnsubscribeAsync<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
         }
 
         public async Task PublishClientLogEventAsync(

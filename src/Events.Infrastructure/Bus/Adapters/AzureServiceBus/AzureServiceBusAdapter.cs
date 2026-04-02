@@ -32,7 +32,7 @@ namespace Events.Infrastructure.Bus
             _prefetchCount = prefetchCount;
         }
 
-        public override async Task Subscribe<TEvent>(
+        public override async Task SubscribeAsync<TEvent>(
             string serviceName, 
             Func<TEvent, Task> handler) where TEvent : class
         {
@@ -112,7 +112,7 @@ namespace Events.Infrastructure.Bus
         }
 
 
-        public override async Task Unsubscribe<TEvent>(string serviceName, Func<TEvent, Task> handler)
+        public override async Task UnsubscribeAsync<TEvent>(string serviceName, Func<TEvent, Task> handler)
         {
             var key = GetKey<TEvent>(serviceName);
 
@@ -139,6 +139,9 @@ namespace Events.Infrastructure.Bus
             await using var sender = _client.CreateSender(topicName);
             var body = JsonSerializer.SerializeToUtf8Bytes(@event);
             var message = new ServiceBusMessage(body);
+
+            // Azure Service Bus does not support message priority,
+            // so the priority parameter is ignored in this implementation.
 
             if (scheduledEnqueueTime.HasValue)
                 message.ScheduledEnqueueTime = scheduledEnqueueTime.Value.UtcDateTime;

@@ -30,14 +30,14 @@ namespace Crawler.Core
 
         public async Task StartAsync()
         {
-            await _eventBus.Subscribe<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
-            await _eventBus.Subscribe<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
+            await _eventBus.SubscribeAsync<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
+            await _eventBus.SubscribeAsync<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
         }
 
         public async Task StopAsync()
         {
-            await _eventBus.Unsubscribe<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
-            await _eventBus.Unsubscribe<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
+            await _eventBus.UnsubscribeAsync<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
+            await _eventBus.UnsubscribeAsync<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
         }
 
         public async Task PublishClientLogEventAsync(
