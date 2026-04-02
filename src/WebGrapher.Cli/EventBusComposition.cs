@@ -25,12 +25,12 @@ namespace WebGrapher.Cli
                 eventsConfig.Settings.ServiceName, 
                 hostEnvironment.EnvironmentName);
             var logger = loggerFactory.CreateLogger<IEventBus>();
-
-
-            // Create Event Bus
+       
             logger.LogInformation("{ServiceName} event bus is initializing using {EnvironmentName} configuration.",
                 eventsConfig.Settings.ServiceName, hostEnvironment.EnvironmentName);
 
+
+            // Create Event Bus
             var eventBus = EventsFactory.CreateEventBus(
                 logger, eventsConfig);
 

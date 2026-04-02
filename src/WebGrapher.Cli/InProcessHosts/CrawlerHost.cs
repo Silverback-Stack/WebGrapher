@@ -25,7 +25,7 @@ namespace WebGrapher.Cli.InProcessHosts
             _hostEnvironment = hostEnvironment;
         }
 
-        public async Task<IPageCrawler> StartAsync()
+        public async Task StartAsync()
         {
             // Load appsettings.json and environment overrides
             var appSettings = ConfigurationLoader.LoadConfiguration(
@@ -90,8 +90,6 @@ namespace WebGrapher.Cli.InProcessHosts
                 logger, _eventBus, sitePolicyResolver, crawlerConfig);
 
             await crawlerService.StartAsync();
-
-            return crawlerService;
         }
     }
 }

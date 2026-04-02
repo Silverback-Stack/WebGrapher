@@ -14,10 +14,11 @@ namespace Crawler.Factories
             ISitePolicyResolver sitePolicyResolver,
             CrawlerConfig crawlerConfig)
         {
-            var service = new PageCrawler(
-                logger, eventBus, sitePolicyResolver, crawlerConfig.Settings);
-
-            return service;
+            return new PageCrawler(
+                logger, 
+                eventBus, 
+                sitePolicyResolver, 
+                crawlerConfig.Settings);
         }
     }
 }
