@@ -9,32 +9,33 @@ namespace Requests.Factories
 {
     public static class RequestsFactory
     {
-        public static IRequestSender Create(ILogger logger, ICache metaCache, ICache blobCache, RequestsConfig requestsConfig)
+        public static IRequestSender Create(
+            ILogger logger, 
+            ICache metaCache, 
+            ICache blobCache, 
+            RequestsConfig requestsConfig)
         {
-            IHttpRequester httpRequester;
+            IHttpTransport httpTransport;
 
             switch (requestsConfig.Provider)
             {
                 case TransportProvider.HttpClient:
-                    httpRequester = BuildHttpClientRequester(requestsConfig.HttpClient);
+                    httpTransport = CreateHttpTransport(requestsConfig.HttpClient);
                     break;
 
                 default:
                     throw new NotSupportedException($"Transport '{requestsConfig.Provider}' is not supported.");
             }
 
-            IRequestTransformer requestTransformer = new RequestTransformer(requestsConfig.RequestSender);
-
             return new RequestSender(
                 logger, 
                 metaCache, 
                 blobCache, 
-                httpRequester, 
-                requestTransformer,
+                httpTransport, 
                 requestsConfig.RequestSender);
         }
 
-        private static IHttpRequester BuildHttpClientRequester(HttpClientSettings httpClientSettings)
+        private static IHttpTransport CreateHttpTransport(HttpClientSettings httpClientSettings)
         {
             var handler = new HttpClientHandler
             {
@@ -48,7 +49,7 @@ namespace Requests.Factories
                 Timeout = TimeSpan.FromSeconds(httpClientSettings.TimeoutSeconds)
             };
 
-            return new HttpClientAdapter(client);
+            return new HttpClientAdapter(client, httpClientSettings);
         }
     }
 }

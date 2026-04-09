@@ -5,7 +5,8 @@ namespace Requests.Core
     {
         public required HttpResponseMetadata Metadata { get; set; }
         public HttpResponseData? Data { get; set; }
-        public bool IsFromCache { get; set; }
+
+        public CacheInfo? Cache { get; set; }
     }
 
 }

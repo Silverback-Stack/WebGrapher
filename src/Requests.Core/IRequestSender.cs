@@ -2,6 +2,10 @@
 
 namespace Requests.Core
 {
+
+    /// <summary>
+    /// Fetches content from HTTP endpoints, handles caching and response details.
+    /// </summary>
     public interface IRequestSender
     {
         Task<HttpResponseEnvelope?> FetchAsync(

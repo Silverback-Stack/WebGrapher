@@ -6,7 +6,7 @@ using Graphing.Infrastructure.WebGraph.Adapters.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Service.Graphing.Tests
+namespace Graphing.Core.Tests
 {
     [TestFixture]
     public class MemoryWebGraphAdapterTests

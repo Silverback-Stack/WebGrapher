@@ -5,9 +5,8 @@ using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Requests.Core;
-using Scraper.Core;
 
-namespace Service.Scraper.Tests
+namespace Scraper.Core.Tests
 {
     [TestFixture]
     public class PageScraperTests
@@ -36,22 +35,23 @@ namespace Service.Scraper.Tests
                 Metadata = new HttpResponseMetadata
                 {
                     OriginalUrl = _url,
-                    Url = null,
+                    Url = _url,
                     StatusCode = HttpStatusCode.OK,
                     Expires = DateTimeOffset.UtcNow.AddDays(1),
                     LastModified = DateTimeOffset.UtcNow,
                     RetryAfter = null,
-                    ResponseData = new HttpResponseDataItem { 
-                        BlobId = "Blob1",
-                        BlobContainer = "Blobs",
-                        ContentType = "text/html", 
-                        Encoding = "utf-8"
-                    }
+                    ContentType = "text/plain",
+                    Encoding = "utf-8"
                 },
                 Data = new HttpResponseData {
                     Payload = Encoding.UTF8.GetBytes("<html><body>Example Page</body></html>")
                 },
-                IsFromCache = false
+                Cache = new CacheInfo
+                {
+                    IsFromCache = false,
+                    Key = "Blob1",
+                    Container = "Blobs"
+                }
             };
 
             _requestSender.Setup(rs => rs.FetchAsync(
@@ -69,7 +69,7 @@ namespace Service.Scraper.Tests
         }
 
         [Test]
-        public async Task GetAsync_WithResponseCode_ReturnsScrapeResponseItem()
+        public async Task FetchAsync_WithSuccessfulResponse_ReturnsResponseEnvelope()
         {
             var responseEnvelope = await _scraper.FetchAsync(_url, _userAgent, _userAccepts);
 

@@ -30,14 +30,14 @@ namespace Crawler.Core
 
         public async Task StartAsync()
         {
-            await _eventBus.SubscribeAsync<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
-            await _eventBus.SubscribeAsync<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
+            await _eventBus.SubscribeAsync<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawlingAsync);
+            await _eventBus.SubscribeAsync<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawlAsync);
         }
 
         public async Task StopAsync()
         {
-            await _eventBus.UnsubscribeAsync<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawling);
-            await _eventBus.UnsubscribeAsync<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawl);
+            await _eventBus.UnsubscribeAsync<CrawlPageEvent>(_crawlerSettings.ServiceName, EvaluatePageForCrawlingAsync);
+            await _eventBus.UnsubscribeAsync<ScrapePageFailedEvent>(_crawlerSettings.ServiceName, RetryPageCrawlAsync);
         }
 
         public async Task PublishClientLogEventAsync(
@@ -66,7 +66,7 @@ namespace Crawler.Core
         /// Evaluates whether the page can be crawled based on retry limits, depth,
         /// rate limiting, and robots.txt permissions. If allowed, publishes a scrape event.
         /// </summary>
-        public async Task EvaluatePageForCrawling(CrawlPageEvent evt)
+        public async Task EvaluatePageForCrawlingAsync(CrawlPageEvent evt)
         {
             var request = evt.CrawlPageRequest;
 
@@ -113,7 +113,8 @@ namespace Crawler.Core
                 return;
             }
 
-            var sitePolicy = await _sitePolicyResolver.GetOrCreateSitePolicyAsync(request.Url, request.Options.UserAgent);
+            var sitePolicy = await _sitePolicyResolver.GetOrCreateSitePolicyAsync(
+                request.Url, request.Options.UserAgent);
 
             if (!_sitePolicyResolver.IsPermittedByRobotsTxt(request.Url, request.Options.UserAgent, sitePolicy))
             {
@@ -141,10 +142,10 @@ namespace Crawler.Core
                 return;
             }
 
-            await PublishScrapePageEvent(evt);
+            await PublishScrapePageEventAsync(evt);
         }
 
-        private async Task RetryPageCrawl(ScrapePageFailedEvent evt)
+        private async Task RetryPageCrawlAsync(ScrapePageFailedEvent evt)
         {
             if (evt.RetryAfter is null) return;
 
@@ -164,7 +165,7 @@ namespace Crawler.Core
         private static bool HasReachedMaxDepth(int currentDepth, int maxDepth, int maxCrawlDepthLimit) =>
             currentDepth > Math.Min(maxDepth, maxCrawlDepthLimit);
 
-        private async Task PublishScrapePageEvent(CrawlPageEvent evt)
+        private async Task PublishScrapePageEventAsync(CrawlPageEvent evt)
         {
             var request = evt.CrawlPageRequest;
 
