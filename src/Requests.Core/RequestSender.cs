@@ -11,27 +11,28 @@ namespace Requests.Core
         private readonly ILogger _logger;
         private readonly ICache _metaCache;
         private readonly ICache _blobCache;
-        private readonly IHttpRequester _httpRequester;
-        private readonly IRequestTransformer _requestTransformer;
+        private readonly IHttpTransport _httpTransport;
         private readonly RequestSenderSettings _requestSenderSettings;
 
         public RequestSender(
             ILogger logger, 
             ICache metaCache, 
             ICache blobCache, 
-            IHttpRequester httpRequester, 
-            IRequestTransformer requestTransformer,
+            IHttpTransport httpTransport, 
             RequestSenderSettings requestSenderSettings)
         {
             _requestSenderSettings = requestSenderSettings;
             _logger = logger;
             _metaCache = metaCache;
             _blobCache = blobCache;
-            _httpRequester = httpRequester;
-            _requestTransformer = requestTransformer;
+            _httpTransport = httpTransport;
         }
 
 
+        /// <summary>
+        /// Fetches content from the specified URL, using cached data when available,
+        /// otherwise sending an HTTP request and caching the result.
+        /// </summary>
         public async Task<HttpResponseEnvelope?> FetchAsync(
             Uri url,
             string userAgent,
@@ -54,51 +55,38 @@ namespace Requests.Core
 
             try
             {
-                //fetch cached data:
+                // fetch cached data:
                 string key = CacheKeyHelper.ComputeCacheKey(compositeKey);
 
-                var metaData = await _metaCache.GetAsync<HttpResponseMetadata>(key);
+                var cachedResponse = await TryGetCachedResponseAsync(key, url);
 
-                if (metaData is not null)
+                if (cachedResponse is not null)
+                    return cachedResponse;
+
+
+                // fetch fresh data:
+                var responseEnvelope = await _httpTransport.GetAsync(
+                    url,
+                    userAgent,
+                    userAccepts,
+                    contentMaxBytes: contentMaxBytes,
+                    cancellationToken: cancellationToken);
+
+                if (responseEnvelope is null)
+                    return null;
+
+                responseEnvelope.Cache = new CacheInfo
                 {
-                    var blobData = await _blobCache.GetAsync<byte[]>(key);
-                    if (blobData is not null)
-                    {
-                        _logger.LogDebug($"Fetch request for {url.AbsoluteUri} returned cached item.");
+                    IsFromCache = false,
+                    Key = key,
+                    Container = _blobCache.Container
+                };
 
-                        return new HttpResponseEnvelope
-                        {
-                            Metadata = metaData,
-                            Data = new HttpResponseData
-                            {
-                                Payload = blobData
-                            },
-                            IsFromCache = true
-                        };
-                    }
-                }
+                _logger.LogDebug(
+                    $"Fetch request for {url.AbsoluteUri} returned status code {responseEnvelope.Metadata.StatusCode}");
 
-                //fetch fresh data:
-                var responseMessage = await _httpRequester
-                    .GetAsync(url, userAgent, userAccepts, cancellationToken);
+                await CacheIfEligibleAsync(key, responseEnvelope);
 
-                var responseEnvelope = await _requestTransformer
-                    .TransformAsync(url, responseMessage, userAccepts, blobId: key, blobContainer: _blobCache.Container, contentMaxBytes, cancellationToken);
-
-                _logger.LogDebug($"Fetch request for {url.AbsoluteUri} returned status code {responseEnvelope.Metadata.StatusCode}");
-
-                if (IsCachable(responseEnvelope.Metadata.StatusCode))
-                {
-                    var expiry = CacheDurationHelper.Clamp(
-                        responseEnvelope.Metadata?.Expires,
-                        _requestSenderSettings.MinAbsoluteExpiryMinutes,
-                        _requestSenderSettings.MaxAbsoluteExpiryMinutes);
-                    var metaTask = _metaCache.SetAsync(key, responseEnvelope.Metadata, expiry);
-                    var blobTask = _blobCache.SetAsync(key, responseEnvelope.Data?.Payload, expiry);
-                    await Task.WhenAll(metaTask, blobTask);
-                }
-
-                responseEnvelope.IsFromCache = false;
                 return responseEnvelope;
             }
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
@@ -124,7 +112,66 @@ namespace Requests.Core
             return null;
         }
 
-        private bool IsCachable(HttpStatusCode statusCode)
+
+        /// <summary>
+        /// Attempts to retrieve a cached response using the specified key.
+        /// </summary>
+        private async Task<HttpResponseEnvelope?> TryGetCachedResponseAsync(string key, Uri url)
+        {
+            var metaData = await _metaCache.GetAsync<HttpResponseMetadata>(key);
+
+            if (metaData is null) 
+                return null;
+
+            var blobData = await _blobCache.GetAsync<byte[]>(key);
+
+            if (blobData is null)
+                return null;
+
+            _logger.LogDebug($"Fetch request for {url.AbsoluteUri} returned cached item.");
+
+            return new HttpResponseEnvelope
+            {
+                Metadata = metaData,
+                Data = new HttpResponseData
+                {
+                    Payload = blobData
+                },
+                Cache = new CacheInfo
+                {
+                    IsFromCache = true,
+                    Key = key,
+                    Container = _blobCache.Container
+                }
+            };
+        }
+
+
+        /// <summary>
+        /// Caches the response metadata and payload if the response is eligible for caching.
+        /// </summary>
+        private async Task CacheIfEligibleAsync(
+            string key, HttpResponseEnvelope responseEnvelope)
+        {
+            if (!IsCacheable(responseEnvelope.Metadata.StatusCode))
+                return;
+
+            var expiry = CacheDurationHelper.Clamp(
+                responseEnvelope.Metadata.Expires,
+                _requestSenderSettings.CacheMinAbsoluteExpiryMinutes,
+                _requestSenderSettings.CacheMaxAbsoluteExpiryMinutes);
+
+            var metaTask = _metaCache.SetAsync(key, responseEnvelope.Metadata, expiry);
+            var blobTask = _blobCache.SetAsync(key, responseEnvelope.Data?.Payload, expiry);
+
+            await Task.WhenAll(metaTask, blobTask);
+        }
+
+
+        /// <summary>
+        /// Caches the response metadata and payload if the response is eligible for caching.
+        /// </summary>
+        private static bool IsCacheable(HttpStatusCode statusCode)
         {
             switch (statusCode)
             {

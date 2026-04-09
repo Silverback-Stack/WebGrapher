@@ -10,8 +10,10 @@ namespace Requests.Core
         public DateTimeOffset? LastModified { get; init; }
         public DateTimeOffset? Expires { get; init; }
         public DateTimeOffset? RetryAfter { get; init; }
+        public string? ContentType { get; init; }
+        public string? Encoding { get; init; }
+
         public bool IsCorsAllowed { get; set; }
-        public HttpResponseDataItem? ResponseData { get; set; }
 
         public bool IsRedirect => Url is not null &&
             OriginalUrl == Url ? false : true;

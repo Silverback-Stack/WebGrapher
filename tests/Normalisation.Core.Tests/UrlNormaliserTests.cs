@@ -1,6 +1,6 @@
 ﻿using Normalisation.Core.Processors;
 
-namespace Service.Normalisation.Tests
+namespace Normalisation.Core.Tests
 {
     [TestFixture]
     public class UrlNormaliserTests

@@ -14,7 +14,11 @@ namespace Crawler.Core.SitePolicy
         private readonly IRequestSender _requestSender;
         private readonly CrawlerSettings _crawlerSettings;
 
-        public SitePolicyResolver(ILogger logger, ICache policyCache, IRequestSender requestSender, CrawlerSettings crawlerSettings)
+        public SitePolicyResolver(
+            ILogger logger, 
+            ICache policyCache, 
+            IRequestSender requestSender, 
+            CrawlerSettings crawlerSettings)
         {
             _logger = logger;
             _policyCache = policyCache;
@@ -67,7 +71,7 @@ namespace Crawler.Core.SitePolicy
                 userAgent,
                 _crawlerSettings.SitePolicy.UserAccepts);
 
-            var encoding = httpResponseEnvelope?.Metadata?.ResponseData?.Encoding;
+            var encoding = httpResponseEnvelope?.Metadata.Encoding;
             return httpResponseEnvelope?.Data?.DecodeAsString(encoding);
         }
 

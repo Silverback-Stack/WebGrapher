@@ -1,7 +1,7 @@
 ﻿using System;
 using Caching.Core.Helpers;
 
-namespace Shared.Caching.Tests
+namespace Caching.Core.Tests
 {
     [TestFixture]
     internal class CacheDurationHelperTests

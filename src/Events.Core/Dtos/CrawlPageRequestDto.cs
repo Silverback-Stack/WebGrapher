@@ -2,13 +2,13 @@
 {
     public record CrawlPageRequestDto
     {
-        public Uri Url { get; init; }
+        public required Uri Url { get; init; }
         public Guid GraphId { get; init; }
         public Guid CorrelationId { get; init; } = Guid.NewGuid();
         public int Attempt { get; init; } = 1;
         public int Depth { get; init; } = 0;
         public bool Preview { get; init; } = false;
-        public CrawlPageRequestOptionsDto Options { get; init; }
+        public required CrawlPageRequestOptionsDto Options { get; init; }
         public DateTimeOffset RequestedAt { get; init; }
 
         /// <summary>

@@ -113,7 +113,7 @@ namespace Scraper.Core
 
             await PublishNormalisePageEventAsync(request, response);
 
-            var source = response.IsFromCache ? "Cache" : "Live";
+            var source = response.Cache?.IsFromCache == true ? "Cache" : "Live";
             logMessage = $"Scrape Completed ({source}): {request.Url} Status: {response.Metadata.StatusCode}. Attempt {request.Attempt}";
             _logger.LogInformation(logMessage);
 
@@ -157,10 +157,10 @@ namespace Scraper.Core
                 StatusCode = response.Metadata.StatusCode,
                 IsRedirect = response.Metadata.IsRedirect,
                 SourceLastModified = response.Metadata.LastModified,
-                BlobId = response.Metadata.ResponseData?.BlobId,
-                BlobContainer = response.Metadata.ResponseData?.BlobContainer,
-                ContentType = response.Metadata.ResponseData?.ContentType,
-                Encoding = response.Metadata.ResponseData?.Encoding,
+                BlobId = response.Cache?.Key,
+                BlobContainer = response.Cache?.Container,
+                ContentType = response.Metadata.ContentType,
+                Encoding = response.Metadata.Encoding,
                 CreatedAt = DateTimeOffset.UtcNow
             };
 

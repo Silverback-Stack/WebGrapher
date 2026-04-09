@@ -1,6 +1,6 @@
 ﻿using Caching.Core.Helpers;
 
-namespace Shared.Caching.Tests
+namespace Caching.Core.Tests
 {
     [TestFixture]
     public class CacheKeyHelperTests
