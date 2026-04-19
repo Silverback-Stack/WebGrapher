@@ -1,11 +1,12 @@
-﻿using System;
-using Crawler.Core.SitePolicy;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
 using Events.Core.Events.LogEvents;
 using Events.Core.Helpers;
 using Microsoft.Extensions.Logging;
+using Requests.Core;
+using SitePolicy.Core;
+using System;
 
 namespace Crawler.Core
 {
@@ -64,7 +65,7 @@ namespace Crawler.Core
 
         /// <summary>
         /// Evaluates whether the page can be crawled based on retry limits, depth,
-        /// rate limiting, and robots.txt permissions. If allowed, publishes a scrape event.
+        /// site policy, and crawler-side rate limiting. If allowed, publishes a scrape event.
         /// </summary>
         public async Task EvaluatePageForCrawlingAsync(CrawlPageEvent evt)
         {
@@ -113,10 +114,11 @@ namespace Crawler.Core
                 return;
             }
 
-            var sitePolicy = await _sitePolicyResolver.GetOrCreateSitePolicyAsync(
-                request.Url, request.Options.UserAgent);
 
-            if (!_sitePolicyResolver.IsPermittedByRobotsTxt(request.Url, request.Options.UserAgent, sitePolicy))
+
+            if (!await _sitePolicyResolver.IsPermittedByRobotsTxtAsync(
+                request.Url,
+                request.Options.UserAgent))
             {
                 logMessage = $"Crawl Denied: Robots.txt denied: {request.Url}";
                 _logger.LogError(logMessage);
@@ -136,28 +138,39 @@ namespace Crawler.Core
                 return;
             }
 
-            if (_sitePolicyResolver.IsRateLimited(sitePolicy))
+
+            // Checks rate limiting for the crawler instance (robots.txt requests).
+            var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
+                request.Url,
+                request.Options.UserAgent);
+
+            if (limitedUntil is not null)
             {
-                await PublishScheduledCrawlPageEventAsync(request, sitePolicy.RetryAfter);
+                await PublishScheduledCrawlPageEventAsync(request, limitedUntil);
                 return;
             }
+
 
             await PublishScrapePageEventAsync(evt);
         }
 
+
         private async Task RetryPageCrawlAsync(ScrapePageFailedEvent evt)
         {
-            if (evt.RetryAfter is null) return;
-
             var request = evt.CrawlPageRequest;
 
-            var sitePolicy = await _sitePolicyResolver.GetOrCreateSitePolicyAsync(
+            var retryAfter = evt.RetryAfter 
+                ?? DateTimeOffset.UtcNow.AddSeconds(_crawlerSettings.DefaultRetryDelaySeconds);
+
+            var effectiveRetryAfter = await _sitePolicyResolver.SetRateLimitAsync(
                 request.Url,
                 request.Options.UserAgent,
-                evt.RetryAfter); //assigns RetryAfter interval
+                retryAfter,
+                evt.PartitionKey);
 
-            await PublishScheduledCrawlPageEventAsync(request, sitePolicy.RetryAfter);
+            await PublishScheduledCrawlPageEventAsync(request, effectiveRetryAfter);
         }
+
 
         private static bool HasExhaustedRetries(int currentAttempt, int maxCrawlAttemptLimit) =>
             currentAttempt > maxCrawlAttemptLimit;
@@ -192,7 +205,9 @@ namespace Crawler.Core
                     });
         }
 
-        private async Task PublishScheduledCrawlPageEventAsync(CrawlPageRequestDto request, DateTimeOffset? retryAfter)
+        private async Task PublishScheduledCrawlPageEventAsync(
+            CrawlPageRequestDto request, 
+            DateTimeOffset? retryAfter)
         {
             var attempt = request.Attempt + 1;
             var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(
@@ -216,7 +231,7 @@ namespace Crawler.Core
                 priority: request.Depth, 
                 scheduledOffset);
 
-            var logMessage = $"Crawl Rate-limited: {request.Url} retry scheduled after: {retryAfter?.ToString("o")} Attempt: {attempt}";
+            var logMessage = $"Crawl Deferred: {request.Url} retry scheduled after: {retryAfter?.ToString("o")} Attempt: {attempt}";
             _logger.LogWarning(logMessage);
 
             await PublishClientLogEventAsync(
@@ -224,7 +239,7 @@ namespace Crawler.Core
                 request.CorrelationId,
                 LogType.Warning,
                 logMessage,
-                "CrawlRateLimited",
+                "CrawlDeferred",
                 new LogContext
                 {
                     Url = request.Url.AbsoluteUri,

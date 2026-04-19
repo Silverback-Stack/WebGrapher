@@ -11,5 +11,6 @@ namespace Events.Core.Events
         public DateTimeOffset CreatedAt { get; init; }
         public DateTimeOffset? LastModified { get; init; }
         public DateTimeOffset? RetryAfter { get; init; }
+        public string? PartitionKey { get; init; }
     }
 }

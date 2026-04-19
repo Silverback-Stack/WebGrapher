@@ -1,4 +1,5 @@
-﻿using Crawler.Core.SitePolicy;
+﻿
+using SitePolicy.Core;
 
 namespace Crawler.Core
 {
@@ -10,9 +11,11 @@ namespace Crawler.Core
 
         public int MaxCrawlDepthLimit { get; set; } = 3;
 
-        public int ScheduleCrawlDelayMinSeconds = 1;
+        public int ScheduleCrawlDelayMinSeconds { get; set; } = 1;
 
-        public int ScheduleCrawlDelayMaxSeconds = 3;
+        public int ScheduleCrawlDelayMaxSeconds { get; set; } = 3;
+
+        public int DefaultRetryDelaySeconds { get; set; } = 300;
 
         public SitePolicySettings SitePolicy { get; set; } = new SitePolicySettings();
     }

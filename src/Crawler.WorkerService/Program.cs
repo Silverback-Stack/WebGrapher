@@ -1,13 +1,13 @@
 using App.Settings;
 using Caching.Factories;
 using Crawler.Core;
-using Crawler.Core.SitePolicy;
 using Crawler.Factories;
 using Events.Core.Bus;
 using Events.Factories;
 using Logging.Factories;
 using Requests.Factories;
 using Serilog;
+using SitePolicy.Core;
 
 namespace Crawler.WorkerService
 {
@@ -85,14 +85,14 @@ namespace Crawler.WorkerService
                     logger, 
                     policyCache, 
                     requestSender,
-                    crawlerConfig.Settings);
+                    crawlerConfig.Settings.SitePolicy);
 
                 // Create Crawler Service
                 var crawlerService = CrawlerFactory.Create(
                     logger, 
                     eventBus, 
                     sitePolicyResolver,
-                    crawlerConfig);
+                    crawlerConfig.Settings);
 
                 return crawlerService;
             });

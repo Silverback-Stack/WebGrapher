@@ -8,6 +8,8 @@ namespace Requests.Core
     /// </summary>
     public interface IRequestSender
     {
+        string PartitionKey { get; }
+
         Task<HttpResponseEnvelope?> FetchAsync(
             Uri url,
             string userAgent, 

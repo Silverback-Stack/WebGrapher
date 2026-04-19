@@ -1,27 +1,28 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace Crawler.Core.SitePolicy
+namespace SitePolicy.Core
 {
-    public record SitePolicyItem
+    public record SiteRateLimitPolicyItem
     {
         public required string UrlAuthority { get; init; }
-        public string? RobotsTxt { get; init; }
         public DateTimeOffset CreatedAt { get; init; }
-        public DateTimeOffset ExpiresAt { get; init; }
         public DateTimeOffset ModifiedAt { get; init; }
+        public DateTimeOffset ExpiresAt { get; init; }
         public DateTimeOffset? RetryAfter { get; init; }
 
-        internal bool IsRateLimited =>
+        public bool IsRateLimited =>
             RetryAfter is not null && DateTimeOffset.UtcNow < RetryAfter;
 
-        internal SitePolicyItem MergePolicy(SitePolicyItem other)
+        public SiteRateLimitPolicyItem Merge(SiteRateLimitPolicyItem other)
         {
             return this with
             {
                 RetryAfter = MergeRetryAfter(RetryAfter, other.RetryAfter),
-                RobotsTxt = MergeRobotsTxtContent(RobotsTxt, other.RobotsTxt),
-                ModifiedAt = MergeExpiresAt(ModifiedAt, other.ModifiedAt)
+                ModifiedAt = MergeModifiedAt(ModifiedAt, other.ModifiedAt)
             };
         }
 
@@ -29,17 +30,11 @@ namespace Crawler.Core.SitePolicy
         {
             if (!a.HasValue) return b;
             if (!b.HasValue) return a;
-            return a.Value.CompareTo(b.Value) >= 0 ? a : b;
+            return a.Value >= b.Value ? a : b;
         }
-        private static DateTimeOffset MergeExpiresAt(DateTimeOffset a, DateTimeOffset b)
+        private static DateTimeOffset MergeModifiedAt(DateTimeOffset a, DateTimeOffset b)
         {
             return a > b ? a : b; //keep highest value
         }
-
-        private static string? MergeRobotsTxtContent(string? a, string? b)
-        {
-            return b ?? a;
-        }
-
     }
 }

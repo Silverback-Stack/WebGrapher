@@ -1,8 +1,9 @@
-﻿using System;
-using Crawler.Core;
-using Crawler.Core.SitePolicy;
+﻿using Crawler.Core;
 using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
+using Requests.Core;
+using SitePolicy.Core;
+using System;
 
 namespace Crawler.Factories
 {
@@ -12,13 +13,13 @@ namespace Crawler.Factories
             ILogger logger,
             IEventBus eventBus,
             ISitePolicyResolver sitePolicyResolver,
-            CrawlerConfig crawlerConfig)
+            CrawlerSettings crawlerSettings)
         {
             return new PageCrawler(
                 logger, 
                 eventBus, 
-                sitePolicyResolver, 
-                crawlerConfig.Settings);
+                sitePolicyResolver,
+                crawlerSettings);
         }
     }
 }

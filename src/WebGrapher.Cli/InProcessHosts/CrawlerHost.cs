@@ -1,13 +1,13 @@
 ﻿using App.Settings;
 using Caching.Factories;
 using Crawler.Core;
-using Crawler.Core.SitePolicy;
 using Crawler.Factories;
 using Events.Core.Bus;
 using Logging.Factories;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Requests.Factories;
+using SitePolicy.Core;
 using System;
 
 namespace WebGrapher.Cli.InProcessHosts
@@ -78,7 +78,10 @@ namespace WebGrapher.Cli.InProcessHosts
 
             // Create Site Policy Resolver
             var sitePolicyResolver = new SitePolicyResolver(
-                logger, policyCache, requestSender, crawlerConfig.Settings);
+                logger, 
+                policyCache, 
+                requestSender, 
+                crawlerConfig.Settings.SitePolicy);
 
 
 
@@ -87,7 +90,10 @@ namespace WebGrapher.Cli.InProcessHosts
 
             // Create Crawler Service
             var crawlerService = CrawlerFactory.Create(
-                logger, _eventBus, sitePolicyResolver, crawlerConfig);
+                logger, 
+                _eventBus, 
+                sitePolicyResolver, 
+                crawlerConfig.Settings);
 
             await crawlerService.StartAsync();
         }
