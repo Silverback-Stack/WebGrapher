@@ -14,6 +14,8 @@ namespace Requests.Core
         private readonly IHttpTransport _httpTransport;
         private readonly RequestSenderSettings _requestSenderSettings;
 
+        private readonly string _partitionKey;
+
         public RequestSender(
             ILogger logger, 
             ICache metaCache, 
@@ -26,8 +28,17 @@ namespace Requests.Core
             _metaCache = metaCache;
             _blobCache = blobCache;
             _httpTransport = httpTransport;
+
+            // Determine the partition key used for rate limiting.
+            // If a RateLimitGroupKey is provided, all services using the same value
+            // will share the same rate-limit partition (e.g. same IP / region).
+            // If not provided, generate a unique key so this instance is isolated.
+            _partitionKey = string.IsNullOrWhiteSpace(_requestSenderSettings.RateLimitGroupKey)
+                ? Guid.NewGuid().ToString("N")
+                : _requestSenderSettings.RateLimitGroupKey;
         }
 
+        public string PartitionKey => _partitionKey;
 
         /// <summary>
         /// Fetches content from the specified URL, using cached data when available,
@@ -79,7 +90,8 @@ namespace Requests.Core
                 {
                     IsFromCache = false,
                     Key = key,
-                    Container = _blobCache.Container
+                    Container = _blobCache.Container,
+                    PartitionKey = PartitionKey
                 };
 
                 _logger.LogDebug(
@@ -141,7 +153,8 @@ namespace Requests.Core
                 {
                     IsFromCache = true,
                     Key = key,
-                    Container = _blobCache.Container
+                    Container = _blobCache.Container,
+                    PartitionKey = PartitionKey
                 }
             };
         }

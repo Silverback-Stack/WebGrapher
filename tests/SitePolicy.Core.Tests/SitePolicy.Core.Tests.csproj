@@ -20,8 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Events.Core\Events.Core.csproj" />
-    <ProjectReference Include="..\..\src\Requests.Core\Requests.Core.csproj" />
-    <ProjectReference Include="..\..\src\Scraper.Core\Scraper.Core.csproj" />
     <ProjectReference Include="..\..\src\SitePolicy.Core\SitePolicy.Core.csproj" />
   </ItemGroup>
 

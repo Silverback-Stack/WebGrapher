@@ -5,6 +5,7 @@ using Events.Core.Bus;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Requests.Core;
+using SitePolicy.Core;
 
 namespace Scraper.Core.Tests
 {
@@ -14,11 +15,13 @@ namespace Scraper.Core.Tests
         private Mock<ILogger> _logger;
         private Mock<IEventBus> _eventBus;
         private Mock<IRequestSender> _requestSender;
+        private Mock<ISitePolicyResolver> _sitePolicyResolver;
         private IPageScraper _scraper;
 
         private Uri _url;
         private string _userAgent = "";
         private string _userAccepts = "";
+        private string _partitionKey = "scraper-1";
 
         [SetUp]
         public void Setup()
@@ -26,6 +29,7 @@ namespace Scraper.Core.Tests
             _logger= new Mock<ILogger>();
             _eventBus= new Mock<IEventBus>();
             _requestSender = new Mock<IRequestSender>();
+            _sitePolicyResolver = new Mock<ISitePolicyResolver>();
 
             _url = new Uri("http://example.com/page.html");
 
@@ -50,9 +54,13 @@ namespace Scraper.Core.Tests
                 {
                     IsFromCache = false,
                     Key = "Blob1",
-                    Container = "Blobs"
+                    Container = "Blobs",
+                    PartitionKey = _partitionKey
                 }
             };
+
+            _requestSender.SetupGet(x => x.PartitionKey)
+                .Returns(_partitionKey);
 
             _requestSender.Setup(rs => rs.FetchAsync(
                 _url, 
@@ -63,9 +71,20 @@ namespace Scraper.Core.Tests
                 It.IsAny<CancellationToken>()))
                 .ReturnsAsync(responseEnvelope);
 
+            _sitePolicyResolver.Setup(sp => sp.GetRateLimitAsync(
+                    It.IsAny<Uri>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string?>()))
+                .ReturnsAsync((DateTimeOffset?)null);
+
             var scraperSettings = new ScraperSettings();
 
-            _scraper = new PageScraper(_logger.Object, _eventBus.Object, _requestSender.Object, scraperSettings);
+            _scraper = new PageScraper(
+                _logger.Object, 
+                _eventBus.Object, 
+                _requestSender.Object,
+                _sitePolicyResolver.Object,
+                scraperSettings);
         }
 
         [Test]

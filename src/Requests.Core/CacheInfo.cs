@@ -11,5 +11,6 @@ namespace Requests.Core
         public bool IsFromCache { get; init; }
         public string? Key { get; init; }
         public string? Container { get; init; }
+        public string? PartitionKey { get; init; }
     }
 }

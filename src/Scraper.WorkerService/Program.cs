@@ -7,6 +7,7 @@ using Requests.Factories;
 using Scraper.Core;
 using Scraper.Factories;
 using Serilog;
+using SitePolicy.Core;
 
 namespace Scraper.WorkerService
 {
@@ -27,6 +28,7 @@ namespace Scraper.WorkerService
             var metaCacheConfig = appSettings.BindSection<CacheConfig>("MetaCache");
             var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
             var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
+            var policyCacheConfig = appSettings.BindSection<CacheConfig>("PolicyCache");
 
 
             // Create Logger
@@ -74,11 +76,28 @@ namespace Scraper.WorkerService
                     blobCache,
                     requestsConfig);
 
+
+                // Create Policy Cache for Site Policy Resolver
+                var policyCache = CacheFactory.Create(
+                    scraperConfig.Settings.ServiceName,
+                    logger,
+                    policyCacheConfig);
+
+
+                // Create Site Policy Resolver
+                var sitePolicyResolver = new SitePolicyResolver(
+                    logger,
+                    policyCache,
+                    requestSender,
+                    scraperConfig.Settings.SitePolicy);
+
+
                 // Create Scraper Service
                 var scraperService = ScraperFactory.Create(
                     logger, 
                     eventBus, 
                     requestSender,
+                    sitePolicyResolver,
                     scraperConfig.Settings);
 
                 return scraperService;

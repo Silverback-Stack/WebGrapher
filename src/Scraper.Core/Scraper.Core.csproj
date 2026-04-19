@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Events.Core\Events.Core.csproj" />
     <ProjectReference Include="..\Requests.Core\Requests.Core.csproj" />
+    <ProjectReference Include="..\SitePolicy.Core\SitePolicy.Core.csproj" />
   </ItemGroup>
 
 </Project>

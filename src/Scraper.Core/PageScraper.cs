@@ -1,11 +1,12 @@
-﻿using System;
-using System.Net;
-using Events.Core.Bus;
+﻿using Events.Core.Bus;
 using Events.Core.Dtos;
 using Events.Core.Events;
 using Events.Core.Events.LogEvents;
 using Microsoft.Extensions.Logging;
 using Requests.Core;
+using SitePolicy.Core;
+using System;
+using System.Net;
 
 namespace Scraper.Core
 {
@@ -14,16 +15,19 @@ namespace Scraper.Core
         protected readonly ILogger _logger;
         protected readonly IEventBus _eventBus;
         protected readonly IRequestSender _requestSender;
+        protected readonly ISitePolicyResolver _sitePolicyResolver;
         protected readonly ScraperSettings _scraperSettings;
 
         public PageScraper(ILogger logger, 
             IEventBus eventBus, 
-            IRequestSender requestSender, 
+            IRequestSender requestSender,
+            ISitePolicyResolver sitePolicyResolver,
             ScraperSettings scraperSettings)
         {
             _logger = logger;
             _eventBus = eventBus;
             _requestSender = requestSender;
+            _sitePolicyResolver = sitePolicyResolver;
             _scraperSettings = scraperSettings;
         }
 
@@ -61,55 +65,43 @@ namespace Scraper.Core
 
         private async Task ScrapeContentAsync(ScrapePageEvent evt)
         {
-            string logMessage;
             var request = evt.CrawlPageRequest;
+            string logMessage;
 
+
+            // Checks rate limiting for the scraper instance (page requests).
+            var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
+                request.Url,
+                request.Options.UserAgent,
+                _requestSender.PartitionKey);
+
+            if (limitedUntil is not null)
+            {
+                await HandlePageFailedFromRateLimitAsync(request, limitedUntil);
+                return;
+            }
+
+
+            // Make request to fetch page
             var response = await FetchAsync(
                 request.Url,
                 request.Options.UserAgent,
                 request.Options.UserAccepts,
                 request.RequestCompositeKey);
 
+
             if (response is null)
             {
-                logMessage = $"Scrape Failed: {request.Url} yielded no response. Attempt: {request.Attempt}";
-                _logger.LogError(logMessage);
-
-                await PublishClientLogEventAsync(
-                    request.GraphId,
-                    request.CorrelationId,
-                    LogType.Error,
-                    logMessage,
-                    "ScrapeFailed",
-                    new LogContext
-                    {
-                        Url = request.Url.AbsoluteUri,
-                        Attempt = request.Attempt
-                    });
+                await HandlePageFailedNoResponseAsync(request);
                 return;
             }
 
             if (response.Metadata.StatusCode != HttpStatusCode.OK)
             {
-                await PublishScrapePageFailedEventAsync(request, response);
-
-                logMessage = $"Scrape Failed: {request.Url} Status: {response.Metadata.StatusCode}. Attempt: {request.Attempt}";
-                _logger.LogError(logMessage);
-
-                await PublishClientLogEventAsync(
-                    request.GraphId,
-                    request.CorrelationId,
-                    LogType.Error,
-                    logMessage,
-                    "ScrapeFailed",
-                    new LogContext
-                    {
-                        Url = request.Url.AbsoluteUri,
-                        Attempt = request.Attempt,
-                        StatusCode = response.Metadata.StatusCode.ToString()
-                    });
+                await HandlePageFailedFromResponseAsync(request, response);
                 return;
             }
+
 
             await PublishNormalisePageEventAsync(request, response);
 
@@ -131,19 +123,95 @@ namespace Scraper.Core
                     });
         }
 
-        private async Task PublishScrapePageFailedEventAsync(
+
+        private async Task HandlePageFailedNoResponseAsync(
+            CrawlPageRequestDto request)
+        {
+            var failedEvent = new ScrapePageFailedEvent
+            {
+                CrawlPageRequest = request,
+                CreatedAt = DateTimeOffset.UtcNow,
+                StatusCode = HttpStatusCode.ServiceUnavailable,
+                PartitionKey = _requestSender.PartitionKey
+            };
+
+            await PublishScrapePageFailedAsync(request, failedEvent);
+        }
+
+
+        private async Task HandlePageFailedFromRateLimitAsync(
+            CrawlPageRequestDto request,
+            DateTimeOffset? limitedUntil)
+        {
+            var failedEvent = new ScrapePageFailedEvent
+            {
+                CrawlPageRequest = request,
+                CreatedAt = DateTimeOffset.UtcNow,
+                StatusCode = HttpStatusCode.TooManyRequests,
+                RetryAfter = limitedUntil,
+                PartitionKey = _requestSender.PartitionKey
+            };
+
+            await PublishScrapePageFailedAsync(request, failedEvent);
+        }
+
+
+        private async Task HandlePageFailedFromResponseAsync(
             CrawlPageRequestDto request,
             HttpResponseEnvelope response)
         {
-            await _eventBus.PublishAsync(new ScrapePageFailedEvent
+            var failedEvent = new ScrapePageFailedEvent
             {
                 CrawlPageRequest = request,
                 CreatedAt = DateTimeOffset.UtcNow,
                 StatusCode = response.Metadata.StatusCode,
                 LastModified = response.Metadata.LastModified,
-                RetryAfter = response.Metadata.RetryAfter
-            }, priority: request.Depth);
+                RetryAfter = response.Metadata.RetryAfter,
+                PartitionKey = response.Cache?.PartitionKey
+            };
+
+            await PublishScrapePageFailedAsync(request, failedEvent);
         }
+
+
+        private async Task PublishScrapePageFailedAsync(
+            CrawlPageRequestDto request,
+            ScrapePageFailedEvent failedEvent)
+        {
+            if (IsRetryableFailure(failedEvent.StatusCode))
+                await _eventBus.PublishAsync(failedEvent, priority: request.Depth);
+
+            var logMessage = $"Scrape Failed: {request.Url} Status: {failedEvent.StatusCode}. Attempt: {request.Attempt}";
+            _logger.LogError(logMessage);
+
+            await PublishClientLogEventAsync(
+                request.GraphId,
+                request.CorrelationId,
+                LogType.Error,
+                logMessage,
+                "ScrapeFailed",
+                new LogContext
+                {
+                    Url = request.Url.AbsoluteUri,
+                    Attempt = request.Attempt,
+                    StatusCode = failedEvent.StatusCode.ToString()
+                });
+        }
+
+
+        /// <summary>
+        /// Determines whether a failure is transient and should be retried.
+        /// </summary>
+        private static bool IsRetryableFailure(HttpStatusCode statusCode)
+        {
+            return statusCode == HttpStatusCode.RequestTimeout
+                || statusCode == HttpStatusCode.TooManyRequests
+                || statusCode == HttpStatusCode.InternalServerError
+                || statusCode == HttpStatusCode.BadGateway
+                || statusCode == HttpStatusCode.ServiceUnavailable
+                || statusCode == HttpStatusCode.GatewayTimeout;
+        }
+
 
         private async Task PublishNormalisePageEventAsync(
             CrawlPageRequestDto request,

@@ -1,5 +1,5 @@
 ﻿
-namespace Crawler.Core.SitePolicy
+namespace SitePolicy.Core
 {
     public class SitePolicySettings
     {
