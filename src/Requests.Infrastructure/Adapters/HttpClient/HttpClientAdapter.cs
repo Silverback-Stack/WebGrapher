@@ -2,7 +2,6 @@
 using System;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Text;
 
 namespace Requests.Infrastructure.Adapters.HttpClient
@@ -11,6 +10,9 @@ namespace Requests.Infrastructure.Adapters.HttpClient
     {
         private readonly System.Net.Http.HttpClient _httpClient;
         private readonly HttpClientSettings _httpClientSettings;
+
+        private const string DefaultContentType = "text/html";
+        private static readonly string DefaultEncoding = Encoding.UTF8.WebName;
 
         public HttpClientAdapter(
             System.Net.Http.HttpClient httpClient, 
@@ -30,6 +32,10 @@ namespace Requests.Infrastructure.Adapters.HttpClient
             int contentMaxBytes = 0,
             CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(uri);
+            ArgumentException.ThrowIfNullOrWhiteSpace(userAgent);
+            ArgumentException.ThrowIfNullOrWhiteSpace(userAccepts);
+
             using var request = CreateRequest(uri, userAgent, userAccepts);
 
             using var response = await _httpClient.SendAsync(
@@ -66,8 +72,8 @@ namespace Requests.Infrastructure.Adapters.HttpClient
             string userAccepts)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.UserAgent.ParseAdd(userAgent);
-            request.Headers.Accept.ParseAdd(userAccepts);
+            request.Headers.UserAgent.TryParseAdd(userAgent);
+            request.Headers.Accept.TryParseAdd(userAccepts);
             return request;
         }
 
@@ -105,7 +111,7 @@ namespace Requests.Infrastructure.Adapters.HttpClient
                 LastModified = lastModified,
                 Expires = expires,
                 RetryAfter = retryAfter,
-                IsCorsAllowed = IsCorsAllowed(response.Headers),
+                HasCorsPolicy = HasCorsPolicy(response.Headers),
                 ContentType = contentType,
                 Encoding = encoding
             };
@@ -113,29 +119,11 @@ namespace Requests.Infrastructure.Adapters.HttpClient
 
 
         /// <summary>
-        /// Resolves the response content type, or returns a default value when unavailable.
+        /// Resolves the response content type, or returns the default type when unavailable.
         /// </summary>
         private static string ResolveContentType(HttpContent? content)
         {
-            var defaultContentType = new ContentType("text/html");
-
-            try
-            {
-                var rawContentType = content?.Headers?.ContentType?.ToString();
-                var contentType = !string.IsNullOrWhiteSpace(rawContentType)
-                    ? new ContentType(rawContentType)
-                    : defaultContentType;
-
-                return contentType.MediaType;
-            }
-            catch (FormatException)
-            {
-                return defaultContentType.MediaType;
-            }
-            catch (ArgumentNullException)
-            {
-                return defaultContentType.MediaType;
-            }
+            return content?.Headers?.ContentType?.MediaType ?? DefaultContentType;
         }
 
 
@@ -146,17 +134,16 @@ namespace Requests.Infrastructure.Adapters.HttpClient
         {
             var charset = content?.Headers?.ContentType?.CharSet?.Trim('"');
 
+            if (string.IsNullOrWhiteSpace(charset))
+                return DefaultEncoding;
+
             try
             {
-                var encoding = !string.IsNullOrWhiteSpace(charset)
-                    ? Encoding.GetEncoding(charset)
-                    : Encoding.UTF8;
-
-                return encoding.WebName;
+                return Encoding.GetEncoding(charset).WebName;
             }
             catch (ArgumentException)
             {
-                return Encoding.UTF8.WebName;
+                return DefaultEncoding;
             }
         }
 
@@ -168,24 +155,20 @@ namespace Requests.Infrastructure.Adapters.HttpClient
             HttpStatusCode statusCode,
             RetryConditionHeaderValue? retryAfter)
         {
-            if (retryAfter == null)
-            {
-                if (statusCode is HttpStatusCode.TooManyRequests
-                    or HttpStatusCode.Forbidden
-                    or HttpStatusCode.ServiceUnavailable)
-                {
-                    return DateTimeOffset.UtcNow.Add(
-                        TimeSpan.FromMinutes(_httpClientSettings.RetryAfterFallbackMinutes));
-                }
-
-                return null;
-            }
-
-            if (retryAfter.Date.HasValue)
+            if (retryAfter?.Date.HasValue == true)
                 return retryAfter.Date.Value;
 
-            if (retryAfter.Delta.HasValue)
+            if (retryAfter?.Delta.HasValue == true)
                 return DateTimeOffset.UtcNow + retryAfter.Delta.Value;
+
+            // Apply fallback retry delay for retryable status codes
+            if (statusCode is HttpStatusCode.TooManyRequests
+                or HttpStatusCode.Forbidden
+                or HttpStatusCode.ServiceUnavailable)
+            {
+                return DateTimeOffset.UtcNow.AddMinutes(
+                    _httpClientSettings.RetryAfterFallbackMinutes);
+            }
 
             return null;
         }
@@ -196,20 +179,26 @@ namespace Requests.Infrastructure.Adapters.HttpClient
         /// </summary>
         private static bool IsContentAcceptable(string? contentType, string userAccepts)
         {
-            if (string.IsNullOrEmpty(contentType) || string.IsNullOrEmpty(userAccepts))
+            if (string.IsNullOrWhiteSpace(contentType) || string.IsNullOrWhiteSpace(userAccepts))
                 return false;
 
+            // Returns true if the response content type is allowed by the Accept header.
+            // Supports:
+            // - Exact matches (e.g. text/html)
+            // - Full wildcard (*/*) to accept any type
+            // - Type wildcard (e.g. text/*) to accept a category of types
             return userAccepts.Split(',')
                 .Any(s => MediaTypeWithQualityHeaderValue.TryParse(s, out var v)
                     && (v.MediaType == "*/*"
                         || v.MediaType == contentType
-                        || (v.MediaType!.EndsWith("/*")
-                            && contentType.StartsWith(v.MediaType.Split('/')[0]))));
+                        || (v.MediaType != null
+                            && v.MediaType.EndsWith("/*")
+                            && contentType.StartsWith($"{v.MediaType.Split('/')[0]}/"))));
         }
 
 
         /// <summary>
-        /// Reads the response payload when the request completed successfully.
+        /// Reads the response payload only for HTTP 200 (OK) responses.
         /// </summary>
         private static async Task<byte[]?> ReadPayloadIfSuccessfulAsync(
             HttpResponseMessage response,
@@ -226,12 +215,11 @@ namespace Requests.Infrastructure.Adapters.HttpClient
 
 
         /// <summary>
-        /// Determines whether the response allows cross-origin access.
+        /// Determines whether the response includes a CORS policy header.
         /// </summary>
-        private static bool IsCorsAllowed(HttpHeaders headers)
+        private static bool HasCorsPolicy(HttpHeaders headers)
         {
-            if (headers == null) return false;
-            return headers.Contains("Access-Control-Allow-Origin");
+            return headers?.Contains("Access-Control-Allow-Origin") == true;
         }
 
 
@@ -244,32 +232,42 @@ namespace Requests.Infrastructure.Adapters.HttpClient
             int contentMaxBytes,
             CancellationToken cancellationToken = default)
         {
+            // No content → nothing to read
             if (content == null)
                 return null;
 
+            // No limit specified → read entire response
             if (contentMaxBytes <= 0)
                 return await content.ReadAsByteArrayAsync(cancellationToken);
 
+            // Stream the response to avoid loading large payloads into memory
             using var stream = await content.ReadAsStreamAsync(cancellationToken);
             using var memoryStream = new MemoryStream();
 
             var buffer = new byte[1024];
             int totalBytes = 0;
 
+            // Read until we reach the max byte limit or the stream ends
             while (totalBytes < contentMaxBytes)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                // Only read up to the remaining allowed bytes
                 int readSize = Math.Min(buffer.Length, contentMaxBytes - totalBytes);
                 int bytesRead = await stream.ReadAsync(buffer.AsMemory(0, readSize), cancellationToken);
 
+                // End of stream
                 if (bytesRead == 0)
                     break;
 
-                memoryStream.Write(buffer, 0, bytesRead);
+                // Append to memory buffer
+                await memoryStream.WriteAsync(
+                    buffer.AsMemory(0, bytesRead),
+                    cancellationToken);
                 totalBytes += bytesRead;
             }
 
+            // Return the buffered content as a byte array
             return memoryStream.ToArray();
         }
     }

@@ -213,7 +213,7 @@ namespace Normalisation.Core
 
                 // normalise image
                 var normaliedImageUrl = NormaliseImageUrl(extractedImageUrl, request.Url);
-                var normaliedImageCors = true; // always default to true → no image → nothing to check (no proxy required)
+                var normaliedImageCors = true; // Default to true so missing/no image does not require proxying
                 if (normaliedImageUrl != null)
                 {
                     // fetch image url
@@ -224,7 +224,7 @@ namespace Normalisation.Core
                         0, // get headers only - no content downloaded
                         request.RequestCompositeKey);
                     if (image != null) 
-                        normaliedImageCors = image.Metadata.IsCorsAllowed;
+                        normaliedImageCors = image.Metadata.HasCorsPolicy;
                 }
 
 

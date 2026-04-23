@@ -96,6 +96,33 @@ namespace Requests.Infrastructure.Tests
             Assert.That(result!.Metadata.StatusCode, Is.EqualTo(HttpStatusCode.NotAcceptable));
         }
 
+        [TestCase("*/*")]
+        [TestCase("text/*")]
+        public async Task GetAsync_WhenWildcardAcceptsContent_ReturnsOk(string acceptHeader)
+        {
+            var handler = new FakeHttpMessageHandler(_ =>
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("<html />", Encoding.UTF8, "text/html")
+                };
+
+                response.RequestMessage = new HttpRequestMessage(HttpMethod.Get, "http://example.com");
+                return response;
+            });
+
+            var httpClient = new HttpClient(handler);
+            var adapter = new HttpClientAdapter(httpClient, new HttpClientSettings());
+
+            var result = await adapter.GetAsync(
+                new Uri("http://example.com"),
+                "test-agent",
+                acceptHeader);
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.Metadata.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        }
+
 
         [Test]
         public async Task GetAsync_WhenRetryAfterHeaderIsMissingForTooManyRequests_ReturnsFallbackRetryAfter()
