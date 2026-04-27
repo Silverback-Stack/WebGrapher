@@ -232,7 +232,7 @@ namespace SitePolicy.Core.Tests
 
 
         [Test]
-        public async Task IsPermittedByRobotsTxtAsync_WhenFetchedByOneCrawlerInstance_IsSharedWithAnotherCrawlerInstance()
+        public async Task IsPermittedByRobotsTxtAsync_WhenFetchedOnce_IsSharedAcrossRequestSenderPartitions()
         {
             // Arrange: mock robots.txt response returned by the request sender
             var robotsUrl = new Uri("http://example.com/robots.txt");
@@ -273,25 +273,24 @@ namespace SitePolicy.Core.Tests
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(robotsResponse);
 
-            // Act: crawler-1 checks robots.txt and causes it to be fetched and cached
-            var crawler1Permitted = await _sitePolicyResolver.IsPermittedByRobotsTxtAsync(
+            // Act: first partition fetches and caches robots.txt
+            var firstResult = await _sitePolicyResolver.IsPermittedByRobotsTxtAsync(
                 _url,
                 _userAgent);
 
-            // Act: switch request sender to simulate crawler-2 using a different instance
+            // Act: switch to another request sender partition
             _requestSender.SetupGet(x => x.PartitionKey)
                 .Returns(_partitionKey2);
 
-            // Act: crawler-2 checks robots.txt and should use the cached shared robots policy
-            var crawler2Permitted = await _sitePolicyResolver.IsPermittedByRobotsTxtAsync(
+            // Act: second partition should reuse the cached robots policy
+            var secondResult = await _sitePolicyResolver.IsPermittedByRobotsTxtAsync(
                 _url,
                 _userAgent);
 
-            // Assert: crawler-1 is permitted by robots.txt
-            Assert.That(crawler1Permitted, Is.True);
 
-            // Assert: crawler-2 is also permitted by the same shared robots policy
-            Assert.That(crawler2Permitted, Is.True);
+            // Assert
+            Assert.That(firstResult, Is.True);
+            Assert.That(secondResult, Is.True);
 
             // Assert: robots.txt was fetched only once because robots policy is shared
             _requestSender.Verify(x => x.FetchAsync(
@@ -342,58 +341,62 @@ namespace SitePolicy.Core.Tests
         }
 
         [Test]
-        public async Task GetRateLimitAsync_WhenNoPartitionKeyProvided_UsesRequestSenderPartitionKey()
+        public async Task GetRateLimitAsync_WhenPartitionKeyProvided_UsesThatPartitionKey()
         {
-            // Arrange: define a rate limit timestamp
             var limitedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
 
-            // Act: set rate limit WITHOUT providing partition key (uses default)
-            await _sitePolicyResolver.SetRateLimitAsync(
-                _url,
-                _userAgent,
-                limitedUntil);
-
-            // Act: retrieve rate limit WITHOUT providing partition key (uses same default)
-            var result = await _sitePolicyResolver.GetRateLimitAsync(
-                _url,
-                _userAgent);
-
-            // Assert: rate limit is applied using RequestSender.PartitionKey
-            Assert.That(result, Is.EqualTo(limitedUntil));
-        }
-
-        [Test]
-        public async Task SetRateLimitedAsync_WhenSetForOneCrawlerInstance_DoesNotAffectAnotherCrawlerInstance()
-        {
-            // Arrange: define a rate limit timestamp
-            var limitedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
-
-            // Act: set rate limit for crawler-1
             await _sitePolicyResolver.SetRateLimitAsync(
                 _url,
                 _userAgent,
                 limitedUntil,
                 _partitionKey1);
 
-            // Act: retrieve rate limit for crawler-1
-            var crawler1LimitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
+            var samePartitionResult = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
                 _userAgent,
                 _partitionKey1);
 
-            // Act: retrieve rate limit for crawler-2 (different cache partition)
-            var crawler2LimitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
+            var differentPartitionResult = await _sitePolicyResolver.GetRateLimitAsync(
+                _url,
+                _userAgent,
+                _partitionKey2);
+
+            Assert.That(samePartitionResult, Is.EqualTo(limitedUntil));
+            Assert.That(differentPartitionResult, Is.Null);
+        }
+
+        [Test]
+        public async Task SetRateLimitedAsync_WhenSetForOnePartition_DoesNotAffectAnotherPartition()
+        {
+            // Arrange: define a rate limit timestamp
+            var limitedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
+
+            // Act: set rate limit for partition-1
+            await _sitePolicyResolver.SetRateLimitAsync(
+                _url,
+                _userAgent,
+                limitedUntil,
+                _partitionKey1);
+
+            // Act: retrieve rate limit for partition-1
+            var partition1LimitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
+                _url,
+                _userAgent,
+                _partitionKey1);
+
+            // Act: retrieve rate limit for partition-2 (different cache partition)
+            var partition2LimitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
                 _userAgent,
                 _partitionKey2);
 
 
-            // Assert: crawler-1 is rate limited
-            Assert.That(crawler1LimitedUntil, Is.EqualTo(limitedUntil));
+            // Assert: partition-1 is rate limited
+            Assert.That(partition1LimitedUntil, Is.EqualTo(limitedUntil));
 
-            // Assert: crawler-2 is NOT rate limited,
+            // Assert: partition-2 is NOT rate limited,
             // therefore is not affected by another crawler instance
-            Assert.That(crawler2LimitedUntil, Is.Null);
+            Assert.That(partition2LimitedUntil, Is.Null);
         }
 
 

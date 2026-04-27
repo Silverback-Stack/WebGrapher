@@ -9,12 +9,12 @@
         Task<DateTimeOffset?> GetRateLimitAsync(
             Uri url,
             string userAgent,
-            string? partitionKey = null);
+            string partitionKey);
 
         Task<DateTimeOffset?> SetRateLimitAsync(
             Uri url,
             string userAgent,
             DateTimeOffset until,
-            string? partitionKey = null);
+            string partitionKey);
     }
 }

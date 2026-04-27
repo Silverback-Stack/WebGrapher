@@ -91,6 +91,7 @@ namespace Crawler.WorkerService
                 var crawlerService = CrawlerFactory.Create(
                     logger, 
                     eventBus, 
+                    requestSender,
                     sitePolicyResolver,
                     crawlerConfig.Settings);
 
