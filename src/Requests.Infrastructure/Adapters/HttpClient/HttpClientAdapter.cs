@@ -46,7 +46,10 @@ namespace Requests.Infrastructure.Adapters.HttpClient
             var metadata = CreateMetadata(uri, response, userAccepts);
 
             var payload = await ReadPayloadIfSuccessfulAsync(
-                response, metadata.StatusCode, contentMaxBytes, cancellationToken);
+                response, 
+                metadata.StatusCode, 
+                contentMaxBytes, 
+                cancellationToken);
 
             return new HttpResponseEnvelope
             {
@@ -86,22 +89,34 @@ namespace Requests.Infrastructure.Adapters.HttpClient
             HttpResponseMessage response,
             string userAccepts)
         {
+            // Extract the final request URL (after redirects), fallback to original
             var requestUrl = response.RequestMessage?.RequestUri ?? originalUrl;
 
+            // Resolve content type from response headers or use default
             var contentType = ResolveContentType(response.Content);
-      
+
+            // Resolve encoding from charset or use default
             var encoding = ResolveEncoding(response.Content);
 
+            // Extract Last-Modified header if available, otherwise use current time
             var lastModified = response.Content?.Headers?.LastModified?.UtcDateTime
-                ?? DateTimeOffset.UtcNow; //default to current time to support caching behavior
+                ?? DateTimeOffset.UtcNow;
 
+            // Extract Expires header from response if it exists
             var expires = response.Content?.Headers?.Expires;
 
+            // Determine retry time from Retry-After header or use fallback
             var retryAfter = GetRetryAfterOffset(response.StatusCode, response.Headers?.RetryAfter);
 
+            // Start with the actual response status code
             var statusCode = response.StatusCode;
+
+            // Override if the content type is not accepted by the caller
             if (!IsContentAcceptable(contentType, userAccepts))
                 statusCode = HttpStatusCode.NotAcceptable;
+
+            // Indicates whether the response includes a CORS policy
+            var hasCorsPolicy = HasCorsPolicy(response.Headers);
 
             return new HttpResponseMetadata
             {
@@ -111,7 +126,7 @@ namespace Requests.Infrastructure.Adapters.HttpClient
                 LastModified = lastModified,
                 Expires = expires,
                 RetryAfter = retryAfter,
-                HasCorsPolicy = HasCorsPolicy(response.Headers),
+                HasCorsPolicy = hasCorsPolicy,
                 ContentType = contentType,
                 Encoding = encoding
             };
@@ -155,22 +170,25 @@ namespace Requests.Infrastructure.Adapters.HttpClient
             HttpStatusCode statusCode,
             RetryConditionHeaderValue? retryAfter)
         {
+            if (!SupportsRetryAfter(statusCode))
+                return null;
+
             if (retryAfter?.Date.HasValue == true)
                 return retryAfter.Date.Value;
 
             if (retryAfter?.Delta.HasValue == true)
                 return DateTimeOffset.UtcNow + retryAfter.Delta.Value;
 
-            // Apply fallback retry delay for retryable status codes
-            if (statusCode is HttpStatusCode.TooManyRequests
-                or HttpStatusCode.Forbidden
-                or HttpStatusCode.ServiceUnavailable)
-            {
-                return DateTimeOffset.UtcNow.AddMinutes(
-                    _httpClientSettings.RetryAfterFallbackMinutes);
-            }
+            // Apply fallback retry delay
+            return DateTimeOffset.UtcNow.AddMinutes(
+                _httpClientSettings.RetryAfterFallbackMinutes);
+        }
 
-            return null;
+        private static bool SupportsRetryAfter(HttpStatusCode statusCode)
+        {
+            return statusCode is
+                HttpStatusCode.TooManyRequests or
+                HttpStatusCode.ServiceUnavailable;
         }
 
 
@@ -198,6 +216,15 @@ namespace Requests.Infrastructure.Adapters.HttpClient
 
 
         /// <summary>
+        /// Determines whether the response includes a CORS policy header.
+        /// </summary>
+        private static bool HasCorsPolicy(HttpHeaders? headers)
+        {
+            return headers?.Contains("Access-Control-Allow-Origin") == true;
+        }
+
+
+        /// <summary>
         /// Reads the response payload only for HTTP 200 (OK) responses.
         /// </summary>
         private static async Task<byte[]?> ReadPayloadIfSuccessfulAsync(
@@ -209,19 +236,11 @@ namespace Requests.Infrastructure.Adapters.HttpClient
             if (statusCode != HttpStatusCode.OK)
                 return null;
 
-            return await ReadAsByteArrayAsync(response.Content, contentMaxBytes, cancellationToken);
+            return await ReadAsByteArrayAsync(
+                response.Content, 
+                contentMaxBytes, 
+                cancellationToken);
         }
-
-
-
-        /// <summary>
-        /// Determines whether the response includes a CORS policy header.
-        /// </summary>
-        private static bool HasCorsPolicy(HttpHeaders headers)
-        {
-            return headers?.Contains("Access-Control-Allow-Origin") == true;
-        }
-
 
 
         /// <summary>

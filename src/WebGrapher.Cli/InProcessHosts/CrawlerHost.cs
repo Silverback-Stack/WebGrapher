@@ -92,6 +92,7 @@ namespace WebGrapher.Cli.InProcessHosts
             var crawlerService = CrawlerFactory.Create(
                 logger, 
                 _eventBus, 
+                requestSender,
                 sitePolicyResolver, 
                 crawlerConfig.Settings);
 

@@ -95,7 +95,9 @@ namespace Requests.Core
                 };
 
                 _logger.LogDebug(
-                    $"Fetch request for {url.AbsoluteUri} returned status code {responseEnvelope.Metadata.StatusCode}");
+                        "Fetch request for {Url} returned status code {StatusCode}",
+                        url.AbsoluteUri,
+                        responseEnvelope.Metadata.StatusCode);
 
                 await CacheIfEligibleAsync(key, responseEnvelope);
 
@@ -104,21 +106,30 @@ namespace Requests.Core
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
                 // Timeout occurred (not user-requested cancellation)
-                _logger.LogWarning(ex, $"Request to {url.AbsoluteUri} timed out.");
+                _logger.LogWarning(ex,
+                    "Request to {Url} timed out.",
+                    url.AbsoluteUri);
             }
             catch (TimeoutException ex)
             {
-                _logger.LogWarning(ex, $"Request to {url.AbsoluteUri} timed out: {ex.Message}");
+                _logger.LogWarning(ex,
+                    "Request to {Url} timed out: {Message}",
+                    url.AbsoluteUri,
+                    ex.Message);
             }
             catch (HttpRequestException ex)
             {
                 // Server not running / connection refused
-                _logger.LogWarning(ex, $"Could not connect to {url.AbsoluteUri}.");
+                _logger.LogWarning(ex,
+                    "Could not connect to {Url}.",
+                    url.AbsoluteUri);
             }
             catch (Exception ex)
             {
                 // All other unexpected exceptions
-                _logger.LogError(ex, $"Get request for {url.AbsoluteUri} threw an exception.");
+                _logger.LogError(ex,
+                    "Get request for {Url} threw an exception.",
+                    url.AbsoluteUri);
             }
 
             return null;

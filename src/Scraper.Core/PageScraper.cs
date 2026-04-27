@@ -69,7 +69,7 @@ namespace Scraper.Core
             string logMessage;
 
 
-            // Checks rate limiting for the scraper instance (page requests).
+            // Check if the site is currently rate-limited for this request sender's partition.
             var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 request.Url,
                 request.Options.UserAgent,
@@ -167,7 +167,7 @@ namespace Scraper.Core
                 StatusCode = response.Metadata.StatusCode,
                 LastModified = response.Metadata.LastModified,
                 RetryAfter = response.Metadata.RetryAfter,
-                PartitionKey = response.Cache?.PartitionKey
+                PartitionKey = response.Cache?.PartitionKey ?? _requestSender.PartitionKey
             };
 
             await PublishScrapePageFailedAsync(request, failedEvent);
