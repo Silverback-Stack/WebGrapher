@@ -78,18 +78,18 @@ namespace Graphing.Core
                 SigmaGraphPayload = payload
             });
 
-            var logMessage = $"Streaming node payload: {node.Url} Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}";
-            _logger.LogInformation(logMessage);
+            _logger.LogInformation("Streaming node payload: {Url} Nodes: {NodeCount} Edges: {EdgeCount}", 
+                node.Url, payload.NodeCount, payload.EdgeCount);
 
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
                     LogType.Information,
-                    logMessage,
+                    $"Streaming node payload: {node.Url} Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}",
                     "GraphingNodePopulated",
                     new LogContext
                     {
-                        Url = request.Url.AbsoluteUri,
+                        Url = node.Url,
                         NodeCount = payload.NodeCount,
                         EdgeCount = payload.EdgeCount
                     });
@@ -130,18 +130,18 @@ namespace Graphing.Core
                 priority: depth,
                 scheduledOffset);
 
-            var logMessage = $"Graphing Edge Discovered: {node.Url} Depth {depth} Attempt: {crawlPageRequest.Attempt}";
-            _logger.LogInformation(logMessage);
+            _logger.LogInformation("Graphing Edge Discovered: {Url} Depth {Depth} Attempt: {Attempt}",
+                node.Url, depth, crawlPageRequest.Attempt);
 
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
                     LogType.Information,
-                    logMessage,
+                    $"Graphing Edge Discovered: {node.Url} Depth {depth} Attempt: {crawlPageRequest.Attempt}",
                     "GraphingEdgeDiscovered",
                     new LogContext
                     {
-                        Url = request.Url.AbsoluteUri,
+                        Url = node.Url,
                         Attempt = crawlPageRequest.Attempt,
                         EdgeCount = crawlPageRequest.Depth
                     });

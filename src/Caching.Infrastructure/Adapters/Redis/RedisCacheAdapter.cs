@@ -32,19 +32,19 @@ namespace Caching.Infrastructure.Adapters.Redis
             var value = await _database.StringGetAsync(key);
             if (value.IsNullOrEmpty)
             {
-                _logger.LogDebug($"Cache miss for {key}");
+                _logger.LogDebug("Cache miss for {Key}", key);
                 return default;
             }
 
             try
             {
                 var result = JsonSerializer.Deserialize<T>(value!);
-                _logger.LogDebug($"Cache hit for {key}");
+                _logger.LogDebug("Cache hit for {Key}", key);
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to deserialize cache entry for {key}");
+                _logger.LogError(ex, "Failed to deserialize cache entry for {Key}", key);
                 return default;
             }
         }
@@ -56,9 +56,9 @@ namespace Caching.Infrastructure.Adapters.Redis
             var json = JsonSerializer.Serialize(value);
 
             if (expiration.HasValue)
-                _logger.LogDebug($"Setting cache for {key} with TTL: {expiration.Value}");
+                _logger.LogDebug("Setting cache for {Key} with TTL: {Value}", key, expiration.Value);
             else
-                _logger.LogDebug($"Setting cache for {key} with no expiration");
+                _logger.LogDebug("Setting cache for {Key} with no expiration", key);
 
             // Convert nullable TimeSpan to Redis Expiration
             Expiration expiry = expiration.HasValue 
@@ -71,7 +71,7 @@ namespace Caching.Infrastructure.Adapters.Redis
         public async Task RemoveAsync(string key)
         {
             key = GetScopedKey(key);
-            _logger.LogDebug($"Removing cache entry for {key}");
+            _logger.LogDebug("Removing cache entry for {Key}", key);
 
             await _database.KeyDeleteAsync(key);
         }
@@ -80,13 +80,13 @@ namespace Caching.Infrastructure.Adapters.Redis
         {
             key = GetScopedKey(key);
             var exists = await _database.KeyExistsAsync(key);
-            _logger.LogDebug($"Checking existence for {key}: {exists}");
+            _logger.LogDebug("Checking existence for {Key}: {Exists}", key, exists);
             return exists;
         }
 
         public void Dispose()
         {
-            _logger.LogDebug($"Disposing: {typeof(RedisCacheAdapter).Name}.");
+            _logger.LogDebug("Disposing: {Name}", typeof(RedisCacheAdapter).Name);
             _connection.Dispose();
         }
     }

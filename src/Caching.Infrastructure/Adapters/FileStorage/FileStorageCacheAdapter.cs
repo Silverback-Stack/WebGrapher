@@ -39,7 +39,7 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Unable to create cache container.");
+                _logger.LogWarning(ex, "Unable to create cache container {Path}", containerPath);
                 throw;
             }
 
@@ -79,7 +79,7 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to read file {key}");
+                _logger.LogWarning(ex, "Unable to read file {Key}", key);
                 return default;
             }
         }
@@ -116,7 +116,7 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to save cache file {path}");
+                _logger.LogWarning(ex, "Unable to save cache file {Path}", path);
             }
         }
 
@@ -131,7 +131,7 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to delete cache file {path}");
+                _logger.LogWarning(ex, "Unable to delete cache file {Path}", path);
             }
 
             return Task.CompletedTask;

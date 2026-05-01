@@ -30,12 +30,12 @@ namespace Caching.Infrastructure.Adapters.Memory
 
             if (_cache.TryGetValue(key, out var value))
             {
-                _logger.LogDebug($"Cache hit for {key}");
+                _logger.LogDebug("Cache hit for {Key}", key);
 
                 return Task.FromResult((T?)value);
             }
 
-            _logger.LogDebug($"Cache miss for {key}");
+            _logger.LogDebug("Cache miss for {Key}", key);
 
             return Task.FromResult(default(T?));
         }
@@ -48,11 +48,11 @@ namespace Caching.Infrastructure.Adapters.Memory
             if (expiration.HasValue)
             {
                 options.SetAbsoluteExpiration(expiration.Value);
-                _logger.LogDebug($"Setting cache for {key} with TTL: {expiration.Value}");
+                _logger.LogDebug("Setting cache for {Key} with TTL: {Value}", key, expiration.Value);
             }
             else
             {
-                _logger.LogDebug($"Setting cache for {key} with no expiration");
+                _logger.LogDebug("Setting cache for {Key} with no expiration", key);
             }
 
             _cache.Set(key, value, options);
@@ -63,7 +63,7 @@ namespace Caching.Infrastructure.Adapters.Memory
         public Task RemoveAsync(string key)
         {
             key = GetScopedKey(key);
-            _logger.LogDebug($"Removing cache entry for {key}");
+            _logger.LogDebug("Removing cache entry for {Key}", key);
 
             _cache.Remove(key);
 
@@ -74,7 +74,7 @@ namespace Caching.Infrastructure.Adapters.Memory
         {
             key = GetScopedKey(key);
             var exists = _cache.TryGetValue(key, out _);
-            _logger.LogDebug($"Checking existence for {key}: {exists}");
+            _logger.LogDebug("Checking existence for {Key}: {Exists}", key, exists);
 
             return Task.FromResult(exists);
         }
@@ -83,7 +83,7 @@ namespace Caching.Infrastructure.Adapters.Memory
         {
             if (_cache is IDisposable disposable)
             {
-                _logger.LogDebug($"Disposing: {typeof(MemoryCacheAdapter).Name}.");
+                _logger.LogDebug("Disposing: {Name}", typeof(MemoryCacheAdapter).Name);
                 disposable.Dispose();
             }
         }

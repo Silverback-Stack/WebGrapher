@@ -106,14 +106,15 @@ namespace Scraper.Core
             await PublishNormalisePageEventAsync(request, response);
 
             var source = response.Cache?.IsFromCache == true ? "Cache" : "Live";
-            logMessage = $"Scrape Completed ({source}): {request.Url} Status: {response.Metadata.StatusCode}. Attempt {request.Attempt}";
-            _logger.LogInformation(logMessage);
+
+            _logger.LogInformation("Scrape Completed ({Source}): {Url} Status: {StatusCode}. Attempt {Attempt}",
+                source, request.Url, response.Metadata.StatusCode, request.Attempt);
 
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
                     LogType.Information,
-                    logMessage,
+                    $"Scrape Completed ({source}): {request.Url} Status: {response.Metadata.StatusCode}. Attempt {request.Attempt}",
                     "ScrapeCompleted",
                     new LogContext
                     {
@@ -181,14 +182,14 @@ namespace Scraper.Core
             if (IsRetryableFailure(failedEvent.StatusCode))
                 await _eventBus.PublishAsync(failedEvent, priority: request.Depth);
 
-            var logMessage = $"Scrape Failed: {request.Url} Status: {failedEvent.StatusCode}. Attempt: {request.Attempt}";
-            _logger.LogError(logMessage);
+            _logger.LogError("Scrape Failed: {Url} Status: {StatusCode}. Attempt: {Attempt}",
+                request.Url, failedEvent.StatusCode, request.Attempt);
 
             await PublishClientLogEventAsync(
                 request.GraphId,
                 request.CorrelationId,
                 LogType.Error,
-                logMessage,
+                $"Scrape Failed: {request.Url} Status: {failedEvent.StatusCode}. Attempt: {request.Attempt}",
                 "ScrapeFailed",
                 new LogContext
                 {

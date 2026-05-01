@@ -23,7 +23,8 @@ namespace Streaming.Infrastructure.Adapters.SignalR
         public async override Task StreamGraphPayloadAsync(Guid graphId, SigmaGraphPayloadDto payload)
         {
             var firstNodeId = payload.Nodes.FirstOrDefault()?.Id ?? "N/A";
-            _logger.LogDebug($"Streaming payload starting with node {firstNodeId} to graph {graphId}");
+            _logger.LogDebug("Streaming payload starting with node {FirstNodeId} to graph {GraphId}",
+                firstNodeId, graphId);
 
             var clients = _hubContext.Clients.Group(graphId.ToString());
             await clients.SendAsync("ReceiveGraphPayload", payload);
@@ -31,7 +32,7 @@ namespace Streaming.Infrastructure.Adapters.SignalR
 
         public async override Task BroadcastGraphLogAsync(Guid graphId, ClientLogDto payload)
         {
-            _logger.LogDebug($"Streaming client log to graph {graphId}");
+            _logger.LogDebug("Streaming client log to graph {GraphId}", graphId);
 
             var clients = _hubContext.Clients.Group(graphId.ToString());
             await clients.SendAsync("ReceiveGraphLog", payload);

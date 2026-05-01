@@ -108,7 +108,8 @@ namespace Events.Infrastructure.Bus
             if (_started)
                 await processor.StartProcessingAsync();
 
-            _logger.LogDebug($"{serviceName} service subscribed to event {typeof(TEvent).Name}");
+            _logger.LogDebug("{ServiceName} service subscribed to event {Name}",
+                serviceName, typeof(TEvent).Name);
         }
 
 
@@ -121,7 +122,8 @@ namespace Events.Infrastructure.Bus
                 await processor.StopProcessingAsync();
                 await processor.DisposeAsync();
 
-                _logger.LogDebug($"{serviceName} service unsubscribed from event {typeof(TEvent).Name}");
+                _logger.LogDebug("{ServiceName} service unsubscribed from event {Name}",
+                    serviceName, typeof(TEvent).Name);
             }
         }
 

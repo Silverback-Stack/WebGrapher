@@ -106,7 +106,7 @@ namespace SitePolicy.Core
                 RobotsTxt = robotsTxt ?? string.Empty
             };
 
-            _logger.LogDebug($"Created robots policy for {url.Authority}");
+            _logger.LogDebug("Created robots policy for {Authority}", url.Authority);
 
             await _policyCache.SetAsync(
                 cacheKey,
@@ -148,7 +148,8 @@ namespace SitePolicy.Core
                 rateLimitPolicy = existingPolicy.Merge(rateLimitPolicy);
 
             _logger.LogDebug(
-                $"Saving rate limit policy for: {url.Authority}, partition: {partitionKey}, until: {rateLimitPolicy.RetryAfter:o}");
+                "Saving rate limit policy for: {Authority}, partition: {PartitionKey}, until: {RetryAfter}",
+                url.Authority, partitionKey, rateLimitPolicy.RetryAfter);
 
             await _policyCache.SetAsync(cacheKey, rateLimitPolicy, expiryDuration);
 
@@ -190,7 +191,7 @@ namespace SitePolicy.Core
 
                 if (looksLikeHtml)
                 {
-                    _logger.LogDebug($"Invalid Robots.txt detected for {robotsTxtUrl.AbsoluteUri}; file appears to be HTML.");
+                    _logger.LogDebug("Invalid Robots.txt detected for {Url}; file appears to be HTML.", url.AbsoluteUri);
                     robotsTxt = null;
                 }
             }

@@ -144,7 +144,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
             if (storedNode != null &&
                 storedNode.ModifiedAt > node.ModifiedAt)
             {
-                _logger.LogDebug($"SetNodeAsync skipped for URL {node.Url} in GraphId: {node.GraphId} due to stale data. Incoming ModifiedAt: {node.ModifiedAt}, Stored ModifiedAt: {storedNode.ModifiedAt}");
+                _logger.LogDebug("SetNodeAsync skipped for URL {Url} in GraphId: {GraphId} due to stale data. Incoming ModifiedAt: {NodeModifiedAt}, Stored ModifiedAt: {StoredNodeModifiedAt}",
+                    node.Url, node.GraphId, node.ModifiedAt, storedNode.ModifiedAt);
                 // Node has been modified by another process since it was read
                 // FUTURE FEATURE: Decide on strategy:
                 //   "skip" (the current behavior)
@@ -198,7 +199,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
         {
             if (!_nodeTable.TryGetValue(graphId, out var nodes))
             {
-                _logger.LogDebug($"No nodes found to cleanup in the graph: {graphId}");
+                _logger.LogDebug("No nodes found to cleanup in the graph: {GraphId}", graphId);
                 return;
             }
 
@@ -272,7 +273,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
         {
             if (!_nodeTable.TryGetValue(graphId, out var nodes) || !nodes.TryGetValue(startUrl, out var startNode))
             {
-                _logger.LogDebug($"Graph {graphId} or start node {startUrl} not found.");
+                _logger.LogDebug("Graph {GraphId} or start node {StartUrl} not found.",
+                    graphId, startUrl);
                 return Enumerable.Empty<Node>();
             }
 
