@@ -36,8 +36,8 @@ namespace Requests.Infrastructure.Tests
         [Test]
         public async Task GetAsync_WhenContentExceedsLimit_ReturnsTruncatedPayload()
         {
-            var contentSizeBytes = 2_048_576;
-            var contentMaxBytes = 1_048_576;
+            const int contentSizeBytes = 2_048_576; // 2MB
+            const int contentMaxBytes = 1_048_576;  // 1MB
 
             var content = new string('X', contentSizeBytes);
 

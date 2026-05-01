@@ -14,17 +14,20 @@ namespace Crawler.Core
     {
         protected readonly ILogger _logger;
         protected readonly IEventBus _eventBus;
+        protected readonly IRequestSender _requestSender;
         protected readonly ISitePolicyResolver _sitePolicyResolver;
         protected readonly CrawlerSettings _crawlerSettings;
 
         public PageCrawler(
             ILogger logger,
             IEventBus eventBus,
+            IRequestSender requestSender,
             ISitePolicyResolver sitePolicyResolver,
             CrawlerSettings crawlerSettings)
         {
             _eventBus = eventBus;
             _logger = logger;
+            _requestSender = requestSender;
             _sitePolicyResolver = sitePolicyResolver;
             _crawlerSettings = crawlerSettings;
         }
@@ -63,12 +66,37 @@ namespace Crawler.Core
             await _eventBus.PublishAsync(clientLogEvent);
         }
 
+        private async Task TestRequestSender(CrawlPageEvent evt)
+        {
+            var request = evt.CrawlPageRequest;
+
+            // Fetch URL
+            var response = await _requestSender.FetchAsync(request.Url,
+                request.Options.UserAgent,
+                request.Options.UserAccepts);
+
+            // Decode content
+            var encoding = response?.Metadata.Encoding;
+            var contentAsString = response?.Data?.DecodeAsString(encoding);
+
+            // Output content (first 100 chars)
+            var preview = string.IsNullOrWhiteSpace(contentAsString)
+                    ? "<no content>"
+                    : contentAsString.Substring(0, Math.Min(100, contentAsString.Length));
+
+            _logger.LogDebug("Content: {content} ...", preview);
+        }
+
         /// <summary>
         /// Evaluates whether the page can be crawled based on retry limits, depth,
         /// site policy, and crawler-side rate limiting. If allowed, publishes a scrape event.
         /// </summary>
         public async Task EvaluatePageForCrawlingAsync(CrawlPageEvent evt)
         {
+            // Temp Test
+            await TestRequestSender(evt);
+            return;
+
             var request = evt.CrawlPageRequest;
 
             var logMessage = $"Crawl requested: {request.Url} Depth: {request.Depth} Attempt: {request.Attempt}";
@@ -115,7 +143,6 @@ namespace Crawler.Core
             }
 
 
-
             if (!await _sitePolicyResolver.IsPermittedByRobotsTxtAsync(
                 request.Url,
                 request.Options.UserAgent))
@@ -139,10 +166,11 @@ namespace Crawler.Core
             }
 
 
-            // Checks rate limiting for the crawler instance (robots.txt requests).
+            // Check if the site is currently rate-limited for this request sender's partition.
             var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 request.Url,
-                request.Options.UserAgent);
+                request.Options.UserAgent,
+                _requestSender.PartitionKey);
 
             if (limitedUntil is not null)
             {
@@ -150,9 +178,10 @@ namespace Crawler.Core
                 return;
             }
 
-
             await PublishScrapePageEventAsync(evt);
         }
+
+
 
 
         private async Task RetryPageCrawlAsync(ScrapePageFailedEvent evt)

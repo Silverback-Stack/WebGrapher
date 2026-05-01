@@ -105,22 +105,21 @@ namespace Requests.Core
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
                 // Timeout occurred (not user-requested cancellation)
-                _logger.LogWarning(ex, "Request to {AbsoluteUri} timed out.", url.AbsoluteUri);
+                _logger.LogWarning(ex, $"Request to {url.AbsoluteUri} timed out.");
             }
             catch (TimeoutException ex)
             {
-                _logger.LogWarning(ex, "Request to {AbsoluteUri} timed out: {Message}", 
-                    url.AbsoluteUri, ex.Message);
+                _logger.LogWarning(ex, $"Request to {url.AbsoluteUri} timed out: {ex.Message}");
             }
             catch (HttpRequestException ex)
             {
                 // Server not running / connection refused
-                _logger.LogWarning(ex, "Could not connect to {AbsoluteUri}.", url.AbsoluteUri);
+                _logger.LogWarning(ex, $"Could not connect to {url.AbsoluteUri}.");
             }
             catch (Exception ex)
             {
                 // All other unexpected exceptions
-                _logger.LogError(ex, "Get request for {AbsoluteUri} threw an exception.", url.AbsoluteUri);
+                _logger.LogError(ex, $"Get request for {url.AbsoluteUri} threw an exception.");
             }
 
             return null;

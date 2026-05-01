@@ -46,7 +46,7 @@ namespace SitePolicy.Core
         public async Task<DateTimeOffset?> GetRateLimitAsync(
             Uri url,
             string userAgent,
-            string? partitionKey = null)
+            string partitionKey)
         {
             var effectivePartitionKey = ResolvePartitionKey(partitionKey);
 
@@ -62,7 +62,7 @@ namespace SitePolicy.Core
             Uri url,
             string userAgent,
             DateTimeOffset until,
-            string? partitionKey = null)
+            string partitionKey)
         {
             var effectivePartitionKey = ResolvePartitionKey(partitionKey);
 
@@ -203,7 +203,7 @@ namespace SitePolicy.Core
         /// Resolve the effective partition key, 
         /// defaulting to the current RequestSender instance if none provided.
         /// </summary>
-        private string ResolvePartitionKey(string? partitionKey)
+        private string ResolvePartitionKey(string partitionKey)
         {
             return string.IsNullOrWhiteSpace(partitionKey)
                 ? _requestSender.PartitionKey

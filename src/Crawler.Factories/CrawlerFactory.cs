@@ -12,12 +12,14 @@ namespace Crawler.Factories
         public static IPageCrawler Create(
             ILogger logger,
             IEventBus eventBus,
+            IRequestSender requestSender,
             ISitePolicyResolver sitePolicyResolver,
             CrawlerSettings crawlerSettings)
         {
             return new PageCrawler(
                 logger, 
                 eventBus, 
+                requestSender,
                 sitePolicyResolver,
                 crawlerSettings);
         }
