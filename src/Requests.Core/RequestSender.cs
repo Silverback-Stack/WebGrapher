@@ -95,7 +95,8 @@ namespace Requests.Core
                 };
 
                 _logger.LogDebug(
-                    $"Fetch request for {url.AbsoluteUri} returned status code {responseEnvelope.Metadata.StatusCode}");
+                    "Fetch request for {AbsoluteUri} returned status code {StatusCode}",
+                    url.AbsoluteUri, responseEnvelope.Metadata.StatusCode);
 
                 await CacheIfEligibleAsync(key, responseEnvelope);
 
@@ -104,21 +105,22 @@ namespace Requests.Core
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
                 // Timeout occurred (not user-requested cancellation)
-                _logger.LogWarning(ex, $"Request to {url.AbsoluteUri} timed out.");
+                _logger.LogWarning(ex, "Request to {AbsoluteUri} timed out.", url.AbsoluteUri);
             }
             catch (TimeoutException ex)
             {
-                _logger.LogWarning(ex, $"Request to {url.AbsoluteUri} timed out: {ex.Message}");
+                _logger.LogWarning(ex, "Request to {AbsoluteUri} timed out: {Message}", 
+                    url.AbsoluteUri, ex.Message);
             }
             catch (HttpRequestException ex)
             {
                 // Server not running / connection refused
-                _logger.LogWarning(ex, $"Could not connect to {url.AbsoluteUri}.");
+                _logger.LogWarning(ex, "Could not connect to {AbsoluteUri}.", url.AbsoluteUri);
             }
             catch (Exception ex)
             {
                 // All other unexpected exceptions
-                _logger.LogError(ex, $"Get request for {url.AbsoluteUri} threw an exception.");
+                _logger.LogError(ex, "Get request for {AbsoluteUri} threw an exception.", url.AbsoluteUri);
             }
 
             return null;
@@ -140,7 +142,7 @@ namespace Requests.Core
             if (blobData is null)
                 return null;
 
-            _logger.LogDebug($"Fetch request for {url.AbsoluteUri} returned cached item.");
+            _logger.LogDebug("Fetch request for {AbsoluteUri} returned cached item.", url.AbsoluteUri);
 
             return new HttpResponseEnvelope
             {

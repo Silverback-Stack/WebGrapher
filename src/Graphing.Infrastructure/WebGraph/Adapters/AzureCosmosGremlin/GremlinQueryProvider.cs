@@ -38,7 +38,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to fetch vertex {graphId} query: {query}", graphId, query);
+                _logger.LogError(ex, "Failed to fetch vertex {GraphId} query: {Query}", graphId, query);
                 throw;
             }
         }
@@ -72,7 +72,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to fetch vertices query: {query}", query);
+                _logger.LogError(ex, "Failed to fetch vertices query: {Query}", query);
                 throw;
             }
         }
@@ -90,7 +90,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to count graph vertices query: {query}", query);
+                _logger.LogError(ex, "Failed to count graph vertices query: {Query}", query);
                 throw;
             }
         }
@@ -156,7 +156,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create graph {graphId} for query: {query}", graph.Id, query);
+                _logger.LogError(ex, "Failed to create graph {GraphId} for query: {Query}", graph.Id, query);
                 throw;
             }
         }
@@ -216,7 +216,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to update graph {graphId} query: {query}", graph.Id, query);
+                _logger.LogError(ex, "Failed to update graph {GraphId} query: {Query}", graph.Id, query);
                 throw;
             }
         }
@@ -253,7 +253,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to delete graph {graphId}", graphId);
+                _logger.LogError(ex, "Failed to delete graph {GraphId}", graphId);
                 throw;
             }
         }
@@ -280,7 +280,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get vertext for {url} in graph {graphId}", url, graphId);
+                _logger.LogError(ex, "Failed to get vertext for {Url} in graph {GraphId}", url, graphId);
                 throw;
             }
         }
@@ -356,7 +356,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get vertex edges for {urls} in graph {graphId}", urls, graphId);
+                _logger.LogError(ex, "Failed to get vertex edges for {Urls} in graph {GraphId}", urls, graphId);
                 throw;
             }
         }
@@ -416,7 +416,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to update node vertex {id} in graph {graphId}", node.Id, node.GraphId);
+                _logger.LogError(ex, "Failed to update node vertex {Id} in graph {GraphId}", node.Id, node.GraphId);
                 throw;
             }
         }
@@ -447,7 +447,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to add edge from vertex {fromNodeUrl} to {toNodeUrl} in graph {graphId}", fromNode.Url, toNode.Url, graphId);
+                _logger.LogError(ex, "Failed to add edge from vertex {FromNodeUrl} to {ToNodeUrl} in graph {GraphId}", 
+                    fromNode.Url, toNode.Url, graphId);
                 throw;
             }
         }
@@ -476,7 +477,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to remove edges for node {nodeId} graph {graphId}", node.Id, graphId);
+                _logger.LogError(ex, "Failed to remove edges for node {NodeId} graph {GraphId}", 
+                    node.Id, graphId);
                 throw;
             }
         }
@@ -503,7 +505,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to remove orphaned nodes for graph {graphId}", graphId);
+                _logger.LogError(ex, "Failed to remove orphaned nodes for graph {GraphId}", graphId);
                 throw;
             }
         }
@@ -535,7 +537,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to count edges of node vertex {nodeId} graph {graphId}", node.Id, graphId);
+                _logger.LogError(ex, "Failed to count edges of node vertex {NodeId} graph {GraphId}", 
+                    node.Id, graphId);
                 throw;
             }
         }
@@ -567,7 +570,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to fetch node vertices from graph {graphId}", graphId);
+                _logger.LogError(ex, "Failed to fetch node vertices from graph {GraphId}", graphId);
                 return Enumerable.Empty<dynamic>();
             }
         }
@@ -590,7 +593,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to count populated node vertices for graph {graphId}", graphId);
+                _logger.LogError(ex, "Failed to count populated node vertices for graph {GraphId}", graphId);
                 throw;
             }
         }
@@ -623,7 +626,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get node vertext subgraph for vertex {vertexId} graph {graphId}", vertexId, graphId);
+                _logger.LogError(ex, "Failed to get node vertext subgraph for vertex {VertexId} graph {GraphId}", 
+                    vertexId, graphId);
                 throw;
             }
         }
@@ -687,7 +691,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                     if (attempt > 1)
                     {
                         _logger.LogDebug(
-                            "{operationName} succeeded on retry attempt {attempt}/{maxRetries}",
+                            "{OperationName} succeeded on retry attempt {Attempt}/{MaxRetries}",
                             operationName, attempt, _maxQueryRetries);
                     }
 
@@ -704,8 +708,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                         var wait = TimeSpan.FromMilliseconds(Math.Min(5000, waitMs));
 
                         _logger.LogDebug(
-                            "Retryable error during {operationName}, attempt {attempt}/{maxRetries}. " +
-                            "StatusCode={statusCode}, SubStatusCode={subStatusCode}. Waiting {wait} before retrying.",
+                            "Retryable error during {OperationName}, attempt {Attempt}/{MaxRetries}. " +
+                            "StatusCode={StatusCode}, SubStatusCode={SubStatusCode}. Waiting {Wait} before retrying.",
                             operationName, attempt, _maxQueryRetries,
                             statusCode, subStatusCode, wait);
 

@@ -196,7 +196,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             if (storedNode != null && storedNode.ModifiedAt > node.ModifiedAt)
             {
                 _logger.LogDebug(
-                    "SetNodeAsync skipped for {url} due to stale data. Incoming: {incoming}, Stored: {stored}",
+                    "SetNodeAsync skipped for {Url} due to stale data. Incoming: {Incoming}, Stored: {Stored}",
                     node.Url, node.ModifiedAt, storedNode.ModifiedAt
                 );
                 return storedNode;

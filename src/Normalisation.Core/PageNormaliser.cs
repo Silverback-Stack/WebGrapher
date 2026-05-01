@@ -123,14 +123,14 @@ namespace Normalisation.Core
                 }, priority: request.Depth);
             }
 
-            var logMessage = $"Normalisation Completed: {result.Url} Links: {links?.Count()} Keywords: {keywords?.Count()}";
-            _logger.LogInformation(logMessage);
+            _logger.LogInformation("Normalisation Completed: {Url} Links: {LinkCount} Keywords: {KeywordCount}",
+                result.Url, links?.Count(), keywords?.Count());
 
             await PublishClientLogEventAsync(
                 request.GraphId,
                 request.CorrelationId,
                 LogType.Information,
-                logMessage,
+                $"Normalisation Completed: {result.Url} Links: {links?.Count()} Keywords: {keywords?.Count()}",
                 "NormalisationSuccess",
                 new LogContext
                 {
@@ -168,14 +168,14 @@ namespace Normalisation.Core
             var htmlDocument = await GetHtmlDocumentAsync(result.BlobId, result.BlobContainer, result.Encoding);
             if (htmlDocument is null)
             {
-                logMessage = $"Normalisation failed: Blob {result.BlobId} could not be found at {result.BlobContainer}";
-                _logger.LogError(logMessage);
+                _logger.LogError("Normalisation failed: Blob {BlobId} could not be found at {BlobContainer}",
+                    result.BlobId, result.BlobContainer);
 
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
                     LogType.Error,
-                    logMessage,
+                    $"Normalisation failed: Blob {result.BlobId} could not be found at {result.BlobContainer}",
                     "NormalisationFailed",
                     new LogContext
                     {
@@ -243,17 +243,16 @@ namespace Normalisation.Core
             }
             catch (NormalisationException ex) // normalisation pipeline exceptions
             {
-                logMessage = $"Normalisation failed: {ex.Message}"; // Eg: "Title Container XPath is invalid; check your expression."
-
                 // Log full details including inner exception
-                _logger.LogError(ex, logMessage);
+                // Eg: "Title Container XPath is invalid; check your expression."
+                _logger.LogError(ex, "Normalisation failed: {Message}", ex.Message); 
 
                 // Send friendly message to client
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
                     LogType.Error,
-                    logMessage, 
+                    $"Normalisation failed: {ex.Message}", 
                     "NormalisationFailed",
                     new LogContext
                     {
@@ -263,17 +262,15 @@ namespace Normalisation.Core
             }
             catch (Exception ex) // unhandled exceptions
             {
-                logMessage = $"Normalisation failed: {request.Url}";
-
                 // Log full details
-                _logger.LogError(ex, logMessage);
+                _logger.LogError(ex, "Normalisation failed: {Url}", request.Url);
 
                 // Send friendly message to client
                 await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
                     LogType.Error,
-                    logMessage,
+                    $"Normalisation failed: {request.Url}",
                     "NormalisationFailed",
                     new LogContext { 
                         Url = request.Url.AbsoluteUri 
@@ -290,7 +287,7 @@ namespace Normalisation.Core
             var blob = await _blobCache.GetAsync<byte[]>(cacheKey);
             if (blob is null)
             {
-                _logger.LogWarning($"Blob {blobId} was not found in the cache.");
+                _logger.LogWarning("Blob {BlobId} was not found in the cache.", blobId);
                 return null;
             }
 
@@ -301,7 +298,7 @@ namespace Normalisation.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to decode cached blob {blobId}");
+                _logger.LogWarning(ex, "Unable to decode cached blob {BlobId}", blobId);
                 return null;
             }
         }

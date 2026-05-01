@@ -68,14 +68,14 @@ namespace Streaming.Core
                 var payload = evt.SigmaGraphPayload;
                 await StreamGraphPayloadAsync(evt.SigmaGraphPayload.GraphId, payload);
 
-                var logMessage = $"Streaming {payload.NodeCount} nodes and {payload.EdgeCount} edges.";
-                _logger.LogInformation(logMessage);
+                _logger.LogInformation("Streaming {NodeCount} nodes and {EdgeCount} edges.",
+                    payload.NodeCount, payload.EdgeCount);
 
                 await PublishClientLogEventAsync(
                         payload.GraphId,
                         payload.CorrolationId,
                         LogType.Information,
-                        logMessage,
+                        $"Streaming {payload.NodeCount} nodes and {payload.EdgeCount} edges.",
                         "StreamingPayload",
                         new LogContext
                         {
@@ -86,7 +86,8 @@ namespace Streaming.Core
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Streaming Failed: Failed to stream node to GraphId: {evt.SigmaGraphPayload.GraphId}");
+                _logger.LogError(ex, "Streaming Failed: Failed to stream node to GraphId: {GraphId}",
+                    evt.SigmaGraphPayload.GraphId);
             }
         }
 
@@ -111,7 +112,8 @@ namespace Streaming.Core
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Streaming Failed: Failed to stream log to GraphId: {clientLogDto.GraphId}");
+                _logger.LogError(ex, "Streaming Failed: Failed to stream log to GraphId: {GraphId}", 
+                    clientLogDto.GraphId);
             }
         }
     }

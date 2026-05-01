@@ -22,14 +22,14 @@ namespace Graphing.Core.WebGraph
             Func<Node, Task>? linkDiscoveredCallback,
             NodeEdgesUpdateMode linkUpdateMode = NodeEdgesUpdateMode.Append)
         {
-            _logger.LogDebug($"AddWebPageAsync started for {webPage.Url}");
+            _logger.LogDebug("AddWebPageAsync started for {Url}", webPage.Url);
 
             // Mark or promote URL as Populated
             var node = await GetOrCreateNodeAsync(webPage.GraphId, webPage.Url, NodeState.Populated);
 
             if (!HasPageChanged(webPage, node, forceRefresh))
             {
-                _logger.LogDebug($"No updated required for {webPage.Url} - content has not changed.");
+                _logger.LogDebug("No updated required for {Url} - content has not changed.", webPage.Url);
                 return;
             }
 
@@ -42,7 +42,8 @@ namespace Graphing.Core.WebGraph
 
             if (webPage.IsRedirect)
             {
-                _logger.LogDebug($"Handling redirect {webPage.OriginalUrl} -> {webPage.Url}");
+                _logger.LogDebug("Handling redirect {OriginalUrl} -> {Url}",
+                    webPage.OriginalUrl, webPage.Url);
                 await SetRedirectedAsync(webPage.GraphId, webPage.OriginalUrl, webPage.Url);
             }
 
@@ -157,7 +158,8 @@ namespace Graphing.Core.WebGraph
             //or link exists but this is a user-initiated request (forces refresh of data)
             if (linkAdded || forceRefresh)
             {
-                _logger.LogDebug($"Adding outgoing/incoming links from {fromNode.Url} to {toNode.Url}.");
+                _logger.LogDebug("Adding outgoing/incoming links from {Url} to {Url}",
+                    fromNode.Url, toNode.Url);
 
                 await AddIncomingLinkAsync(graphId, toNode, fromNode);
 
@@ -191,14 +193,15 @@ namespace Graphing.Core.WebGraph
 
             //Discard policy: node recently crawled - dont crawl again during the throttle period
             var nextTime = node.LastScheduledAt?.AddSeconds(_graphingSettings.WebGraph.ScheduleCrawlThrottleSeconds);
-            _logger.LogDebug($"Scheduled crawl for {node.Url} throttled. Next eligible time: {nextTime}");
+            _logger.LogDebug("Scheduled crawl for {Url} throttled. Next eligible time: {NextTime}",
+                node.Url, nextTime);
             return false;
         }
 
 
         protected async Task MarkNodeAsPopulatedAsync(Node node)
         {
-            _logger.LogDebug($"Promoting dummy node {node.Url} to populated.");
+            _logger.LogDebug("Promoting dummy node {Url} to populated.", node.Url);
 
             node.State = NodeState.Populated;
             await SaveNodeAsync(node);
@@ -214,7 +217,7 @@ namespace Graphing.Core.WebGraph
 
             if (fromNode.State == NodeState.Populated)
             {
-                _logger.LogDebug($"Skipping redirect for {fromUrl} – already populated.");
+                _logger.LogDebug("Skipping redirect for {FromUrl} – already populated.", fromUrl);
                 return;
             }
 
@@ -226,7 +229,8 @@ namespace Graphing.Core.WebGraph
             var outgoingAdded = await AddOutgoingLinkAsync(graphId, fromNode, toNode);
             var incomingAdded = await AddIncomingLinkAsync(graphId, toNode, fromNode);
 
-            _logger.LogDebug($"Marked node {fromUrl} as redirected to {toUrl} and updated links.");
+            _logger.LogDebug("Marked node {FromUrl} as redirected to {ToUrl} and updated links.",
+                fromUrl, toUrl);
 
             // Update popularity
             fromNode.PopularityScore = await GetPopularityScoreAsync(graphId, fromNode);

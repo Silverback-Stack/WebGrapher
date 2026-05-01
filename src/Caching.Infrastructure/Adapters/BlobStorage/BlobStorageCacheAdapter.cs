@@ -66,7 +66,7 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Error checking existence of blob {key}");
+                _logger.LogWarning(ex, "Error checking existence of blob {Key}", key);
                 return false;
             }
         }
@@ -98,7 +98,7 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to read blob {key}");
+                _logger.LogWarning(ex, "Unable to read blob {Key}", key);
                 return default;
             }
         }
@@ -127,7 +127,7 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to upload blob {key}");
+                _logger.LogWarning(ex, "Unable to upload blob {Key}", key);
             }
         }
 
@@ -140,7 +140,7 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to delete blob {key}");
+                _logger.LogWarning(ex, "Unable to delete blob {Key}", key);
             }
         }
 
@@ -156,11 +156,11 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
                     try
                     {
                         await _containerClient.DeleteBlobIfExistsAsync(blobItem.Name);
-                        _logger.LogDebug($"Deleted expired cache blob {blobItem.Name}");
+                        _logger.LogDebug("Deleted expired cache blob {Name}", blobItem.Name);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, $"Unable to delete expired cache blob {blobItem.Name}");
+                        _logger.LogWarning(ex, "Unable to delete expired cache blob {Name}", blobItem.Name);
                     }
                 }
             }
