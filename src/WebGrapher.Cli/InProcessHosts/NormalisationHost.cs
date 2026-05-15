@@ -45,14 +45,12 @@ namespace WebGrapher.Cli.InProcessHosts
 
             // Create Meta Cache for Request Sender
             var metaCache = CacheFactory.Create(
-                normalisationConfig.Settings.ServiceName,
                 logger,
                 metaCacheConfig);
 
 
             // Create Blob Cache for Request Sender
             var blobCache = CacheFactory.Create(
-                normalisationConfig.Settings.ServiceName,
                 logger,
                 blobCacheConfig);
 

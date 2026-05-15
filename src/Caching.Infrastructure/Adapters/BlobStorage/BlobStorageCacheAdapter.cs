@@ -1,10 +1,10 @@
-﻿using System;
-using System.Text.Json;
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Caching.Core;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Text.Json;
 
 namespace Caching.Infrastructure.Adapters.BlobStorage
 {
@@ -13,19 +13,32 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
         private readonly ILogger _logger;
         private readonly BlobContainerClient _containerClient;
 
-        public string Container { get; private set; }
+        public string Container { get; }
+        private readonly string _containerName;
 
         public BlobStorageCacheAdapter(
-            string serviceName,
             ILogger logger,
+            string container,
             BlobStorageSettings cacheSettings)
         {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "A cache container is required.",
+                    nameof(container));
+
+            if (string.IsNullOrWhiteSpace(cacheSettings.ConnectionString))
+                throw new ArgumentException(
+                    "Connection string is required.",
+                    nameof(cacheSettings.ConnectionString));
+
             _logger = logger;
 
-            Container = $"{cacheSettings.ContainerName}-{serviceName}".ToLowerInvariant();
+            Container = container.Trim();
+            _containerName = CreateContainer(Container);
 
             var blobServiceClient = new BlobServiceClient(cacheSettings.ConnectionString);
-            _containerClient = blobServiceClient.GetBlobContainerClient(Container);
+
+            _containerClient = blobServiceClient.GetBlobContainerClient(_containerName);
 
             _containerClient.CreateIfNotExists(PublicAccessType.None);
 
@@ -33,48 +46,60 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
             _ = ClearCacheAsync(cacheSettings.AbsoluteExpiryHours);
         }
 
-        private BlobClient GetBlobClient(string key) {
+        private static string CreateContainer(string container)
+        {
+            // Azure Blob container names must:
+            // - be lowercase
+            // - contain only letters, numbers and hyphens
+            // - be between 3 and 63 characters
+            // - not contain consecutive hyphens
+
+            // Normalize common separators
+            var name = container
+                .Trim()
+                .ToLowerInvariant()
+                .Replace(".", "-")
+                .Replace("_", "-");
+
+            // Replace unsupported characters with hyphens
+            name = System.Text.RegularExpressions.Regex.Replace(name, @"[^a-z0-9-]", "-");
+
+            // Collapse repeated hyphens and trim edge hyphens
+            name = System.Text.RegularExpressions.Regex.Replace(name, @"-+", "-").Trim('-');
+
+            // Azure requires a minimum length of 3 characters
+            if (name.Length < 3)
+                name = name.PadRight(3, '0');
+
+            // Azure limits container names to 63 characters
+            if (name.Length > 63)
+                name = name[..63].Trim('-');
+
+            return name;
+        }
+
+
+        private BlobClient GetBlobClient(string key, string container)
+        {
+            var containerName = CreateContainer(container);
+
             //Normalize slashes from file path to blob path
             var blobName = key.Replace("\\", "/");
 
-            var containerName = string.Empty;
+            // Get service client from existing container client
+            var blobServiceClient = _containerClient.GetParentBlobServiceClient();
+            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
 
-            if (blobName.Contains("/"))
-            {
-                var parts = blobName.Split('/', 2); // split on first slash
-                containerName = parts[0];
-                blobName = parts[1];
-
-                // Get service client from existing container client
-                var blobServiceClient = _containerClient.GetParentBlobServiceClient();
-                var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-
-                return containerClient.GetBlobClient(blobName);
-            }
-
-            // Default to the adapter's container
-            return _containerClient.GetBlobClient(blobName);
-        }
-            
-
-        public async Task<bool> ExistsAsync(string key)
-        {
-            try
-            {
-                var blob = GetBlobClient(key);
-                return await blob.ExistsAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error checking existence of blob {Key}", key);
-                return false;
-            }
+            return containerClient.GetBlobClient(blobName);
         }
 
-        public async Task<T?> GetAsync<T>(string key)
+
+        private async Task<T?> GetInternal<T>(string key, string container)
         {
-            var blob = GetBlobClient(key);
-            if (!await blob.ExistsAsync()) return default;
+            var blob = GetBlobClient(key, container);
+
+            if (!await blob.ExistsAsync())
+                return default;
 
             try
             {
@@ -84,30 +109,89 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
                     await blob.DownloadToAsync(ms);
                     return (T)(object)ms.ToArray();
                 }
-                else if (typeof(T) == typeof(Stream))
+
+                if (typeof(T) == typeof(Stream))
                 {
                     var response = await blob.DownloadAsync();
                     return (T)(object)response.Value.Content;
                 }
-                else
-                {
-                    var response = await blob.DownloadContentAsync();
-                    var json = response.Value.Content.ToString();
-                    return JsonSerializer.Deserialize<T>(json);
-                }
+
+                var content = await blob.DownloadContentAsync();
+                var json = content.Value.Content.ToString();
+
+                return JsonSerializer.Deserialize<T>(json);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Unable to read blob {Key}", key);
+                _logger.LogWarning(
+                    ex,
+                    "Unable to read blob {Key} from container {Container}",
+                    key,
+                    container);
+
                 return default;
             }
         }
+
+
+        private async Task<bool> ExistsInternalAsync(string key, string container)
+        {
+            try
+            {
+                var blob = GetBlobClient(key, container);
+                return await blob.ExistsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex, 
+                    "Error checking existence of blob {Key} from container {Container}",
+                    key,
+                    container);
+                return false;
+            }
+        }
+
+
+        public async Task<T?> GetAsync<T>(string key)
+        {
+            return await GetInternal<T>(key, Container);
+        }
+
+
+        public async Task<T?> GetFromContainerAsync<T>(string key, string container)
+        {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "A cache container is required.",
+                    nameof(container));
+
+            return await GetInternal<T>(key, container);
+        }
+
+
+        public async Task<bool> ExistsAsync(string key)
+        {
+            return await ExistsInternalAsync(key, Container);
+        }
+
+
+        public async Task<bool> ExistsInContainerAsync(string key, string container)
+        {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "A cache container is required.",
+                    nameof(container));
+
+            return await ExistsInternalAsync(key, container);
+        }
+
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
             try
             {
-                var blob = GetBlobClient(key);
+                var blob = GetBlobClient(key, Container);
 
                 if (value is byte[] bytes)
                 {
@@ -131,11 +215,12 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
             }
         }
 
+
         public async Task RemoveAsync(string key)
         {
             try
             {
-                var blob = GetBlobClient(key);
+                var blob = GetBlobClient(key, Container);
                 await blob.DeleteIfExistsAsync();
             }
             catch (Exception ex)
@@ -143,6 +228,7 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
                 _logger.LogWarning(ex, "Unable to delete blob {Key}", key);
             }
         }
+
 
         public async Task ClearCacheAsync(int absoluteExpirationHours)
         {
@@ -171,5 +257,6 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
         {
             // Nothing to dispose for BlobContainerClient
         }
+
     }
 }

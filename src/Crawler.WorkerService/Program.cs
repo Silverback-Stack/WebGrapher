@@ -57,13 +57,11 @@ namespace Crawler.WorkerService
 
                 // Create Meta Cache for Request Sender
                 var metaCache = CacheFactory.Create(
-                    crawlerConfig.Settings.ServiceName,
                     logger,
                     metaCacheConfig);
 
                 // Create Blob Cache for Request Sender
                 var blobCache = CacheFactory.Create(
-                    crawlerConfig.Settings.ServiceName,
                     logger,
                     blobCacheConfig);
 
@@ -76,7 +74,6 @@ namespace Crawler.WorkerService
 
                 // Create Policy Cache for Site Policy Resolver
                 var policyCache = CacheFactory.Create(
-                    crawlerConfig.Settings.ServiceName,
                     logger,
                     policyCacheConfig);
 

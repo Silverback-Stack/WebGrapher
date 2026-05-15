@@ -281,13 +281,28 @@ namespace Normalisation.Core
         }
 
         private async Task<string?> GetHtmlDocumentAsync(string blobId, string? container, string encoding)
-        {
-            var cacheKey = container is not null ? Path.Combine(container, blobId) : blobId;
+       {
+            byte[]? blob;
 
-            var blob = await _blobCache.GetAsync<byte[]>(cacheKey);
+            if (string.IsNullOrWhiteSpace(container) ||
+                _blobCache.Container == container)
+            {
+                blob = await _blobCache.GetAsync<byte[]>(blobId);
+            }
+            else
+            {
+                blob = await _blobCache.GetFromContainerAsync<byte[]>(
+                    blobId,
+                    container);
+            }
+
             if (blob is null)
             {
-                _logger.LogWarning("Blob {BlobId} was not found in the cache.", blobId);
+                _logger.LogWarning(
+                    "Blob {BlobId} was not found in cache container {Container}.", 
+                    blobId, 
+                    container);
+
                 return null;
             }
 
@@ -298,7 +313,11 @@ namespace Normalisation.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Unable to decode cached blob {BlobId}", blobId);
+                _logger.LogWarning(
+                    ex, 
+                    "Unable to decode cached blob {BlobId}", 
+                    blobId);
+
                 return null;
             }
         }
