@@ -10,23 +10,35 @@ namespace Caching.Infrastructure.Adapters.Memory
         private readonly ILogger _logger;
         private readonly IMemoryCache _cache;
 
+        public string Container { get; }
+
         /// <summary>
         /// In-memory cache adapter for local development.
         /// </summary>
-        public MemoryCacheAdapter(string serviceName, ILogger logger)
+        public MemoryCacheAdapter(ILogger logger, string container)
         {
-            Container = serviceName;
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "Cache container is required.",
+                    nameof(container));
+
             _logger = logger;
+
+            Container = container.Trim();
+
             _cache = new MemoryCache(new MemoryCacheOptions());
         }
 
-        public string Container {  get; private set; }
 
-        private string GetScopedKey(string key) => $"{Container}_{key}";
-
-        public Task<T?> GetAsync<T>(string key)
+        private string GetScopedKey(string key, string container)
         {
-            key = GetScopedKey(key);
+            return $"{container}:{key}";
+        }
+
+
+        private Task<T?> GetInternalAsync<T>(string key, string container)
+        {
+            key = GetScopedKey(key, container);
 
             if (_cache.TryGetValue(key, out var value))
             {
@@ -40,9 +52,27 @@ namespace Caching.Infrastructure.Adapters.Memory
             return Task.FromResult(default(T?));
         }
 
+
+        public Task<T?> GetAsync<T>(string key)
+        {
+            return GetInternalAsync<T>(key, Container);
+        }
+
+
+        public Task<T?> GetFromContainerAsync<T>(string key, string container)
+        {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "Cache container is required.",
+                    nameof(container));
+
+            return GetInternalAsync<T>(key, container);
+        }
+
+
         public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
-            key = GetScopedKey(key);
+            key = GetScopedKey(key, Container);
             var options = new MemoryCacheEntryOptions();
 
             if (expiration.HasValue)
@@ -60,9 +90,10 @@ namespace Caching.Infrastructure.Adapters.Memory
             return Task.CompletedTask;
         }
 
+
         public Task RemoveAsync(string key)
         {
-            key = GetScopedKey(key);
+            key = GetScopedKey(key, Container);
             _logger.LogDebug("Removing cache entry for {Key}", key);
 
             _cache.Remove(key);
@@ -70,14 +101,38 @@ namespace Caching.Infrastructure.Adapters.Memory
             return Task.CompletedTask;
         }
 
-        public Task<bool> ExistsAsync(string key)
+
+        private Task<bool> ExistsInternalAsync(string key, string container)
         {
-            key = GetScopedKey(key);
+            key = GetScopedKey(key, container);
+
             var exists = _cache.TryGetValue(key, out _);
-            _logger.LogDebug("Checking existence for {Key}: {Exists}", key, exists);
+
+            _logger.LogDebug(
+                "Checking existence for {Key}: {Exists}",
+                key,
+                exists);
 
             return Task.FromResult(exists);
         }
+
+
+        public Task<bool> ExistsAsync(string key)
+        {
+            return ExistsInternalAsync(key, Container);
+        }
+        
+
+        public Task<bool> ExistsInContainerAsync(string key, string container)
+        {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "Cache container is required.",
+                    nameof(container));
+
+            return ExistsInternalAsync(key, container);
+        }
+
 
         public void Dispose()
         {
@@ -87,5 +142,6 @@ namespace Caching.Infrastructure.Adapters.Memory
                 disposable.Dispose();
             }
         }
+
     }
 }

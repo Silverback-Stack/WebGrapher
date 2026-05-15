@@ -9,28 +9,47 @@ namespace Caching.Infrastructure.Adapters.FileStorage
     {
         private readonly ILogger _logger;
 
-        public string Container { get; private set; }
+        public string Container { get; }
+        private readonly string _containerPath;
 
         /// <summary>
         /// In-storage cache adapter for local development.
         /// </summary>
         public FileStorageCacheAdapter(
-            string serviceName, 
             ILogger logger,
+            string container, 
             FileStorageSettings cacheSettings)
         {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "Cache container is required.",
+                    nameof(container));
+
             _logger = logger;
 
-            Container = CreateContainer(serviceName, cacheSettings.ContainerName);
+            Container = container.Trim();
+            _containerPath = CreateContainer(Container);
 
             //fire on background thread
             _ = ClearCacheAsync(cacheSettings.AbsoluteExpiryHours);
         }
 
-        private string CreateContainer(string serviceName, string containerName)
-        {
-            var folderName = $"{containerName}-{serviceName}".ToLowerInvariant();
 
+        private string CreateContainer(string container)
+        {
+            // File system folder names may contain invalid characters
+            // depending on the operating system and file system.
+            // Normalize the logical container name into a filesystem-safe folder name.
+
+            var invalidChars = Path.GetInvalidFileNameChars();
+
+            // Replace invalid filesystem characters with hyphens
+            var folderName = string.Concat(
+                container
+                    .ToLowerInvariant()
+                    .Select(c => invalidChars.Contains(c) ? '-' : c));
+
+            // Map the logical cache container to a physical folder path
             var containerPath = Path.Combine(AppContext.BaseDirectory, folderName);
 
             try
@@ -39,28 +58,28 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Unable to create cache container {Path}", containerPath);
+                _logger.LogWarning(ex, 
+                    "Unable to create cache container {Path}", 
+                    containerPath);
                 throw;
             }
 
             return containerPath;
         }
 
-        private string GetFilePath(string key) => Path.Combine(Container, key);
 
-
-        public Task<bool> ExistsAsync(string key)
+        private string GetFilePath(string key, string container)
         {
-            var path = GetFilePath(key);
-            bool exists = File.Exists(path);
-            return Task.FromResult(exists);
+            var containerPath = CreateContainer(container);
+            return Path.Combine(containerPath, key);
         }
 
-        public async Task<T?> GetAsync<T>(string key)
+
+        private async Task<T?> GetInternalAsync<T>(string key, string container)
         {
             try
             {
-                var path = GetFilePath(key);
+                var path = GetFilePath(key, container);
                 if (!File.Exists(path)) return default;
 
                 if (typeof(T) == typeof(byte[]))
@@ -68,7 +87,8 @@ namespace Caching.Infrastructure.Adapters.FileStorage
                     var bytes = await File.ReadAllBytesAsync(path);
                     return (T)(object)bytes;
                 }
-                else if (typeof(T) == typeof(Stream))
+
+                if (typeof(T) == typeof(Stream))
                 {
                     var stream = File.OpenRead(path);
                     return (T)(object)stream;
@@ -79,14 +99,62 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Unable to read file {Key}", key);
+                _logger.LogWarning(
+                    ex,
+                    "Unable to read file {Key} from container {Container}",
+                    key,
+                    container);
+
                 return default;
             }
         }
 
+
+        private Task<bool> ExistsInternalAsync(string key, string container)
+        {
+            var path = GetFilePath(key, container);
+            return Task.FromResult(File.Exists(path));
+        }
+
+
+        public async Task<bool> ExistsAsync(string key)
+        {
+            return await ExistsInternalAsync(key, Container);
+        }
+
+
+        public async Task<bool> ExistsInContainerAsync(string key, string container)
+        {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "Cache container is required.",
+                    nameof(container));
+
+            return await ExistsInternalAsync(key, container);
+        }
+
+
+
+        public async Task<T?> GetAsync<T>(string key)
+        {
+            return await GetInternalAsync<T>(key, Container);
+        }
+
+
+        public async Task<T?> GetFromContainerAsync<T>(string key, string container)
+        {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "Cache container is required.",
+                    nameof(container));
+
+            return await GetInternalAsync<T>(key, container);
+        }
+
+
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
-            var path = GetFilePath(key);
+            var path = GetFilePath(key, Container);
 
             try
             {
@@ -120,9 +188,10 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             }
         }
 
+
         public Task RemoveAsync(string key)
         {
-            var path = GetFilePath(key);
+            var path = GetFilePath(key, Container);
 
             try
             {
@@ -137,10 +206,11 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             return Task.CompletedTask;
         }
 
+
         public Task ClearCacheAsync(int absoluteExpirationHours)
         {
             var cutoff = DateTime.UtcNow.AddHours(-absoluteExpirationHours);
-            var filePath = GetFilePath(string.Empty); //root path
+            var filePath = GetFilePath(string.Empty, Container); //root path
 
             foreach (var file in Directory.GetFiles(filePath))
                 if (File.GetLastWriteTimeUtc(file) < cutoff)
@@ -149,9 +219,11 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             return Task.CompletedTask;
         }
 
+
         public void Dispose()
         {
             //nothing to do
         }
+
     }
 }

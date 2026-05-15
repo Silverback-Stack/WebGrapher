@@ -12,24 +12,27 @@ namespace Caching.Core.Helpers
             int minDurationInMinutes, 
             int maxDurationInMinutes)
         {
+            // Ensure min duration is not greater than max allowed duration.
             if (minDurationInMinutes > maxDurationInMinutes)
                 throw new ArgumentException("minDuration cannot be greater than maxDuration");
 
-            if (!expires.HasValue || 
-                expires <= DateTimeOffset.UtcNow)
-            {
+            // If expiry is missing, or expired, fall back to min cache duration.
+            if (!expires.HasValue || expires <= DateTimeOffset.UtcNow)
                 //no expiry provided, default to minimum TTL
                 return TimeSpan.FromMinutes(minDurationInMinutes);
-            }
 
+            // Calculate remaining cache duration.
             var cacheDuration = expires.Value - DateTimeOffset.UtcNow;
+
+            // Convert bounds to TimeSpan values.
             var minDuration = TimeSpan.FromMinutes(minDurationInMinutes);
             var maxDuration = TimeSpan.FromMinutes(maxDurationInMinutes);
 
-            //override expires within range of values
+            // Clamp duration within configured bounds.
             if (cacheDuration > maxDuration) cacheDuration = maxDuration;
             if (cacheDuration < minDuration) cacheDuration = minDuration;
 
+            // Return valid positive duration or null if no valid cache duration.
             return cacheDuration > TimeSpan.Zero ? cacheDuration : null;
         }
     }

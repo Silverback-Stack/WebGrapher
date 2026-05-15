@@ -9,9 +9,11 @@ namespace Caching.Factories
     {
         public CacheProvider Provider { get; set; } = CacheProvider.Memory;
 
+        public string Container { get; set; } = "default.cache";
+
         public FileStorageSettings FileStorage { get; set; } = new FileStorageSettings();
 
-        public RedisSettings Redis { get; set; } = new RedisSettings();
+        public RedisCacheSettings Redis { get; set; } = new RedisCacheSettings();
 
         public BlobStorageSettings BlobStorage { get; set; } = new BlobStorageSettings();
     }

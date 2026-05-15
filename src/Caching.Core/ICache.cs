@@ -3,6 +3,9 @@ namespace Caching.Core
 {
     public interface ICache : IDisposable
     {
+        /// <summary>
+        /// Logical cache boundary used to group and share cached data across services.
+        /// </summary>
         string Container { get; }
 
         /// <summary>
@@ -24,6 +27,19 @@ namespace Caching.Core
         /// Check if a key exists in the cache.
         /// </summary>
         Task<bool> ExistsAsync(string key);
+
+
+        /// <summary>
+        /// Retrieve a cached item from a specific logical container.
+        /// Used when reading cached data produced by another service.
+        /// </summary>
+        Task<T?> GetFromContainerAsync<T>(string key, string container);
+
+        /// <summary>
+        /// Check if a key exists in a specific logical container.
+        /// Used when checking for cached data produced by another service.
+        /// </summary>
+        Task<bool> ExistsInContainerAsync(string key, string container);
 
     }
 }
