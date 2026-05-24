@@ -4,6 +4,7 @@
     {
         Memory,
         FileStorage,
+
         Redis,
         BlobStorage
     }

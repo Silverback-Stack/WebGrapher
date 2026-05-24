@@ -30,12 +30,18 @@ namespace Caching.Infrastructure.Adapters.Memory
         }
 
 
+        /// <summary>
+        /// Returns a container-scoped cache key.
+        /// </summary>
         private string GetScopedKey(string key, string container)
         {
             return $"{container}:{key}";
         }
 
 
+        /// <summary>
+        /// Retrieves an object from the specified cache container.
+        /// </summary>
         private Task<T?> GetInternalAsync<T>(string key, string container)
         {
             key = GetScopedKey(key, container);
@@ -53,12 +59,69 @@ namespace Caching.Infrastructure.Adapters.Memory
         }
 
 
+        /// <summary>
+        /// Checks whether an object exists in the specified cache container.
+        /// </summary>
+        private Task<bool> ExistsInternalAsync(string key, string container)
+        {
+            key = GetScopedKey(key, container);
+
+            var exists = _cache.TryGetValue(key, out _);
+
+            _logger.LogDebug(
+                "Checking existence for {Key}: {Exists}",
+                key,
+                exists);
+
+            return Task.FromResult(exists);
+        }
+
+
+        public void Dispose()
+        {
+            if (_cache is IDisposable disposable)
+            {
+                _logger.LogDebug("Disposing: {Name}", typeof(MemoryCacheAdapter).Name);
+                disposable.Dispose();
+            }
+        }
+
+
+        /// <summary>
+        /// Checks whether an object exists in the default container.
+        /// </summary>
+        public Task<bool> ExistsAsync(string key)
+        {
+            return ExistsInternalAsync(key, Container);
+        }
+
+
+        /// <summary>
+        /// Checks whether an object exists in the specified container.
+        /// </summary>
+        public Task<bool> ExistsInContainerAsync(string key, string container)
+        {
+            if (string.IsNullOrWhiteSpace(container))
+                throw new ArgumentException(
+                    "Cache container is required.",
+                    nameof(container));
+
+            return ExistsInternalAsync(key, container);
+        }
+
+
+        /// <summary>
+        /// Retrieves an object from the default cache container.
+        /// </summary>
         public Task<T?> GetAsync<T>(string key)
         {
             return GetInternalAsync<T>(key, Container);
         }
 
 
+        /// <summary>
+        /// Retrieves an object from the specified cache container.
+        /// </summary>
         public Task<T?> GetFromContainerAsync<T>(string key, string container)
         {
             if (string.IsNullOrWhiteSpace(container))
@@ -70,6 +133,24 @@ namespace Caching.Infrastructure.Adapters.Memory
         }
 
 
+        /// <summary>
+        /// Removes an object from the default cache container.
+        /// </summary>
+        public Task RemoveAsync(string key)
+        {
+            key = GetScopedKey(key, Container);
+
+            _logger.LogDebug("Removing cache entry for {Key}", key);
+
+            _cache.Remove(key);
+
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Adds or updates an object in the default cache container.
+        /// </summary>
         public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
             key = GetScopedKey(key, Container);
@@ -89,59 +170,5 @@ namespace Caching.Infrastructure.Adapters.Memory
 
             return Task.CompletedTask;
         }
-
-
-        public Task RemoveAsync(string key)
-        {
-            key = GetScopedKey(key, Container);
-            _logger.LogDebug("Removing cache entry for {Key}", key);
-
-            _cache.Remove(key);
-
-            return Task.CompletedTask;
-        }
-
-
-        private Task<bool> ExistsInternalAsync(string key, string container)
-        {
-            key = GetScopedKey(key, container);
-
-            var exists = _cache.TryGetValue(key, out _);
-
-            _logger.LogDebug(
-                "Checking existence for {Key}: {Exists}",
-                key,
-                exists);
-
-            return Task.FromResult(exists);
-        }
-
-
-        public Task<bool> ExistsAsync(string key)
-        {
-            return ExistsInternalAsync(key, Container);
-        }
-        
-
-        public Task<bool> ExistsInContainerAsync(string key, string container)
-        {
-            if (string.IsNullOrWhiteSpace(container))
-                throw new ArgumentException(
-                    "Cache container is required.",
-                    nameof(container));
-
-            return ExistsInternalAsync(key, container);
-        }
-
-
-        public void Dispose()
-        {
-            if (_cache is IDisposable disposable)
-            {
-                _logger.LogDebug("Disposing: {Name}", typeof(MemoryCacheAdapter).Name);
-                disposable.Dispose();
-            }
-        }
-
     }
 }
