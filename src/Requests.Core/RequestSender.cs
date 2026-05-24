@@ -183,21 +183,21 @@ namespace Requests.Core
 
 
         /// <summary>
-        /// Caches the response metadata and payload if the response is eligible for caching.
+        /// Determines whether a response status code is eligible for request-result caching.
+        /// Used to avoid repeatedly requesting resources that are unlikely to change immediately.
         /// </summary>
         private static bool IsCacheable(HttpStatusCode statusCode)
         {
             switch (statusCode)
             {
                 case HttpStatusCode.OK:
-                case HttpStatusCode.NonAuthoritativeInformation:
+                case HttpStatusCode.NotFound:
+                case HttpStatusCode.Gone:
                 case HttpStatusCode.NoContent:
-                case HttpStatusCode.PartialContent:
+                case HttpStatusCode.NonAuthoritativeInformation:
                 case HttpStatusCode.MultipleChoices:
                 case HttpStatusCode.MovedPermanently:
-                case HttpStatusCode.NotFound:
                 case HttpStatusCode.MethodNotAllowed:
-                case HttpStatusCode.Gone:
                 case HttpStatusCode.NotImplemented:
                     return true;
 

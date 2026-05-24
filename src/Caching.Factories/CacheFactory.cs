@@ -10,27 +10,27 @@ namespace Caching.Factories
 {
     public static class CacheFactory
     {
-        public static ICache Create(ILogger logger, CacheConfig cacheSettings)
+        public static ICache Create(ILogger logger, CacheConfig cacheConfig)
         {
-            if (cacheSettings is null)
-                throw new ArgumentNullException(nameof(cacheSettings));
+            if (cacheConfig is null)
+                throw new ArgumentNullException(nameof(cacheConfig));
 
-            switch (cacheSettings.Provider)
+            switch (cacheConfig.Provider)
             {
                 case CacheProvider.Memory:
-                    return new MemoryCacheAdapter(logger, cacheSettings.Container);
+                    return new MemoryCacheAdapter(logger, cacheConfig.Container);
 
                 case CacheProvider.FileStorage:
-                    return new FileStorageCacheAdapter(logger, cacheSettings.Container, cacheSettings.FileStorage);
+                    return new FileStorageCacheAdapter(logger, cacheConfig.Container, cacheConfig.FileStorage);
 
                 case CacheProvider.Redis:
-                    return new RedisCacheAdapter(logger, cacheSettings.Container, cacheSettings.Redis);
+                    return new RedisCacheAdapter(logger, cacheConfig.Container, cacheConfig.Redis);
 
                 case CacheProvider.BlobStorage:
-                    return new BlobStorageCacheAdapter(logger,cacheSettings.Container, cacheSettings.BlobStorage);
+                    return new BlobStorageCacheAdapter(logger,cacheConfig.Container, cacheConfig.BlobStorage);
 
                 default:
-                    throw new NotSupportedException($"Caching option '{cacheSettings.Provider}' is not supported.");
+                    throw new NotSupportedException($"Caching option '{cacheConfig.Provider}' is not supported.");
             }
         }
 

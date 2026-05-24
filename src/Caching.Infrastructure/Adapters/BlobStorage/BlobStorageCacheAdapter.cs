@@ -189,6 +189,9 @@ namespace Caching.Infrastructure.Adapters.BlobStorage
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
+            // Blob storage expiration is handled by background cleanup
+            // using LastModified timestamps rather than per-object TTL.
+
             try
             {
                 var blob = GetBlobClient(key, Container);
