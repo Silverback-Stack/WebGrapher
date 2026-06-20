@@ -166,11 +166,10 @@ namespace Crawler.Core
             }
 
 
-            // Check if the site is currently rate-limited for this request sender's partition.
+            // Check if the site is currently rate-limited for this request senders rate limit group.
             var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 request.Url,
-                request.Options.UserAgent,
-                _requestSender.PartitionKey);
+                _requestSender.GroupKey);
 
             if (limitedUntil is not null)
             {
@@ -193,9 +192,8 @@ namespace Crawler.Core
 
             var effectiveRetryAfter = await _sitePolicyResolver.SetRateLimitAsync(
                 request.Url,
-                request.Options.UserAgent,
                 retryAfter,
-                evt.PartitionKey);
+                evt.RequestSenderGroupKey);
 
             await PublishScheduledCrawlPageEventAsync(request, effectiveRetryAfter);
         }

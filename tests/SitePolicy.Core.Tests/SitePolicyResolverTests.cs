@@ -18,8 +18,8 @@ namespace SitePolicy.Core.Tests
 
         private Uri _url;
         private string _userAgent = "TestBot";
-        private string _partitionKey1 = "crawler-1";
-        private string _partitionKey2 = "crawler-2";
+        private string _groupKey1 = "crawler-1";
+        private string _groupKey2 = "crawler-2";
 
         [SetUp]
         public void Setup()
@@ -36,8 +36,8 @@ namespace SitePolicy.Core.Tests
             _url = new Uri("http://example.com/page.html");
 
             // Mock the RequestSender partition key (represents this crawler instance)
-            _requestSender.SetupGet(x => x.PartitionKey)
-                .Returns(_partitionKey1);
+            _requestSender.SetupGet(x => x.GroupKey)
+                .Returns(_groupKey1);
 
             // Mock cache GET for rate limit policy (reads from in-memory dictionary)
             _policyCache
@@ -82,8 +82,8 @@ namespace SitePolicy.Core.Tests
             // Configure site policy settings
             var settings = new SitePolicySettings
             {
-                UserAccepts = "text/plain",
-                AbsoluteExpiryMinutes = 20
+                RobotsUserAccepts = "text/plain",
+                PolicyExpiryMinutes = 20
             };
 
             // Create the resolver under test (using real implementation + mocked dependencies)
@@ -123,7 +123,7 @@ namespace SitePolicy.Core.Tests
                     IsFromCache = false,
                     Key = "robots",
                     Container = "Blobs",
-                    PartitionKey = _partitionKey1
+                    RequestSenderGroupKey = _groupKey1
                 }
             };
 
@@ -178,7 +178,7 @@ namespace SitePolicy.Core.Tests
                     IsFromCache = false,
                     Key = "robots",
                     Container = "Blobs",
-                    PartitionKey = _partitionKey1
+                    RequestSenderGroupKey = _groupKey1
                 }
             };
 
@@ -259,7 +259,7 @@ namespace SitePolicy.Core.Tests
                     IsFromCache = false,
                     Key = "robots",
                     Container = "Blobs",
-                    PartitionKey = _partitionKey1
+                    RequestSenderGroupKey = _groupKey1
                 }
             };
 
@@ -279,8 +279,8 @@ namespace SitePolicy.Core.Tests
                 _userAgent);
 
             // Act: switch to another request sender partition
-            _requestSender.SetupGet(x => x.PartitionKey)
-                .Returns(_partitionKey2);
+            _requestSender.SetupGet(x => x.GroupKey)
+                .Returns(_groupKey2);
 
             // Act: second partition should reuse the cached robots policy
             var secondResult = await _sitePolicyResolver.IsPermittedByRobotsTxtAsync(
@@ -310,8 +310,7 @@ namespace SitePolicy.Core.Tests
             // Act: retrieve rate limit when no policy has been stored
             var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
-                _userAgent,
-                _partitionKey1);
+                _groupKey1);
 
             // Assert: no rate limit exists
             Assert.That(limitedUntil, Is.Null);
@@ -326,40 +325,35 @@ namespace SitePolicy.Core.Tests
             // Arrange: set the expired rate limit for crawler-1
             await _sitePolicyResolver.SetRateLimitAsync(
                 _url,
-                _userAgent,
                 expiredUntil,
-                _partitionKey1);
+                _groupKey1);
 
             // Act: retrieve rate limit for crawler-1
             var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
-                _userAgent,
-                _partitionKey1);
+                _groupKey1);
 
             // Assert: expired rate limit is treated as not limited
             Assert.That(limitedUntil, Is.Null);
         }
 
         [Test]
-        public async Task GetRateLimitAsync_WhenPartitionKeyProvided_UsesThatPartitionKey()
+        public async Task GetRateLimitAsync_WhenRateLimitGroupKeyProvided_UsesThatRateLimitGroupKey()
         {
             var limitedUntil = DateTimeOffset.UtcNow.AddMinutes(5);
 
             await _sitePolicyResolver.SetRateLimitAsync(
                 _url,
-                _userAgent,
                 limitedUntil,
-                _partitionKey1);
+                _groupKey1);
 
             var samePartitionResult = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
-                _userAgent,
-                _partitionKey1);
+                _groupKey1);
 
             var differentPartitionResult = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
-                _userAgent,
-                _partitionKey2);
+                _groupKey2);
 
             Assert.That(samePartitionResult, Is.EqualTo(limitedUntil));
             Assert.That(differentPartitionResult, Is.Null);
@@ -374,21 +368,18 @@ namespace SitePolicy.Core.Tests
             // Act: set rate limit for partition-1
             await _sitePolicyResolver.SetRateLimitAsync(
                 _url,
-                _userAgent,
                 limitedUntil,
-                _partitionKey1);
+                _groupKey1);
 
             // Act: retrieve rate limit for partition-1
             var partition1LimitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
-                _userAgent,
-                _partitionKey1);
+                _groupKey1);
 
             // Act: retrieve rate limit for partition-2 (different cache partition)
             var partition2LimitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
-                _userAgent,
-                _partitionKey2);
+                _groupKey2);
 
 
             // Assert: partition-1 is rate limited
@@ -410,22 +401,19 @@ namespace SitePolicy.Core.Tests
             // Act: set the earlier rate limit first
             await _sitePolicyResolver.SetRateLimitAsync(
                 _url,
-                _userAgent,
                 earlierUntil,
-                _partitionKey1);
+                _groupKey1);
 
             // Act: set the later rate limit second
             var effectiveUntil = await _sitePolicyResolver.SetRateLimitAsync(
                 _url,
-                _userAgent,
                 laterUntil,
-                _partitionKey1);
+                _groupKey1);
 
             // Act: read back the stored rate limit
             var storedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
-                _userAgent,
-                _partitionKey1);
+                _groupKey1);
 
             // Assert: the later rate limit is kept after merge
             Assert.That(effectiveUntil, Is.EqualTo(laterUntil));
@@ -445,22 +433,19 @@ namespace SitePolicy.Core.Tests
             // Act: set the later rate limit first
             await _sitePolicyResolver.SetRateLimitAsync(
                 _url,
-                _userAgent,
                 laterUntil,
-                _partitionKey1);
+                _groupKey1);
 
             // Act: attempt to replace it with an earlier rate limit
             var effectiveUntil = await _sitePolicyResolver.SetRateLimitAsync(
                 _url,
-                _userAgent,
                 earlierUntil,
-                _partitionKey1);
+                _groupKey1);
 
             // Act: read back the stored rate limit
             var storedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 _url,
-                _userAgent,
-                _partitionKey1);
+                _groupKey1);
 
             // Assert: the earlier rate limit does NOT replace the later one
             Assert.That(effectiveUntil, Is.EqualTo(laterUntil));

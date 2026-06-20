@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace SitePolicy.Core
 {
+    /// <summary>
+    /// Represents a robots.txt policy for a site.
+    /// </summary>
     public record SiteRobotsPolicyItem
     {
         public required string UrlAuthority { get; init; }

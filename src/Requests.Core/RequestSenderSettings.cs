@@ -8,10 +8,10 @@ namespace Requests.Core
         public int CacheMaxAbsoluteExpiryMinutes { get; set; } = 20;
 
         /// <summary>
-        /// Optional key used to group services under the same rate-limit partition.
-        /// Services with the same value will share rate-limit state (e.g. same IP or region).
-        /// If not set, each RequestSender instance uses a unique key and is rate-limited independently.
+        /// Optional key used to group RequestSender instances that share the same outbound identity.
+        /// Request Senders using the same key belong to the same group.
+        /// If not set, each RequestSender instance uses a unique key and operates independently.
         /// </summary>
-        public string RateLimitGroupKey { get; set; } = string.Empty;
+        public string GroupKey { get; set; } = string.Empty;
     }
 }
