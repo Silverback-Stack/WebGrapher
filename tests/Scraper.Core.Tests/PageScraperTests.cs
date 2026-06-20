@@ -21,7 +21,7 @@ namespace Scraper.Core.Tests
         private Uri _url;
         private string _userAgent = "";
         private string _userAccepts = "";
-        private string _partitionKey = "scraper-1";
+        private string _groupKey = "scraper-1";
 
         [SetUp]
         public void Setup()
@@ -55,12 +55,12 @@ namespace Scraper.Core.Tests
                     IsFromCache = false,
                     Key = "Blob1",
                     Container = "Blobs",
-                    PartitionKey = _partitionKey
+                    RequestSenderGroupKey = _groupKey
                 }
             };
 
-            _requestSender.SetupGet(x => x.PartitionKey)
-                .Returns(_partitionKey);
+            _requestSender.SetupGet(x => x.GroupKey)
+                .Returns(_groupKey);
 
             _requestSender.Setup(rs => rs.FetchAsync(
                 _url, 
@@ -73,8 +73,7 @@ namespace Scraper.Core.Tests
 
             _sitePolicyResolver.Setup(sp => sp.GetRateLimitAsync(
                     It.IsAny<Uri>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string?>()))
+                    It.IsAny<string>()))
                 .ReturnsAsync((DateTimeOffset?)null);
 
             var scraperSettings = new ScraperSettings();

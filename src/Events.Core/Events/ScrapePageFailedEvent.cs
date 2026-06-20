@@ -14,9 +14,9 @@ namespace Events.Core.Events
         public DateTimeOffset? RetryAfter { get; init; }
 
         /// <summary>
-        /// Identifies the request sender partition for this failure.
+        /// Identifies the request sender group for this failure.
         /// Used to ensure consistent retries and rate-limiting.
         /// </summary>
-        public required string PartitionKey { get; init; }
+        public required string RequestSenderGroupKey { get; init; }
     }
 }

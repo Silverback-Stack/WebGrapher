@@ -4,10 +4,10 @@ namespace Caching.Core.Helpers
     public static class CacheDurationHelper
     {
         /// <summary>
-        /// Returns a clamped duration between now and the provided expiry,
-        /// within configured bounds. Returns minimal TTL if expiry is missing or already expired.
+        /// Returns a cache duration clamped within configured bounds.
+        /// If expiry is missing or already expired, returns the minimum fallback duration.
         /// </summary>
-        public static TimeSpan? Clamp(
+        public static TimeSpan Clamp(
             DateTimeOffset? expires, 
             int minDurationInMinutes, 
             int maxDurationInMinutes)
@@ -33,7 +33,7 @@ namespace Caching.Core.Helpers
             if (cacheDuration < minDuration) cacheDuration = minDuration;
 
             // Return valid positive duration or null if no valid cache duration.
-            return cacheDuration > TimeSpan.Zero ? cacheDuration : null;
+            return cacheDuration;
         }
     }
 }

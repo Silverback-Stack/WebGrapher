@@ -98,6 +98,9 @@ namespace Caching.Infrastructure.Adapters.FileStorage
         /// </summary>
         private string GetFilePath(string key, string container)
         {
+            if (string.IsNullOrWhiteSpace(key))
+                throw new ArgumentException("Cache key is required.", nameof(key));
+
             var containerPath = CreateContainer(container);
 
             return Path.Combine(containerPath, key);
@@ -125,6 +128,8 @@ namespace Caching.Infrastructure.Adapters.FileStorage
                 var path = GetFilePath(key, container);
                 if (!File.Exists(path)) return default;
 
+                _logger.LogDebug("Cache hit for {Container}:{Key}", container, key);
+
                 var expired = IsExpired(path, _fileStorageSettings.AbsoluteExpiryHours);
                 if (expired) return default;
 
@@ -148,11 +153,7 @@ namespace Caching.Infrastructure.Adapters.FileStorage
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(
-                    ex,
-                    "Unable to read file {Key} from container {Container}",
-                    key,
-                    container);
+                _logger.LogDebug("Cache miss for {Container}:{Key}", container, key);
 
                 return default;
             }
@@ -165,11 +166,18 @@ namespace Caching.Infrastructure.Adapters.FileStorage
         private Task<bool> ExistsInternalAsync(string key, string container)
         {
             var path = GetFilePath(key, container);
-            if (!File.Exists(path)) return Task.FromResult(false);
 
-            var expired = IsExpired(path, _fileStorageSettings.AbsoluteExpiryHours);
+            var exists =
+                File.Exists(path) &&
+                !IsExpired(path, _fileStorageSettings.AbsoluteExpiryHours);
 
-            return Task.FromResult(!expired);
+            _logger.LogDebug(
+                "Checking existence for {Container}:{Key}: {Exists}",
+                container,
+                key,
+                exists);
+
+            return Task.FromResult(exists);
         }
 
 
@@ -290,6 +298,11 @@ namespace Caching.Infrastructure.Adapters.FileStorage
                     await writer.WriteAsync(json ?? string.Empty);
                     await writer.FlushAsync();
                 }
+
+                _logger.LogDebug("Setting cache for {Container}:{Key} with TTL: {Value}",
+                    Container,
+                    key,
+                    TimeSpan.FromHours(_fileStorageSettings.AbsoluteExpiryHours));
             }
             catch (Exception ex)
             {

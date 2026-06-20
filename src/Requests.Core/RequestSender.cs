@@ -14,7 +14,7 @@ namespace Requests.Core
         private readonly IHttpTransport _httpTransport;
         private readonly RequestSenderSettings _requestSenderSettings;
 
-        private readonly string _partitionKey;
+        private readonly string _groupKey;
 
         public RequestSender(
             ILogger logger, 
@@ -29,16 +29,26 @@ namespace Requests.Core
             _blobCache = blobCache;
             _httpTransport = httpTransport;
 
-            // Determine the partition key used for rate limiting.
-            // If a RateLimitGroupKey is provided, all services using the same value
-            // will share the same rate-limit partition (e.g. same IP / region).
-            // If not provided, generate a unique key so this instance is isolated.
-            _partitionKey = string.IsNullOrWhiteSpace(_requestSenderSettings.RateLimitGroupKey)
-                ? Guid.NewGuid().ToString("N")
-                : _requestSenderSettings.RateLimitGroupKey;
+            _groupKey = ResolveGroupKey();
         }
 
-        public string PartitionKey => _partitionKey;
+
+        public string GroupKey => _groupKey;
+
+
+        /// <summary>
+        /// Resolve the group key for this Request Sender.
+        /// If a GroupKey is configured, Request Senders using the same value belong to the same group.
+        /// If no value is configured, generate a unique key so this instance is grouped independently.
+        /// </summary>
+        private string ResolveGroupKey()
+        {
+            if (!string.IsNullOrWhiteSpace(_requestSenderSettings.GroupKey))
+                return _requestSenderSettings.GroupKey;
+
+            return Guid.NewGuid().ToString("N");
+        }
+
 
         /// <summary>
         /// Fetches content from the specified URL, using cached data when available,
@@ -91,7 +101,7 @@ namespace Requests.Core
                     IsFromCache = false,
                     Key = key,
                     Container = _blobCache.Container,
-                    PartitionKey = PartitionKey
+                    RequestSenderGroupKey = _groupKey
                 };
 
                 _logger.LogDebug(
@@ -155,7 +165,7 @@ namespace Requests.Core
                     IsFromCache = true,
                     Key = key,
                     Container = _blobCache.Container,
-                    PartitionKey = PartitionKey
+                    RequestSenderGroupKey = _groupKey
                 }
             };
         }
@@ -176,6 +186,7 @@ namespace Requests.Core
                 _requestSenderSettings.CacheMaxAbsoluteExpiryMinutes);
 
             var metaTask = _metaCache.SetAsync(key, responseEnvelope.Metadata, expiry);
+
             var blobTask = _blobCache.SetAsync(key, responseEnvelope.Data?.Payload, expiry);
 
             await Task.WhenAll(metaTask, blobTask);

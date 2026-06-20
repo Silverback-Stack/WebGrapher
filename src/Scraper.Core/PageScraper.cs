@@ -72,8 +72,7 @@ namespace Scraper.Core
             // Check if the site is currently rate-limited for this request sender's partition.
             var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 request.Url,
-                request.Options.UserAgent,
-                _requestSender.PartitionKey);
+                _requestSender.GroupKey);
 
             if (limitedUntil is not null)
             {
@@ -86,8 +85,7 @@ namespace Scraper.Core
             var response = await FetchAsync(
                 request.Url,
                 request.Options.UserAgent,
-                request.Options.UserAccepts,
-                request.RequestCompositeKey);
+                request.Options.UserAccepts);
 
 
             if (response is null)
@@ -133,7 +131,7 @@ namespace Scraper.Core
                 CrawlPageRequest = request,
                 CreatedAt = DateTimeOffset.UtcNow,
                 StatusCode = HttpStatusCode.ServiceUnavailable,
-                PartitionKey = _requestSender.PartitionKey
+                RequestSenderGroupKey = _requestSender.GroupKey
             };
 
             await PublishScrapePageFailedAsync(request, failedEvent);
@@ -150,7 +148,7 @@ namespace Scraper.Core
                 CreatedAt = DateTimeOffset.UtcNow,
                 StatusCode = HttpStatusCode.TooManyRequests,
                 RetryAfter = limitedUntil,
-                PartitionKey = _requestSender.PartitionKey
+                RequestSenderGroupKey = _requestSender.GroupKey
             };
 
             await PublishScrapePageFailedAsync(request, failedEvent);
@@ -168,7 +166,7 @@ namespace Scraper.Core
                 StatusCode = response.Metadata.StatusCode,
                 LastModified = response.Metadata.LastModified,
                 RetryAfter = response.Metadata.RetryAfter,
-                PartitionKey = response.Cache?.PartitionKey ?? _requestSender.PartitionKey
+                RequestSenderGroupKey = response.Cache?.RequestSenderGroupKey ?? _requestSender.GroupKey
             };
 
             await PublishScrapePageFailedAsync(request, failedEvent);

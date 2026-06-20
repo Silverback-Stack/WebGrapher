@@ -27,12 +27,18 @@ namespace SitePolicy.Core
             _sitePolicySettings = sitePolicySettings;
         }
 
+
+        /// <summary>
+        /// Determines whether a page is permitted to be crawled according
+        /// to the site's robots.txt policy.
+        /// </summary>
         public async Task<bool> IsPermittedByRobotsTxtAsync(
             Uri url,
             string userAgent)
         {
             var robotsPolicy = await GetOrCreateRobotsPolicyAsync(url, userAgent);
 
+            // If no robots.txt content is available, allow crawling.
             if (string.IsNullOrWhiteSpace(robotsPolicy.RobotsTxt))
                 return true;
 
@@ -43,58 +49,76 @@ namespace SitePolicy.Core
         }
 
 
+        /// <summary>
+        /// Returns the current Retry-After value if the site is rate limited;
+        /// otherwise returns null.
+        /// </summary>
         public async Task<DateTimeOffset?> GetRateLimitAsync(
             Uri url,
-            string userAgent,
-            string partitionKey)
+            string requestSenderGroupKey)
         {
-            var effectivePartitionKey = ResolvePartitionKey(partitionKey);
+            var effectiveGroupKey = ResolveRequestSenderGroupKey(requestSenderGroupKey);
 
-            var rateLimitPolicy = await GetRateLimitPolicyAsync(url, userAgent, effectivePartitionKey);
+            var rateLimitPolicy = await GetRateLimitPolicyAsync(url, effectiveGroupKey);
 
+            // Return the Retry-After value, or null if the value has expired.
             return rateLimitPolicy?.IsRateLimited == true
                 ? rateLimitPolicy.RetryAfter
                 : null;
         }
 
 
+        /// <summary>
+        /// Updates the site's rate limiting policy and returns the
+        /// effective Retry-After value after policy merging.
+        /// </summary>
         public async Task<DateTimeOffset?> SetRateLimitAsync(
             Uri url,
-            string userAgent,
             DateTimeOffset until,
-            string partitionKey)
+            string requestSenderGroupKey)
         {
-            var effectivePartitionKey = ResolvePartitionKey(partitionKey);
+            var effectiveGroupKey = ResolveRequestSenderGroupKey(requestSenderGroupKey);
 
             var rateLimitPolicy = new SiteRateLimitPolicyItem
             {
                 UrlAuthority = url.Authority,
                 CreatedAt = DateTimeOffset.UtcNow,
                 ModifiedAt = DateTimeOffset.UtcNow,
-                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_sitePolicySettings.AbsoluteExpiryMinutes),
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_sitePolicySettings.PolicyExpiryMinutes),
                 RetryAfter = until
             };
 
             var savedPolicy = await SetRateLimitPolicyAsync(
                 url,
-                userAgent,
                 rateLimitPolicy,
-                effectivePartitionKey);
+                effectiveGroupKey);
 
+            // Return the effective Retry-After value after merging.
             return savedPolicy.RetryAfter;
         }
 
 
+
+        /// <summary>
+        /// Retrieves a site's robots policy from the Policy Store,
+        /// creating and caching the policy if it does not already exist.
+        /// </summary>
         private async Task<SiteRobotsPolicyItem> GetOrCreateRobotsPolicyAsync(
             Uri url,
             string userAgent)
         {
-            var cacheKey = GetRobotsCacheKey(url, userAgent);
+            // Get the cache key constrained to the default UserAccepts value.
+            var cacheKey = GetRobotsCacheKey(
+                url, 
+                userAgent, 
+                _sitePolicySettings.RobotsUserAccepts);
 
+            // Return the existing policy if it has already been cached.
             var robotsPolicy = await _policyCache.GetAsync<SiteRobotsPolicyItem>(cacheKey);
             if (robotsPolicy is not null)
                 return robotsPolicy;
 
+            // Otherwise retrieve the site's robots.txt file and create a new policy.
             var robotsTxt = await FetchRobotsTxtAsync(url, userAgent);
 
             robotsPolicy = new SiteRobotsPolicyItem
@@ -102,54 +126,133 @@ namespace SitePolicy.Core
                 UrlAuthority = url.Authority,
                 CreatedAt = DateTimeOffset.UtcNow,
                 ModifiedAt = DateTimeOffset.UtcNow,
-                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_sitePolicySettings.AbsoluteExpiryMinutes),
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_sitePolicySettings.PolicyExpiryMinutes),
                 RobotsTxt = robotsTxt ?? string.Empty
             };
 
             _logger.LogDebug("Created robots policy for {Authority}", url.Authority);
 
+            // Store the newly created policy for future requests.
             await _policyCache.SetAsync(
                 cacheKey,
                 robotsPolicy,
-                TimeSpan.FromMinutes(_sitePolicySettings.AbsoluteExpiryMinutes));
+                TimeSpan.FromMinutes(_sitePolicySettings.PolicyExpiryMinutes));
 
             return robotsPolicy;
         }
 
 
-        private async Task<SiteRateLimitPolicyItem?> GetRateLimitPolicyAsync(
+        /// <summary>
+        /// Retrieves a site's robots.txt file and updates the site's
+        /// rate limiting policy if the request is rate limited.
+        /// </summary>
+        private async Task<string?> FetchRobotsTxtAsync(Uri url, string userAgent)
+        {
+            var robotsTxtUrl = new Uri($"{url.Scheme}://{url.Authority}/robots.txt");
+
+            // Fetch the robots.txt file and constrain the Accept header
+            // to content types supported by robots.txt processing.
+            var response = await _requestSender.FetchAsync(
+                robotsTxtUrl,
+                userAgent,
+                _sitePolicySettings.RobotsUserAccepts);
+
+            // If the request was rate limited,
+            // update the site's rate limiting policy.
+            var retryAfter = response?.Metadata.RetryAfter;
+            if (retryAfter is not null)
+            {
+                await SetRateLimitAsync(
+                    url,
+                    retryAfter.Value,
+                    _requestSender.GroupKey);
+            }
+
+            return ExtractRobotsTxt(response, url);
+        }
+
+
+        /// <summary>
+        /// Extracts and validates robots.txt content from a response.
+        /// </summary>
+        private string? ExtractRobotsTxt(HttpResponseEnvelope? response, Uri url)
+        {
+            if (response?.Metadata.StatusCode != HttpStatusCode.OK)
+                return null;
+
+            var robotsTxt = response.Data?.DecodeAsString(response.Metadata.Encoding);
+
+            // Some websites incorrectly return HTML pages instead of robots.txt,
+            // such as error pages or custom 404 responses.
+            var looksLikeHtml =
+                robotsTxt?.Contains("<html", StringComparison.OrdinalIgnoreCase) == true &&
+                robotsTxt?.Contains("<body", StringComparison.OrdinalIgnoreCase) == true;
+
+            if (!looksLikeHtml)
+                return robotsTxt;
+
+            _logger.LogDebug(
+                "Invalid Robots.txt detected for {Url}; file appears to be HTML.",
+                url.AbsoluteUri);
+
+            return null;
+        }
+
+
+        /// <summary>
+        /// Creates a cache key used to store and retrieve robots policies.
+        /// Policies are partitioned by site authority, user agent,
+        /// and request characteristics.
+        /// </summary>
+        private string GetRobotsCacheKey(
             Uri url,
             string userAgent,
-            string partitionKey)
+            string userAccepts)
         {
-            var cacheKey = GetRateLimitCacheKey(url, userAgent, partitionKey);
+            var compositeKey = $"{url.Authority}|{userAgent}|{userAccepts}|robots";
+
+            return CacheKeyHelper.ComputeCacheKey(compositeKey);
+        }
+
+
+
+        /// <summary>
+        /// Retrieves the rate limiting policy associated with the specified
+        /// site and request sender group.
+        /// </summary>
+        private async Task<SiteRateLimitPolicyItem?> GetRateLimitPolicyAsync(
+            Uri url,
+            string requestSenderGroupKey)
+        {
+            var cacheKey = GetRateLimitCacheKey(
+                url, 
+                requestSenderGroupKey);
 
             return await _policyCache.GetAsync<SiteRateLimitPolicyItem>(cacheKey);
         }
 
 
         /// <summary>
-        /// PATTERN: Optimistic Concurrency with merge-on-write.
-        /// Each service reads the latest version of the data, applies its changes,
-        /// and merges it with the latest version in the cache at write time.
+        /// Saves a rate limiting policy using the Optimistic Concurrency Pattern
+        /// to merge concurrent updates.
         /// </summary>
         private async Task<SiteRateLimitPolicyItem> SetRateLimitPolicyAsync(
             Uri url,
-            string userAgent,
             SiteRateLimitPolicyItem rateLimitPolicy,
-            string partitionKey)
+            string requestSenderGroupKey)
         {
-            var cacheKey = GetRateLimitCacheKey(url, userAgent, partitionKey);
-            var expiryDuration = TimeSpan.FromMinutes(_sitePolicySettings.AbsoluteExpiryMinutes);
+            var cacheKey = GetRateLimitCacheKey(url, requestSenderGroupKey);
+            var expiryDuration = TimeSpan.FromMinutes(_sitePolicySettings.PolicyExpiryMinutes);
 
             var existingPolicy = await _policyCache.GetAsync<SiteRateLimitPolicyItem>(cacheKey);
 
+            // Merge with the latest policy to resolve concurrent updates.
             if (existingPolicy is not null)
                 rateLimitPolicy = existingPolicy.Merge(rateLimitPolicy);
 
             _logger.LogDebug(
-                "Saving rate limit policy for: {Authority}, partition: {PartitionKey}, until: {RetryAfter}",
-                url.Authority, partitionKey, rateLimitPolicy.RetryAfter);
+                "Saving rate limit policy for: {Authority}, group key: {RequestSenderGroupKey}, until: {RetryAfter}",
+                url.Authority, requestSenderGroupKey, rateLimitPolicy.RetryAfter);
 
             await _policyCache.SetAsync(cacheKey, rateLimitPolicy, expiryDuration);
 
@@ -157,76 +260,32 @@ namespace SitePolicy.Core
         }
 
 
-        private async Task<string?> FetchRobotsTxtAsync(Uri url, string userAgent)
-        {
-            var robotsTxtUrl = new Uri($"{url.Scheme}://{url.Authority}/robots.txt");
-
-            var response = await _requestSender.FetchAsync(
-                robotsTxtUrl,
-                userAgent,
-                _sitePolicySettings.UserAccepts);
-
-            // Check if the request is rate limited
-            var retryAfter = response?.Metadata.RetryAfter;
-            if (retryAfter is not null)
-            {
-                await SetRateLimitAsync(
-                    url,
-                    userAgent,
-                    retryAfter.Value,
-                    _requestSender.PartitionKey);
-            }
-
-            string? robotsTxt = null;
-
-            if (response?.Metadata.StatusCode == HttpStatusCode.OK)
-            {
-                var encoding = response.Metadata.Encoding;
-                robotsTxt = response.Data?.DecodeAsString(encoding);
-
-                var contentType = response.Metadata.ContentType ?? string.Empty;
-                var looksLikeHtml =
-                    robotsTxt?.Contains("<html", StringComparison.OrdinalIgnoreCase) == true &&
-                    robotsTxt?.Contains("<body", StringComparison.OrdinalIgnoreCase) == true;
-
-                if (looksLikeHtml)
-                {
-                    _logger.LogDebug("Invalid Robots.txt detected for {Url}; file appears to be HTML.", url.AbsoluteUri);
-                    robotsTxt = null;
-                }
-            }
-
-            return robotsTxt;
-        }
-
         /// <summary>
-        /// Resolve the effective partition key, 
-        /// defaulting to the current RequestSender instance if none provided.
+        /// Creates a cache key used to store and retrieve rate limiting policies.
+        /// Policies are partitioned by site authority, and Request Sender Group Key.
         /// </summary>
-        private string ResolvePartitionKey(string partitionKey)
-        {
-            return string.IsNullOrWhiteSpace(partitionKey)
-                ? _requestSender.PartitionKey
-                : partitionKey;
-        }
-
-
-        private string GetRobotsCacheKey(Uri url, string userAgent)
-        {
-            var compositeKey = $"{url.Authority}|{userAgent}|{_sitePolicySettings.UserAccepts}|robots";
-            return CacheKeyHelper.ComputeCacheKey(compositeKey);
-        }
-
-
         private string GetRateLimitCacheKey(
             Uri url,
-            string userAgent,
-            string partitionKey)
+            string requestSenderGroupKey)
         {
-            var compositeKey = $"{url.Authority}|{userAgent}|{_sitePolicySettings.UserAccepts}|ratelimit|{partitionKey}";
+            var compositeKey = $"{url.Authority}|ratelimit|{requestSenderGroupKey}";
 
             return CacheKeyHelper.ComputeCacheKey(compositeKey);
         }
+
+
+
+        /// <summary>
+        /// Resolves the effective Request Sender Group Key,
+        /// defaulting to the current Request Sender instance if none is provided.
+        /// </summary>
+        private string ResolveRequestSenderGroupKey(string requestSenderGroupKey)
+        {
+            return string.IsNullOrWhiteSpace(requestSenderGroupKey)
+                ? _requestSender.GroupKey
+                : requestSenderGroupKey;
+        }
+
 
     }
 }

@@ -11,16 +11,6 @@
         public required CrawlPageRequestOptionsDto Options { get; init; }
         public DateTimeOffset RequestedAt { get; init; }
 
-        /// <summary>
-        /// Properties that make the network request unique.
-        /// </summary>
-        public string RequestCompositeKey =>
-            string.Join("|", new[]
-            {
-                Url?.AbsoluteUri ?? string.Empty,
-                Options.UserAgent ?? string.Empty,
-                Options.UserAccepts ?? string.Empty
-            });
 
         /// <summary>
         /// Properties that make the extracted data unique.

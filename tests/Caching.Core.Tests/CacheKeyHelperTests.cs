@@ -10,8 +10,9 @@ namespace Caching.Core.Tests
         {
         }
 
+
         [Test]
-        public void Generate_LongInputLenghts_ReturnSmallerLengthHash()
+        public void Generate_LongInputLengths_ReturnSmallerLengthHash()
         {
             var url = new Uri("https://www.example.com");
             var userAgent = "UserAgent_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
@@ -20,9 +21,11 @@ namespace Caching.Core.Tests
             var compositeKey = $"{url.AbsoluteUri}|{userAgent}|{userAccepts}";
             var result = CacheKeyHelper.ComputeCacheKey(compositeKey);
 
-            //SHA-256 hash output → 256 bits = 32 bytes
-            Assert.That(result, Has.Length.LessThanOrEqualTo(64));
+            // SHA-256 produces 32 bytes (256 bits),
+            // represented as a 64-character hexadecimal string.
+            Assert.That(result, Has.Length.EqualTo(64));
         }
+
 
         [Test]
         public void Generate_ConsistentValueGenerated_ReturnTrue()
@@ -37,7 +40,7 @@ namespace Caching.Core.Tests
 
             var result2 = CacheKeyHelper.ComputeCacheKey(compositeKey);
 
-            Assert.That(result1, Is.EquivalentTo(result2));
+            Assert.That(result1, Is.EqualTo(result2));
         }
     }
 }
