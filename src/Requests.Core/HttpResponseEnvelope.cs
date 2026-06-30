@@ -7,6 +7,8 @@ namespace Requests.Core
         public HttpResponseData? Data { get; set; }
 
         public CacheInfo? Cache { get; set; }
+
+        public string? RequestSenderGroupKey { get; set; }
     }
 
 }

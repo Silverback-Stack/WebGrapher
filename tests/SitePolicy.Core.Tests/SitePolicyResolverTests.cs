@@ -80,7 +80,7 @@ namespace SitePolicy.Core.Tests
                 });
 
             // Configure site policy settings
-            var settings = new SitePolicySettings
+            var settings = new SitePolicyResolverSettings
             {
                 RobotsUserAccepts = "text/plain",
                 PolicyExpiryMinutes = 20
@@ -122,9 +122,9 @@ namespace SitePolicy.Core.Tests
                 {
                     IsFromCache = false,
                     Key = "robots",
-                    Container = "Blobs",
-                    RequestSenderGroupKey = _groupKey1
-                }
+                    Container = "Blobs"
+                },
+                RequestSenderGroupKey = _groupKey1
             };
 
             _requestSender
@@ -177,9 +177,9 @@ namespace SitePolicy.Core.Tests
                 {
                     IsFromCache = false,
                     Key = "robots",
-                    Container = "Blobs",
-                    RequestSenderGroupKey = _groupKey1
-                }
+                    Container = "Blobs"
+                },
+                RequestSenderGroupKey = _groupKey1
             };
 
             _requestSender
@@ -258,9 +258,9 @@ namespace SitePolicy.Core.Tests
                 {
                     IsFromCache = false,
                     Key = "robots",
-                    Container = "Blobs",
-                    RequestSenderGroupKey = _groupKey1
-                }
+                    Container = "Blobs"
+                },
+                RequestSenderGroupKey = _groupKey1
             };
 
             _requestSender

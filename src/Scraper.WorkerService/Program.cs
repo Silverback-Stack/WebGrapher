@@ -86,7 +86,7 @@ namespace Scraper.WorkerService
                     logger,
                     policyCache,
                     requestSender,
-                    scraperConfig.Settings.SitePolicy);
+                    scraperConfig.Settings.SitePolicyResolver);
 
 
                 // Create Scraper Service

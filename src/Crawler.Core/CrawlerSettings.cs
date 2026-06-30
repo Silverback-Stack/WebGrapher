@@ -17,6 +17,6 @@ namespace Crawler.Core
 
         public int DefaultRetryDelaySeconds { get; set; } = 300;
 
-        public SitePolicySettings SitePolicy { get; set; } = new SitePolicySettings();
+        public SitePolicyResolverSettings SitePolicyResolver { get; set; } = new SitePolicyResolverSettings();
     }
 }

@@ -54,9 +54,9 @@ namespace Scraper.Core.Tests
                 {
                     IsFromCache = false,
                     Key = "Blob1",
-                    Container = "Blobs",
-                    RequestSenderGroupKey = _groupKey
-                }
+                    Container = "Blobs"
+                },
+                RequestSenderGroupKey = _groupKey
             };
 
             _requestSender.SetupGet(x => x.GroupKey)

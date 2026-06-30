@@ -78,7 +78,7 @@ namespace WebGrapher.Cli.InProcessHosts
                 logger, 
                 policyCache, 
                 requestSender, 
-                crawlerConfig.Settings.SitePolicy);
+                crawlerConfig.Settings.SitePolicyResolver);
 
 
 

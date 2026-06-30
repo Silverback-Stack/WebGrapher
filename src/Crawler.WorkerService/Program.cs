@@ -82,7 +82,7 @@ namespace Crawler.WorkerService
                     logger, 
                     policyCache, 
                     requestSender,
-                    crawlerConfig.Settings.SitePolicy);
+                    crawlerConfig.Settings.SitePolicyResolver);
 
                 // Create Crawler Service
                 var crawlerService = CrawlerFactory.Create(
