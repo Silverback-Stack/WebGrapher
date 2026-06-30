@@ -1,7 +1,7 @@
 ﻿
 namespace SitePolicy.Core
 {
-    public class SitePolicySettings
+    public class SitePolicyResolverSettings
     {
         /// <summary>
         /// Accept header used when retrieving robots.txt files.

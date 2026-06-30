@@ -166,7 +166,7 @@ namespace Scraper.Core
                 StatusCode = response.Metadata.StatusCode,
                 LastModified = response.Metadata.LastModified,
                 RetryAfter = response.Metadata.RetryAfter,
-                RequestSenderGroupKey = response.Cache?.RequestSenderGroupKey ?? _requestSender.GroupKey
+                RequestSenderGroupKey = response.RequestSenderGroupKey ?? _requestSender.GroupKey
             };
 
             await PublishScrapePageFailedAsync(request, failedEvent);

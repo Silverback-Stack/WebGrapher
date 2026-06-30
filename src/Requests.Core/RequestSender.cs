@@ -100,9 +100,10 @@ namespace Requests.Core
                 {
                     IsFromCache = false,
                     Key = key,
-                    Container = _blobCache.Container,
-                    RequestSenderGroupKey = _groupKey
+                    Container = _blobCache.Container
                 };
+
+                responseEnvelope.RequestSenderGroupKey = _groupKey;
 
                 _logger.LogDebug(
                     "Fetch request for {AbsoluteUri} returned status code {StatusCode}",
@@ -164,9 +165,9 @@ namespace Requests.Core
                 {
                     IsFromCache = true,
                     Key = key,
-                    Container = _blobCache.Container,
-                    RequestSenderGroupKey = _groupKey
-                }
+                    Container = _blobCache.Container
+                },
+                RequestSenderGroupKey = _groupKey
             };
         }
 

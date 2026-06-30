@@ -13,18 +13,18 @@ namespace SitePolicy.Core
         private readonly ILogger _logger;
         private readonly ICache _policyCache;
         private readonly IRequestSender _requestSender;
-        private readonly SitePolicySettings _sitePolicySettings;
+        private readonly SitePolicyResolverSettings _sitePolicyResolverSettings;
 
         public SitePolicyResolver(
             ILogger logger, 
             ICache policyCache, 
             IRequestSender requestSender,
-            SitePolicySettings sitePolicySettings)
+            SitePolicyResolverSettings sitePolicyResolverSettings)
         {
             _logger = logger;
             _policyCache = policyCache;
             _requestSender = requestSender;
-            _sitePolicySettings = sitePolicySettings;
+            _sitePolicyResolverSettings = sitePolicyResolverSettings;
         }
 
 
@@ -36,7 +36,7 @@ namespace SitePolicy.Core
             Uri url,
             string userAgent)
         {
-            var robotsPolicy = await GetOrCreateRobotsPolicyAsync(url, userAgent);
+            SiteRobotsPolicyItem robotsPolicy = await GetOrCreateRobotsPolicyAsync(url, userAgent);
 
             // If no robots.txt content is available, allow crawling.
             if (string.IsNullOrWhiteSpace(robotsPolicy.RobotsTxt))
@@ -57,9 +57,10 @@ namespace SitePolicy.Core
             Uri url,
             string requestSenderGroupKey)
         {
-            var effectiveGroupKey = ResolveRequestSenderGroupKey(requestSenderGroupKey);
+            string effectiveGroupKey = ResolveRequestSenderGroupKey(requestSenderGroupKey);
 
-            var rateLimitPolicy = await GetRateLimitPolicyAsync(url, effectiveGroupKey);
+            SiteRateLimitPolicyItem? rateLimitPolicy = 
+                await GetRateLimitPolicyAsync(url, effectiveGroupKey);
 
             // Return the Retry-After value, or null if the value has expired.
             return rateLimitPolicy?.IsRateLimited == true
@@ -84,11 +85,11 @@ namespace SitePolicy.Core
                 UrlAuthority = url.Authority,
                 CreatedAt = DateTimeOffset.UtcNow,
                 ModifiedAt = DateTimeOffset.UtcNow,
-                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_sitePolicySettings.PolicyExpiryMinutes),
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_sitePolicyResolverSettings.PolicyExpiryMinutes),
                 RetryAfter = until
             };
 
-            var savedPolicy = await SetRateLimitPolicyAsync(
+            SiteRateLimitPolicyItem savedPolicy = await SetRateLimitPolicyAsync(
                 url,
                 rateLimitPolicy,
                 effectiveGroupKey);
@@ -101,32 +102,34 @@ namespace SitePolicy.Core
 
         /// <summary>
         /// Retrieves a site's robots policy from the Policy Store,
-        /// creating and caching the policy if it does not already exist.
+        /// or creates the policy if it does not already exist.
         /// </summary>
         private async Task<SiteRobotsPolicyItem> GetOrCreateRobotsPolicyAsync(
             Uri url,
             string userAgent)
         {
             // Get the cache key constrained to the default UserAccepts value.
-            var cacheKey = GetRobotsCacheKey(
+            string cacheKey = GetRobotsCacheKey(
                 url, 
                 userAgent, 
-                _sitePolicySettings.RobotsUserAccepts);
+                _sitePolicyResolverSettings.RobotsUserAccepts);
 
             // Return the existing policy if it has already been cached.
             var robotsPolicy = await _policyCache.GetAsync<SiteRobotsPolicyItem>(cacheKey);
             if (robotsPolicy is not null)
                 return robotsPolicy;
 
-            // Otherwise retrieve the site's robots.txt file and create a new policy.
-            var robotsTxt = await FetchRobotsTxtAsync(url, userAgent);
+            // Otherwise retrieve the site's robots.txt file.
+            string? robotsTxt = await FetchRobotsTxtAsync(url, userAgent);
 
+            // Create a new policy.
             robotsPolicy = new SiteRobotsPolicyItem
             {
                 UrlAuthority = url.Authority,
                 CreatedAt = DateTimeOffset.UtcNow,
                 ModifiedAt = DateTimeOffset.UtcNow,
-                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_sitePolicySettings.PolicyExpiryMinutes),
+                ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(
+                    _sitePolicyResolverSettings.PolicyExpiryMinutes),
                 RobotsTxt = robotsTxt ?? string.Empty
             };
 
@@ -136,15 +139,31 @@ namespace SitePolicy.Core
             await _policyCache.SetAsync(
                 cacheKey,
                 robotsPolicy,
-                TimeSpan.FromMinutes(_sitePolicySettings.PolicyExpiryMinutes));
+                TimeSpan.FromMinutes(_sitePolicyResolverSettings.PolicyExpiryMinutes));
 
             return robotsPolicy;
         }
 
 
         /// <summary>
+        /// Creates a cache key used to store and retrieve robots policies.
+        /// Policies are partitioned by site authority, user agent,
+        /// and request characteristics.
+        /// </summary>
+        private string GetRobotsCacheKey(
+            Uri url,
+            string userAgent,
+            string userAccepts)
+        {
+            var compositeKey = $"{url.Authority}|{userAgent}|{userAccepts}|robots";
+
+            return CacheKeyHelper.ComputeCacheKey(compositeKey);
+        }
+
+
+        /// <summary>
         /// Retrieves a site's robots.txt file and updates the site's
-        /// rate limiting policy if the request is rate limited.
+        /// rate limiting policy if the server returns a rate limited response.
         /// </summary>
         private async Task<string?> FetchRobotsTxtAsync(Uri url, string userAgent)
         {
@@ -155,9 +174,9 @@ namespace SitePolicy.Core
             var response = await _requestSender.FetchAsync(
                 robotsTxtUrl,
                 userAgent,
-                _sitePolicySettings.RobotsUserAccepts);
+                _sitePolicyResolverSettings.RobotsUserAccepts);
 
-            // If the request was rate limited,
+            // If the response is rate limited,
             // update the site's rate limiting policy.
             var retryAfter = response?.Metadata.RetryAfter;
             if (retryAfter is not null)
@@ -199,20 +218,7 @@ namespace SitePolicy.Core
         }
 
 
-        /// <summary>
-        /// Creates a cache key used to store and retrieve robots policies.
-        /// Policies are partitioned by site authority, user agent,
-        /// and request characteristics.
-        /// </summary>
-        private string GetRobotsCacheKey(
-            Uri url,
-            string userAgent,
-            string userAccepts)
-        {
-            var compositeKey = $"{url.Authority}|{userAgent}|{userAccepts}|robots";
 
-            return CacheKeyHelper.ComputeCacheKey(compositeKey);
-        }
 
 
 
@@ -225,7 +231,7 @@ namespace SitePolicy.Core
             string requestSenderGroupKey)
         {
             var cacheKey = GetRateLimitCacheKey(
-                url, 
+                url,
                 requestSenderGroupKey);
 
             return await _policyCache.GetAsync<SiteRateLimitPolicyItem>(cacheKey);
@@ -242,7 +248,7 @@ namespace SitePolicy.Core
             string requestSenderGroupKey)
         {
             var cacheKey = GetRateLimitCacheKey(url, requestSenderGroupKey);
-            var expiryDuration = TimeSpan.FromMinutes(_sitePolicySettings.PolicyExpiryMinutes);
+            var expiryDuration = TimeSpan.FromMinutes(_sitePolicyResolverSettings.PolicyExpiryMinutes);
 
             var existingPolicy = await _policyCache.GetAsync<SiteRateLimitPolicyItem>(cacheKey);
 
@@ -279,11 +285,11 @@ namespace SitePolicy.Core
         /// Resolves the effective Request Sender Group Key,
         /// defaulting to the current Request Sender instance if none is provided.
         /// </summary>
-        private string ResolveRequestSenderGroupKey(string requestSenderGroupKey)
+        private string ResolveRequestSenderGroupKey(string groupKey)
         {
-            return string.IsNullOrWhiteSpace(requestSenderGroupKey)
+            return string.IsNullOrWhiteSpace(groupKey)
                 ? _requestSender.GroupKey
-                : requestSenderGroupKey;
+                : groupKey;
         }
 
 

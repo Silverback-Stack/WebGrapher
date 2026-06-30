@@ -74,7 +74,7 @@ namespace WebGrapher.Cli.InProcessHosts
 
             // Create Site Policy Resolver
             var sitePolicyResolver = new SitePolicyResolver(
-                logger, policyCache, requestSender, scraperConfig.Settings.SitePolicy);
+                logger, policyCache, requestSender, scraperConfig.Settings.SitePolicyResolver);
 
 
 

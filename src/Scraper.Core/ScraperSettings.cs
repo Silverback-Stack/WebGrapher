@@ -8,6 +8,6 @@ namespace Scraper.Core
         public string ServiceName { get; set; } = "Scraper";
         public int ContentMaxBytes { get; set; } = 4_194_304; //4 Mb
 
-        public SitePolicySettings SitePolicy { get; set; } = new SitePolicySettings();
+        public SitePolicyResolverSettings SitePolicyResolver { get; set; } = new SitePolicyResolverSettings();
     }
 }
