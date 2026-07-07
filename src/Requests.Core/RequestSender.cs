@@ -58,8 +58,8 @@ namespace Requests.Core
             Uri url,
             string userAgent,
             string userAccepts,
-            int contentMaxBytes = 0,
             string compositeKey = "",
+            int contentMaxBytes = 0,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(url.AbsoluteUri)) 

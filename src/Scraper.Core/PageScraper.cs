@@ -250,8 +250,8 @@ namespace Scraper.Core
                 url,
                 userAgent,
                 clientAccept,
-                _scraperSettings.ContentMaxBytes,
                 compositeKey,
+                _scraperSettings.ContentMaxBytes,
                 cancellationToken);
         }
     }

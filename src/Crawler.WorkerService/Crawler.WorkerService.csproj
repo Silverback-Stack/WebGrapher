@@ -27,5 +27,6 @@
     <ProjectReference Include="..\Events.Factories\Events.Factories.csproj" />
     <ProjectReference Include="..\Logging.Factories\Logging.Factories.csproj" />
     <ProjectReference Include="..\Requests.Factories\Requests.Factories.csproj" />
+    <ProjectReference Include="..\SitePolicyFactories\SitePolicyFactories.csproj" />
   </ItemGroup>
 </Project>
