@@ -13,10 +13,8 @@ namespace Crawler.Core
 
         public int ScheduleCrawlDelayMinSeconds { get; set; } = 1;
 
-        public int ScheduleCrawlDelayMaxSeconds { get; set; } = 3;
+        public int ScheduleCrawlDelayMaxSeconds { get; set; } = 5;
 
         public int DefaultRetryDelaySeconds { get; set; } = 300;
-
-        public SitePolicyResolverSettings SitePolicyResolver { get; set; } = new SitePolicyResolverSettings();
     }
 }

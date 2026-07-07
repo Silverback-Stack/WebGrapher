@@ -221,7 +221,7 @@ namespace Normalisation.Core
                         normaliedImageUrl,
                         request.Options.UserAgent,
                         request.Options.UserAccepts,
-                        0); // get headers only - no content downloaded
+                        contentMaxBytes: 0); // get headers only - no content downloaded
 
                     if (image != null) 
                         normaliedImageCors = image.Metadata.HasCorsPolicy;

@@ -13,9 +13,9 @@ namespace Requests.Core
         Task<HttpResponseEnvelope?> FetchAsync(
             Uri url,
             string userAgent, 
-            string userAccepts, 
-            int contentMaxBytes = 0,
+            string userAccepts,
             string compositeKey = "",
+            int contentMaxBytes = 0,
             CancellationToken cancellationToken = default);
     }
 }

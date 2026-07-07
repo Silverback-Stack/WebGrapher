@@ -94,14 +94,15 @@ namespace Crawler.Core
         public async Task EvaluatePageForCrawlingAsync(CrawlPageEvent evt)
         {
             // Temp Test
-            await TestRequestSender(evt);
-            return;
+            //await TestRequestSender(evt);
+            //return;
 
             var request = evt.CrawlPageRequest;
 
             var logMessage = $"Crawl requested: {request.Url} Depth: {request.Depth} Attempt: {request.Attempt}";
             _logger.LogDebug(logMessage);
 
+            // Check : Within Retry Limit?
             if (HasExhaustedRetries(request.Attempt, _crawlerSettings.MaxCrawlAttemptLimit))
             {
                 logMessage = $"Crawl Abandoned: {request.Url} Current retry attempt {request.Attempt} exceeded maximum allowed {_crawlerSettings.MaxCrawlAttemptLimit}";
@@ -122,6 +123,7 @@ namespace Crawler.Core
                 return;
             }
 
+            // Check : Within Depth Limit?
             if (HasReachedMaxDepth(request.Depth, request.Options.MaxDepth, _crawlerSettings.MaxCrawlDepthLimit))
             {
                 logMessage = $"Crawl Stopped: {request.Url} Current depth {request.Depth} exceeded maximum allowed {request.Options.MaxDepth}.";
@@ -142,7 +144,7 @@ namespace Crawler.Core
                 return;
             }
 
-
+            // Check : Allowed by Robots.txt?
             if (!await _sitePolicyResolver.IsPermittedByRobotsTxtAsync(
                 request.Url,
                 request.Options.UserAgent))
@@ -162,11 +164,12 @@ namespace Crawler.Core
                         Depth = request.Depth,
                         Attempt = request.Attempt
                     });
+
                 return;
             }
 
 
-            // Check if the site is currently rate-limited for this request senders rate limit group.
+            // Check : Is Rate Limited?
             var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 request.Url,
                 _requestSender.GroupKey);
@@ -174,6 +177,7 @@ namespace Crawler.Core
             if (limitedUntil is not null)
             {
                 await PublishScheduledCrawlPageEventAsync(request, limitedUntil);
+
                 return;
             }
 
@@ -230,17 +234,20 @@ namespace Crawler.Core
                         Depth = request.Depth,
                         Attempt = request.Attempt
                     });
+        
         }
 
+
+        /// <summary>
+        /// Publishes a scheduled crawl page event for a deferred crawl.
+        /// </summary>
         private async Task PublishScheduledCrawlPageEventAsync(
             CrawlPageRequestDto request, 
             DateTimeOffset? retryAfter)
         {
             var attempt = request.Attempt + 1;
-            var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(
-                retryAfter,
-                _crawlerSettings.ScheduleCrawlDelayMinSeconds,
-                _crawlerSettings.ScheduleCrawlDelayMaxSeconds);
+
+            var scheduledOffset = GetScheduledOffset(retryAfter);
 
             var crawlPageRequest = request with
             {
@@ -273,6 +280,19 @@ namespace Crawler.Core
                     Depth = request.Depth,
                     Attempt = attempt
                 });
+        }
+
+
+        /// <summary>
+        /// Calculates the scheduled delay for a deferred crawl by applying
+        /// a random offset to the Retry-After value.
+        /// </summary>
+        private DateTimeOffset? GetScheduledOffset(DateTimeOffset? retryAfter)
+        {
+            return EventScheduleHelper.AddRandomDelayTo(
+                retryAfter,
+                _crawlerSettings.ScheduleCrawlDelayMinSeconds,
+                _crawlerSettings.ScheduleCrawlDelayMaxSeconds);
         }
     }
 }

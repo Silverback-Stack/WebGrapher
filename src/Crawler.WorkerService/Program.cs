@@ -8,6 +8,7 @@ using Logging.Factories;
 using Requests.Factories;
 using Serilog;
 using SitePolicy.Core;
+using SitePolicyFactories;
 
 namespace Crawler.WorkerService
 {
@@ -29,6 +30,7 @@ namespace Crawler.WorkerService
             var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
             var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
             var policyCacheConfig = appSettings.BindSection<CacheConfig>("PolicyCache");
+            var sitePolicyConfig = appSettings.BindSection<SitePolicyConfig>("SitePolicy");
 
 
             // Create Logger
@@ -78,11 +80,11 @@ namespace Crawler.WorkerService
                     policyCacheConfig);
 
                 // Create Site Policy Resolver
-                var sitePolicyResolver = new SitePolicyResolver(
-                    logger, 
-                    policyCache, 
+                var sitePolicyResolver = SitePolicyFactory.Create(
+                    logger,
+                    policyCache,
                     requestSender,
-                    crawlerConfig.Settings.SitePolicyResolver);
+                    sitePolicyConfig);
 
                 // Create Crawler Service
                 var crawlerService = CrawlerFactory.Create(

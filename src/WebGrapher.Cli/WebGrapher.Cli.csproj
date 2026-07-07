@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Requests.Factories\Requests.Factories.csproj" />
     <ProjectReference Include="..\Scraper.Core\Scraper.Core.csproj" />
     <ProjectReference Include="..\Scraper.Factories\Scraper.Factories.csproj" />
+    <ProjectReference Include="..\SitePolicyFactories\SitePolicyFactories.csproj" />
     <ProjectReference Include="..\Streaming.Core\Streaming.Core.csproj" />
     <ProjectReference Include="..\Streaming.Factories\Streaming.Factories.csproj" />
     <ProjectReference Include="..\Streaming.WebApi\Streaming.WebApi.csproj" />

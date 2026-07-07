@@ -3,11 +3,13 @@ using Caching.Factories;
 using Events.Core.Bus;
 using Events.Factories;
 using Logging.Factories;
+using Microsoft.Extensions.DependencyInjection;
 using Requests.Factories;
 using Scraper.Core;
 using Scraper.Factories;
 using Serilog;
 using SitePolicy.Core;
+using SitePolicyFactories;
 
 namespace Scraper.WorkerService
 {
@@ -29,6 +31,7 @@ namespace Scraper.WorkerService
             var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
             var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
             var policyCacheConfig = appSettings.BindSection<CacheConfig>("PolicyCache");
+            var sitePolicyConfig = appSettings.BindSection<SitePolicyConfig>("SitePolicy");
 
 
             // Create Logger
@@ -82,12 +85,11 @@ namespace Scraper.WorkerService
 
 
                 // Create Site Policy Resolver
-                var sitePolicyResolver = new SitePolicyResolver(
+                var sitePolicyResolver = SitePolicyFactory.Create(
                     logger,
                     policyCache,
                     requestSender,
-                    scraperConfig.Settings.SitePolicyResolver);
-
+                    sitePolicyConfig);
 
                 // Create Scraper Service
                 var scraperService = ScraperFactory.Create(

@@ -66,8 +66,8 @@ namespace Scraper.Core.Tests
                 _url, 
                 _userAgent, 
                 _userAccepts,
-                It.IsAny<int>(),
                 It.IsAny<string>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
                 .ReturnsAsync(responseEnvelope);
 
@@ -102,8 +102,8 @@ namespace Scraper.Core.Tests
                 It.IsAny<Uri>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<int>(),
                 It.IsAny<string>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
                 .ReturnsAsync((HttpResponseEnvelope?)null);
 

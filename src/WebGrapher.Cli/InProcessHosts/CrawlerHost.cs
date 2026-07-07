@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Requests.Factories;
 using SitePolicy.Core;
+using SitePolicyFactories;
 using System;
 
 namespace WebGrapher.Cli.InProcessHosts
@@ -37,6 +38,7 @@ namespace WebGrapher.Cli.InProcessHosts
             var blobCacheConfig = appSettings.BindSection<CacheConfig>("BlobCache");
             var requestsConfig = appSettings.BindSection<RequestsConfig>("Requests");
             var policyCacheConfig = appSettings.BindSection<CacheConfig>("PolicyCache");
+            var sitePolicyConfig = appSettings.BindSection<SitePolicyConfig>("SitePolicy");
 
 
             // Create Logger
@@ -74,11 +76,11 @@ namespace WebGrapher.Cli.InProcessHosts
 
 
             // Create Site Policy Resolver
-            var sitePolicyResolver = new SitePolicyResolver(
+            var sitePolicyResolver = SitePolicyFactory.Create(
                 logger, 
                 policyCache, 
-                requestSender, 
-                crawlerConfig.Settings.SitePolicyResolver);
+                requestSender,
+                sitePolicyConfig);
 
 
 

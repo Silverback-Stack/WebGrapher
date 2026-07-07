@@ -7,6 +7,7 @@ using System.Text;
 
 namespace SitePolicy.Core.Tests
 {
+    [TestFixture]
     public class SitePolicyResolverTests
     {
         private Mock<ILogger> _logger = null!;
@@ -132,8 +133,8 @@ namespace SitePolicy.Core.Tests
                     It.Is<Uri>(u => u == robotsUrl),
                     _userAgent,
                     It.IsAny<string>(),
-                    It.IsAny<int>(),
                     It.IsAny<string>(),
+                    It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(robotsResponse);
 
@@ -187,8 +188,8 @@ namespace SitePolicy.Core.Tests
                     It.Is<Uri>(u => u == robotsUrl),
                     _userAgent,
                     It.IsAny<string>(),
-                    It.IsAny<int>(),
                     It.IsAny<string>(),
+                    It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(robotsResponse);
 
@@ -216,8 +217,8 @@ namespace SitePolicy.Core.Tests
                     It.Is<Uri>(u => u == robotsUrl),
                     _userAgent,
                     It.IsAny<string>(),
-                    It.IsAny<int>(),
                     It.IsAny<string>(),
+                    It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync((HttpResponseEnvelope?)null);
 
@@ -268,8 +269,8 @@ namespace SitePolicy.Core.Tests
                     It.Is<Uri>(u => u == robotsUrl),
                     _userAgent,
                     It.IsAny<string>(),
-                    It.IsAny<int>(),
                     It.IsAny<string>(),
+                    It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(robotsResponse);
 
@@ -297,8 +298,8 @@ namespace SitePolicy.Core.Tests
                 It.Is<Uri>(u => u == robotsUrl),
                 _userAgent,
                 It.IsAny<string>(),
-                It.IsAny<int>(),
                 It.IsAny<string>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
         }

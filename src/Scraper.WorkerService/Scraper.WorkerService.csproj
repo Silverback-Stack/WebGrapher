@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Requests.Factories\Requests.Factories.csproj" />
     <ProjectReference Include="..\Scraper.Core\Scraper.Core.csproj" />
     <ProjectReference Include="..\Scraper.Factories\Scraper.Factories.csproj" />
+    <ProjectReference Include="..\SitePolicyFactories\SitePolicyFactories.csproj" />
   </ItemGroup>
 
   <ItemGroup>
