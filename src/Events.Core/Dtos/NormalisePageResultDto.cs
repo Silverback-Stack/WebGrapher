@@ -4,14 +4,14 @@ namespace Events.Core.Dtos
 {
     public record NormalisePageResultDto
     {
-        //Meta data:
+        //Metadata
         public required Uri OriginalUrl { get; init; }
         public required Uri Url { get; init; }
         public HttpStatusCode StatusCode { get; init; }
         public bool IsRedirect { get; init; }
         public DateTimeOffset? SourceLastModified { get; init; }
 
-        //Normalised data:
+        //Normalised content
         public string? Title { get; init; }
         public string? Summary { get; init; }
         public string? Keywords { get; init; }

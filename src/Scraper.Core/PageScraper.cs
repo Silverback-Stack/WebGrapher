@@ -31,15 +31,24 @@ namespace Scraper.Core
             _scraperSettings = scraperSettings;
         }
 
+
+        /// <summary>
+        /// Starts the Page Scraper by subscribing to Scrape Page events.
+        /// </summary>
         public async Task StartAsync()
         {
-            await _eventBus.SubscribeAsync<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapeContentAsync);
+            await _eventBus.SubscribeAsync<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapePageAsync);
         }
 
+
+        /// <summary>
+        /// Stops the Page Scraper by unsubscribing from Scrape Page events.
+        /// </summary>
         public async Task StopAsync()
         {
-            await _eventBus.UnsubscribeAsync<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapeContentAsync);
+            await _eventBus.UnsubscribeAsync<ScrapePageEvent>(_scraperSettings.ServiceName, ScrapePageAsync);
         }
+
 
         public async Task PublishClientLogEventAsync(
             Guid graphId,
@@ -63,37 +72,42 @@ namespace Scraper.Core
             await _eventBus.PublishAsync(clientLogEvent);
         }
 
-        private async Task ScrapeContentAsync(ScrapePageEvent evt)
+
+        /// <summary>
+        /// Scrapes a webpage and publishes the outcome.
+        /// </summary>
+        public async Task ScrapePageAsync(ScrapePageEvent evt)
         {
             var request = evt.CrawlPageRequest;
-            string logMessage;
 
-
-            // Check if the site is currently rate-limited for this request sender's partition.
+            // Check whether the site is rate limited.
             var limitedUntil = await _sitePolicyResolver.GetRateLimitAsync(
                 request.Url,
                 _requestSender.GroupKey);
 
             if (limitedUntil is not null)
             {
-                await HandlePageFailedFromRateLimitAsync(request, limitedUntil);
+                await HandlePageFailedFromRateLimitAsync(request, limitedUntil.Value);
                 return;
             }
 
 
-            // Make request to fetch page
-            var response = await FetchAsync(
+            // Fetch the webpage.
+            var response = await FetchPageAsync(
                 request.Url,
                 request.Options.UserAgent,
                 request.Options.UserAccepts);
 
 
+            // Check whether a response was received.
             if (response is null)
             {
                 await HandlePageFailedNoResponseAsync(request);
                 return;
             }
 
+
+            // Check whether the response was successful.
             if (response.Metadata.StatusCode != HttpStatusCode.OK)
             {
                 await HandlePageFailedFromResponseAsync(request, response);
@@ -101,28 +115,54 @@ namespace Scraper.Core
             }
 
 
-            await PublishNormalisePageEventAsync(request, response);
-
-            var source = response.Cache?.IsFromCache == true ? "Cache" : "Live";
-
-            _logger.LogInformation("Scrape Completed ({Source}): {Url} Status: {StatusCode}. Attempt {Attempt}",
-                source, request.Url, response.Metadata.StatusCode, request.Attempt);
-
-            await PublishClientLogEventAsync(
-                    request.GraphId,
-                    request.CorrelationId,
-                    LogType.Information,
-                    $"Scrape Completed ({source}): {request.Url} Status: {response.Metadata.StatusCode}. Attempt {request.Attempt}",
-                    "ScrapeCompleted",
-                    new LogContext
-                    {
-                        Url = request.Url.AbsoluteUri,
-                        Attempt = request.Attempt,
-                        StatusCode = response.Metadata.StatusCode.ToString()
-                    });
+            // Handle the successfully scraped webpage.
+            await HandlePageScrapedAsync(request, response);
         }
 
 
+        /// <summary>
+        /// Handles a webpage that is currently rate limited.
+        /// </summary>
+        private async Task HandlePageFailedFromRateLimitAsync(
+            CrawlPageRequestDto request,
+            DateTimeOffset limitedUntil)
+        {
+            var failedEvent = new ScrapePageFailedEvent
+            {
+                CrawlPageRequest = request,
+                CreatedAt = DateTimeOffset.UtcNow,
+                StatusCode = HttpStatusCode.TooManyRequests,
+                RetryAfter = limitedUntil,
+                RequestSenderGroupKey = _requestSender.GroupKey
+            };
+
+            await PublishScrapePageFailedAsync(request, failedEvent);
+        }
+
+
+        /// <summary>
+        /// Fetches a webpage using the configured Request Sender.
+        /// </summary>
+        private async Task<HttpResponseEnvelope?> FetchPageAsync(
+            Uri url,
+            string userAgent,
+            string clientAccept,
+            string compositeKey = "",
+            CancellationToken cancellationToken = default)
+        {
+            return await _requestSender.FetchAsync(
+                url,
+                userAgent,
+                clientAccept,
+                compositeKey,
+                _scraperSettings.ContentMaxBytes,
+                cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Handles a webpage that could not be retrieved.
+        /// </summary>
         private async Task HandlePageFailedNoResponseAsync(
             CrawlPageRequestDto request)
         {
@@ -138,23 +178,9 @@ namespace Scraper.Core
         }
 
 
-        private async Task HandlePageFailedFromRateLimitAsync(
-            CrawlPageRequestDto request,
-            DateTimeOffset? limitedUntil)
-        {
-            var failedEvent = new ScrapePageFailedEvent
-            {
-                CrawlPageRequest = request,
-                CreatedAt = DateTimeOffset.UtcNow,
-                StatusCode = HttpStatusCode.TooManyRequests,
-                RetryAfter = limitedUntil,
-                RequestSenderGroupKey = _requestSender.GroupKey
-            };
-
-            await PublishScrapePageFailedAsync(request, failedEvent);
-        }
-
-
+        /// <summary>
+        /// Handles a webpage that returned an unsuccessful response.
+        /// </summary>
         private async Task HandlePageFailedFromResponseAsync(
             CrawlPageRequestDto request,
             HttpResponseEnvelope response)
@@ -173,6 +199,44 @@ namespace Scraper.Core
         }
 
 
+        /// <summary>
+        /// Handles a successfully scraped webpage.
+        /// </summary>
+        private async Task HandlePageScrapedAsync(
+            CrawlPageRequestDto request,
+            HttpResponseEnvelope response)
+        {
+            await PublishNormalisePageEventAsync(request, response);
+
+            var source = response.Cache?.IsFromCache == true
+                ? "Cache"
+                : "Live";
+
+            _logger.LogInformation(
+                "Scrape Completed ({Source}): {Url} Status: {StatusCode}. Attempt {Attempt}",
+                source,
+                request.Url,
+                response.Metadata.StatusCode,
+                request.Attempt);
+
+            await PublishClientLogEventAsync(
+                request.GraphId,
+                request.CorrelationId,
+                LogType.Information,
+                $"Scrape Completed ({source}): {request.Url} Status: {response.Metadata.StatusCode}. Attempt {request.Attempt}",
+                "ScrapeCompleted",
+                new LogContext
+                {
+                    Url = request.Url.AbsoluteUri,
+                    Attempt = request.Attempt,
+                    StatusCode = response.Metadata.StatusCode.ToString()
+                });
+        }
+
+
+        /// <summary>
+        /// Publishes a Scrape Page Failed event and records the failure.
+        /// </summary>
         private async Task PublishScrapePageFailedAsync(
             CrawlPageRequestDto request,
             ScrapePageFailedEvent failedEvent)
@@ -212,6 +276,9 @@ namespace Scraper.Core
         }
 
 
+        /// <summary>
+        /// Publishes a Normalise Page event for a successfully scraped webpage.
+        /// </summary>
         private async Task PublishNormalisePageEventAsync(
             CrawlPageRequestDto request,
             HttpResponseEnvelope response)
@@ -239,21 +306,6 @@ namespace Scraper.Core
             }, priority: request.Depth);
         }
 
-        public async Task<HttpResponseEnvelope?> FetchAsync(
-            Uri url,
-            string userAgent,
-            string clientAccept,
-            string compositeKey = "",
-            CancellationToken cancellationToken = default)
-        {
-            return await _requestSender.FetchAsync(
-                url,
-                userAgent,
-                clientAccept,
-                compositeKey,
-                _scraperSettings.ContentMaxBytes,
-                cancellationToken);
-        }
     }
 
 }
