@@ -6,6 +6,7 @@ namespace Scraper.Core
     public class ScraperSettings
     {
         public string ServiceName { get; set; } = "Scraper";
+
         public int ContentMaxBytes { get; set; } = 4_194_304; //4 Mb
     }
 }

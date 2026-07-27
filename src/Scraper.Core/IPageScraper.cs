@@ -1,17 +1,17 @@
-﻿using System;
+﻿using Events.Core.Dtos;
+using Events.Core.Events;
 using Requests.Core;
+using System;
 
 namespace Scraper.Core
 {
     public interface IPageScraper
     {
         Task StartAsync();
+        
         Task StopAsync();
-        Task<HttpResponseEnvelope?> FetchAsync(
-            Uri url,
-            string userAgent,
-            string clientAccept,
-            string compositeKey = "",
-            CancellationToken cancellationToken = default);
+
+        Task ScrapePageAsync(ScrapePageEvent evt);
+
     }
 }

@@ -9,13 +9,13 @@ namespace Events.Core.Events
         public required CrawlPageRequestDto CrawlPageRequest { get; init; }
 
         public HttpStatusCode StatusCode {  get; init; }
+
         public DateTimeOffset CreatedAt { get; init; }
         public DateTimeOffset? LastModified { get; init; }
         public DateTimeOffset? RetryAfter { get; init; }
 
         /// <summary>
-        /// Identifies the request sender group for this failure.
-        /// Used to ensure consistent retries and rate-limiting.
+        /// Identifies the Request Sender group that handled the request.
         /// </summary>
         public required string RequestSenderGroupKey { get; init; }
     }
