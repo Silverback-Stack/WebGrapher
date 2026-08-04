@@ -4,7 +4,9 @@ namespace Events.Core.Dtos
 {
     public record ScrapePageResultDto
     {
-        // Metadata
+        public DateTimeOffset CreatedAt { get; init; }
+
+        //Meta data:
         public required Uri OriginalUrl { get; init; }
         public required Uri Url { get; init; }
         public HttpStatusCode StatusCode { get; init; }
@@ -16,7 +18,5 @@ namespace Events.Core.Dtos
         public string? BlobContainer { get; init; }
         public string? ContentType { get; init; }
         public string? Encoding { get; init; }
-
-        public DateTimeOffset CreatedAt { get; init; }
     }
 }
