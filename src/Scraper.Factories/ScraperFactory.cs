@@ -11,14 +11,14 @@ namespace Scraper.Factories
     {
         public static IPageScraper Create(
             ILogger logger, 
-            IEventBus eventbus, 
+            IEventBus eventBus, 
             IRequestSender requestSender,
             ISitePolicyResolver sitePolicyResolver,
             ScraperSettings scraperSettings)
         {
             var service = new PageScraper(
                 logger, 
-                eventbus, 
+                eventBus, 
                 requestSender,
                 sitePolicyResolver,
                 scraperSettings);

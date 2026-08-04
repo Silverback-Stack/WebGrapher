@@ -4,10 +4,9 @@ using Events.Core.Bus;
 using Logging.Factories;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Requests.Core;
 using Requests.Factories;
+using Scraper.Core;
 using Scraper.Factories;
-using SitePolicy.Core;
 using SitePolicyFactories;
 
 namespace WebGrapher.Cli.InProcessHosts
@@ -45,7 +44,10 @@ namespace WebGrapher.Cli.InProcessHosts
                 appSettings, 
                 scraperConfig.Settings.ServiceName,
                 _hostEnvironment.EnvironmentName);
-            var logger = loggerFactory.CreateLogger<IRequestSender>();
+            var logger = loggerFactory.CreateLogger<IPageScraper>();
+
+            logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
+                scraperConfig.Settings.ServiceName, _hostEnvironment.EnvironmentName);
 
 
             // Create Meta Cache for Request Sender
@@ -81,10 +83,6 @@ namespace WebGrapher.Cli.InProcessHosts
                 requestSender,
                 sitePolicyConfig);
 
-
-
-            logger.LogInformation("{ServiceName} service is starting using {EnvironmentName} configuration.",
-                scraperConfig.Settings.ServiceName, _hostEnvironment.EnvironmentName);
 
             // Create Scraper Service
             var scraperService = ScraperFactory.Create(
