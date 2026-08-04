@@ -186,7 +186,9 @@ namespace Crawler.Core
 
 
 
-
+        /// <summary>
+        /// Determines when a failed page can be retried and schedules it for crawling.
+        /// </summary>
         private async Task RetryPageCrawlAsync(ScrapePageFailedEvent evt)
         {
             var request = evt.CrawlPageRequest;

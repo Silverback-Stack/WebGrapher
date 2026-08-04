@@ -211,14 +211,14 @@ namespace Scraper.Core.Tests
 
 
         [Test]
-        public async Task ScrapePageAsync_WithUnsuccessfulResponse_PublishesScrapePageFailedEvent()
+        public async Task ScrapePageAsync_WithNonRetriableResponse_DoesNotPublishScrapePageFailedEvent()
         {
             // Arrange: Configure the response to indicate the remote service is unavailable.
             var failedResponse = _response with
             {
                 Metadata = _response.Metadata with
                 {
-                    StatusCode = HttpStatusCode.ServiceUnavailable
+                    StatusCode = HttpStatusCode.NotFound
                 }
             };
 
@@ -240,13 +240,13 @@ namespace Scraper.Core.Tests
             // Assert: Verify a Scrape Page Failed event was published containing the response status code.
             _eventBus.Verify(bus => bus.PublishAsync(
                     It.Is<ScrapePageFailedEvent>(evt =>
-                        evt.CrawlPageRequest == _scrapePageEvent.CrawlPageRequest &&
-                        evt.StatusCode == HttpStatusCode.ServiceUnavailable),
+                        evt.CrawlPageRequest == _scrapePageEvent.CrawlPageRequest),
                     It.IsAny<int>(),
                     It.IsAny<DateTimeOffset?>(),
                     It.IsAny<CancellationToken>()),
-                Times.Once);
+                Times.Never);
         }
     }
+
 
 }

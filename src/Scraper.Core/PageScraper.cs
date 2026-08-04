@@ -18,7 +18,8 @@ namespace Scraper.Core
         protected readonly ISitePolicyResolver _sitePolicyResolver;
         protected readonly ScraperSettings _scraperSettings;
 
-        public PageScraper(ILogger logger, 
+        public PageScraper(
+            ILogger logger, 
             IEventBus eventBus, 
             IRequestSender requestSender,
             ISitePolicyResolver sitePolicyResolver,
@@ -93,7 +94,7 @@ namespace Scraper.Core
 
 
             // Fetch the webpage.
-            var response = await FetchPageAsync(
+            HttpResponseEnvelope? response = await FetchPageAsync(
                 request.Url,
                 request.Options.UserAgent,
                 request.Options.UserAccepts);
@@ -146,17 +147,13 @@ namespace Scraper.Core
         private async Task<HttpResponseEnvelope?> FetchPageAsync(
             Uri url,
             string userAgent,
-            string clientAccept,
-            string compositeKey = "",
-            CancellationToken cancellationToken = default)
+            string userAccepts)
         {
             return await _requestSender.FetchAsync(
                 url,
                 userAgent,
-                clientAccept,
-                compositeKey,
-                _scraperSettings.ContentMaxBytes,
-                cancellationToken);
+                userAccepts,
+                contentMaxBytes: _scraperSettings.ContentMaxBytes);
         }
 
 
@@ -206,8 +203,6 @@ namespace Scraper.Core
             CrawlPageRequestDto request,
             HttpResponseEnvelope response)
         {
-            await PublishNormalisePageEventAsync(request, response);
-
             var source = response.Cache?.IsFromCache == true
                 ? "Cache"
                 : "Live";
@@ -231,6 +226,8 @@ namespace Scraper.Core
                     Attempt = request.Attempt,
                     StatusCode = response.Metadata.StatusCode.ToString()
                 });
+
+            await PublishNormalisePageEventAsync(request, response);
         }
 
 
@@ -241,8 +238,12 @@ namespace Scraper.Core
             CrawlPageRequestDto request,
             ScrapePageFailedEvent failedEvent)
         {
-            if (IsRetryableFailure(failedEvent.StatusCode))
-                await _eventBus.PublishAsync(failedEvent, priority: request.Depth);
+            if (IsRetriableFailure(failedEvent.StatusCode))
+            {
+                await _eventBus.PublishAsync(
+                    failedEvent, 
+                    priority: request.Depth);
+            }
 
             _logger.LogError("Scrape Failed: {Url} Status: {StatusCode}. Attempt: {Attempt}",
                 request.Url, failedEvent.StatusCode, request.Attempt);
@@ -265,7 +266,7 @@ namespace Scraper.Core
         /// <summary>
         /// Determines whether a failure is transient and should be retried.
         /// </summary>
-        private static bool IsRetryableFailure(HttpStatusCode statusCode)
+        private static bool IsRetriableFailure(HttpStatusCode statusCode)
         {
             return statusCode == HttpStatusCode.RequestTimeout
                 || statusCode == HttpStatusCode.TooManyRequests
@@ -277,7 +278,7 @@ namespace Scraper.Core
 
 
         /// <summary>
-        /// Publishes a Normalise Page event for a successfully scraped webpage.
+        /// Publishes a Normalise Page event with a reference to the scraped data.
         /// </summary>
         private async Task PublishNormalisePageEventAsync(
             CrawlPageRequestDto request,
@@ -286,16 +287,17 @@ namespace Scraper.Core
             
             var result = new ScrapePageResultDto
             {
+                CreatedAt = DateTimeOffset.UtcNow,
                 OriginalUrl = response.Metadata.OriginalUrl,
                 Url = response.Metadata.Url,
                 StatusCode = response.Metadata.StatusCode,
                 IsRedirect = response.Metadata.IsRedirect,
                 SourceLastModified = response.Metadata.LastModified,
+
                 BlobId = response.Cache?.Key,
                 BlobContainer = response.Cache?.Container,
                 ContentType = response.Metadata.ContentType,
-                Encoding = response.Metadata.Encoding,
-                CreatedAt = DateTimeOffset.UtcNow
+                Encoding = response.Metadata.Encoding
             };
 
             await _eventBus.PublishAsync(new NormalisePageEvent
