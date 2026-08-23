@@ -5,7 +5,7 @@ export default {
   populateGraphMaxNodes: 1000,
 
   //Crawl
-  crawlMaxLinks: 200,
+  crawlMaxLinks: 100,
   crawlMaxDepth: 6,
 
   //SubGraph Requests

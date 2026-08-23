@@ -4,19 +4,28 @@ using System.Text.RegularExpressions;
 
 namespace Normalisation.Core.Processors
 {
-    public class HtmlParser
+    public class HtmlProcessor
     {
         private readonly HtmlDocument _htmlDocument;
+        private readonly XPathProcessor _xPathProcessor;
         private readonly NormalisationSettings _normalisationSettings;
-        private readonly XPathEvaluator _xPathEvaluator;
 
-        public HtmlParser(string htmlDocument, NormalisationSettings normalisationSettings) {
+        public HtmlProcessor(string htmlPage, NormalisationSettings normalisationSettings) {
 
             _htmlDocument = new HtmlDocument();
             _htmlDocument.OptionFixNestedTags = true;
-            _htmlDocument.LoadHtml(htmlDocument);
+            _htmlDocument.LoadHtml(htmlPage);
             _normalisationSettings = normalisationSettings;
-            _xPathEvaluator = new XPathEvaluator(_htmlDocument);
+            _xPathProcessor = new XPathProcessor(_htmlDocument);
+        }
+
+
+        /// <summary>
+        /// Decodes HTML entities into their corresponding characters.
+        /// </summary>
+        public static string DecodeHtml(string text)
+        {
+            return WebUtility.HtmlDecode(text);
         }
 
 
@@ -31,7 +40,7 @@ namespace Normalisation.Core.Processors
             {
                 if (!string.IsNullOrWhiteSpace(xPathExpression))
                 {
-                    var xPathResult = _xPathEvaluator.Evaluate(xPathExpression);
+                    var xPathResult = _xPathProcessor.Evaluate(xPathExpression);
 
                     switch (xPathResult.Type)
                     {
@@ -74,12 +83,12 @@ namespace Normalisation.Core.Processors
                 if (string.IsNullOrWhiteSpace(xPathExpression))
                     return _htmlDocument.DocumentNode.InnerText.Trim();
 
-                var xPathResult = _xPathEvaluator.Evaluate(xPathExpression);
+                var xPathResult = _xPathProcessor.Evaluate(xPathExpression);
 
                 switch (xPathResult.Type)
                 {
                     case XPathResultType.NodeSet:
-                        if (xPathResult.Nodes == null || xPathResult.Nodes.Count() == 0)
+                        if (xPathResult.Nodes == null || !xPathResult.Nodes.Any())
                             return string.Empty;
 
                         return string.Join(" ",
@@ -93,7 +102,6 @@ namespace Normalisation.Core.Processors
                     default:
                         return string.Empty;
                 }
-                ;
             }
             catch (Exception ex)
             {
@@ -104,17 +112,17 @@ namespace Normalisation.Core.Processors
         }
 
 
-        ///// <summary>
-        ///// Extracts links found in elements matching the XPath expression.
-        ///// Falls back to entire document if no expression is provided.
-        ///// </summary>
+        /// <summary>
+        /// Extracts links found in elements matching the XPath expression.
+        /// Falls back to entire document if no expression is provided.
+        /// </summary>
         public IEnumerable<string> ExtractLinks(string xPathExpression = "")
         {
             try
             {
                 var xPathResult = string.IsNullOrWhiteSpace(xPathExpression)
                     ? new XPathResult { Type = XPathResultType.NodeSet, Nodes = new[] { _htmlDocument.DocumentNode } }
-                    : _xPathEvaluator.Evaluate(xPathExpression);
+                    : _xPathProcessor.Evaluate(xPathExpression);
 
                 if (xPathResult.Type != XPathResultType.NodeSet || xPathResult.Nodes == null)
                     return Enumerable.Empty<string>();
@@ -122,7 +130,8 @@ namespace Normalisation.Core.Processors
                 return xPathResult.Nodes
                     .SelectMany(node => node.SelectNodes(_normalisationSettings.Processors.LinksXPath)
                         ?? Enumerable.Empty<HtmlNode>())
-                    .Select(tag => WebUtility.HtmlDecode(tag.GetAttributeValue("href", string.Empty)))
+                    .Select(tag => DecodeHtml(
+                        tag.GetAttributeValue("href", string.Empty)))
                     .Where(href => !string.IsNullOrEmpty(href))
                     .ToHashSet();
             }
@@ -134,7 +143,7 @@ namespace Normalisation.Core.Processors
 
 
         /// <summary>
-        /// Extracts the first valid image URL found in elements matching the XPath expression.
+        /// Extracts the preferred image URL from elements matching the XPath expression.
         /// </summary>
         public string ExtractImageUrl(string xPathExpression = "")
         {
@@ -143,7 +152,7 @@ namespace Normalisation.Core.Processors
                 if (string.IsNullOrWhiteSpace(xPathExpression))
                     return string.Empty;
 
-                var xPathResult = _xPathEvaluator.Evaluate(xPathExpression);
+                var xPathResult = _xPathProcessor.Evaluate(xPathExpression);
 
                 if (xPathResult.Type != XPathResultType.NodeSet || xPathResult.Nodes == null)
                     return string.Empty;

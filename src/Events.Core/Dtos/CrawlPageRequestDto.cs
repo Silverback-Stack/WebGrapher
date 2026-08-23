@@ -11,28 +11,5 @@
         public required CrawlPageRequestOptionsDto Options { get; init; }
         public DateTimeOffset RequestedAt { get; init; }
 
-
-        /// <summary>
-        /// Properties that make the extracted data unique.
-        /// </summary>
-        public string FingerprintCompositeKey =>
-            string.Join("|", new[]
-            {
-                        Url?.AbsoluteUri ?? string.Empty,
-                        Options.MaxDepth.ToString(),
-                        Options.MaxLinks.ToString(),
-                        Options.ExcludeExternalLinks.ToString(),
-                        Options.ExcludeQueryStrings.ToString(),
-                        Options.ConsolidateQueryStrings.ToString(),
-                        Options.UrlMatchRegex ?? string.Empty,
-                        Options.TitleElementXPath ?? string.Empty,
-                        Options.ContentElementXPath ?? string.Empty,
-                        Options.SummaryElementXPath ?? string.Empty,
-                        Options.ImageElementXPath ?? string.Empty,
-                        Options.RelatedLinksElementXPath ?? string.Empty,
-                        Options.UserAgent ?? string.Empty,
-                        Options.UserAccepts ?? string.Empty
-            });
-
     }
 }

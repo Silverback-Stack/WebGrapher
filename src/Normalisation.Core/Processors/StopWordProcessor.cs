@@ -2,15 +2,22 @@
 
 namespace Normalisation.Core.Processors
 {
-    public static class StopWordFilter
+    public static class StopWordProcessor
     {
 
-        public static string RemoveStopWords(string input, string iso3LanguageCode, NormalisationSettings normalisationSettings)
+        /// <summary>
+        /// Removes common stop words from text for the specified language.
+        /// </summary>
+        public static string RemoveStopWords(
+            string input, 
+            string iso3LanguageCode, 
+            NormalisationSettings normalisationSettings)
         {
             if (string.IsNullOrEmpty(iso3LanguageCode) || string.IsNullOrEmpty(input))
                 return input;
 
-            var iso2 = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3LanguageCode, normalisationSettings);
+            var iso2 = LanguageProcessor.ConvertLanguageIso3ToIso2(
+                iso3LanguageCode, normalisationSettings);
 
             try
             {
@@ -26,6 +33,7 @@ namespace Normalisation.Core.Processors
             }
             catch (Exception)
             {
+                // Return the original text if stop words are unavailable for the language.
                 return input;
             }
 

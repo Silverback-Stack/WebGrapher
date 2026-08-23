@@ -24,7 +24,7 @@ namespace Normalisation.Core.Tests
         public void DetectLanguage_FromText_ReturnsISO3Code(string input, string expectedOutput)
         {
             var normalisationSettings = new NormalisationSettings();
-            var iso3Code = LanguageIdentifier.DetectLanguage(input, normalisationSettings);
+            var iso3Code = LanguageProcessor.DetectLanguage(input, normalisationSettings);
 
             Assert.That(iso3Code, Is.EqualTo(expectedOutput.ToLower()));
         }
@@ -38,7 +38,7 @@ namespace Normalisation.Core.Tests
         {
             var normalisationSettings = new NormalisationSettings();
             var defaultIso3 = normalisationSettings.Processors.DefaultLanguageIso3Code;
-            var result = LanguageIdentifier.DetectLanguage(input, normalisationSettings);
+            var result = LanguageProcessor.DetectLanguage(input, normalisationSettings);
 
             Assert.That(result, Is.EqualTo(defaultIso3));
         }
@@ -60,7 +60,7 @@ namespace Normalisation.Core.Tests
             public void ConvertLanguageIso3ToIso2_ReturnsExpectedIso2Code(string iso3, string expectedIso2)
             {
                 var normalisationSettings = new NormalisationSettings();
-                var result = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3, normalisationSettings);
+                var result = LanguageProcessor.ConvertLanguageIso3ToIso2(iso3, normalisationSettings);
                 Assert.That(result, Is.EqualTo(expectedIso2));
             }
 
@@ -71,7 +71,7 @@ namespace Normalisation.Core.Tests
             {
                 var normalisationSettings = new NormalisationSettings();
                 var defaultIso2 = normalisationSettings.Processors.DefaultLanguageIso2Code;
-                var result = LanguageIdentifier.ConvertLanguageIso3ToIso2(iso3, normalisationSettings);
+                var result = LanguageProcessor.ConvertLanguageIso3ToIso2(iso3, normalisationSettings);
                 Assert.That(result, Is.EqualTo(defaultIso2));
             }
         }

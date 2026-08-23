@@ -5,7 +5,7 @@ namespace Normalisation.Core.Tests
     [TestFixture]
     public class HtmlParserTests
     {
-        private HtmlParser? _htmlParser;
+        private HtmlProcessor? _htmlParser;
 
         [SetUp]
         public void Setup()
@@ -23,7 +23,7 @@ namespace Normalisation.Core.Tests
             </html>";
 
             var normalisationSettings = new NormalisationSettings();
-            _htmlParser = new HtmlParser(htmlDocument, normalisationSettings);
+            _htmlParser = new HtmlProcessor(htmlDocument, normalisationSettings);
         }
 
         [Test]
