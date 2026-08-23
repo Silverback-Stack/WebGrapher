@@ -38,7 +38,7 @@ namespace Normalisation.Core.Tests
             };
 
 
-            var results = UrlNormaliser.MakeAbsolute(urls, _baseUrl);
+            var results = UrlProcessor.MakeAbsolute(urls, _baseUrl);
             var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
 
             Assert.That(resultsStrings.Count, Is.EqualTo(12));
@@ -73,7 +73,7 @@ namespace Normalisation.Core.Tests
                 "/path/"            // exactly matches base path with trailing slash
             };
 
-            var results = UrlNormaliser.MakeAbsolute(urls, baseUrl);
+            var results = UrlProcessor.MakeAbsolute(urls, baseUrl);
             var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
 
             Assert.That(resultsStrings.Count, Is.EqualTo(6));
@@ -102,7 +102,7 @@ namespace Normalisation.Core.Tests
                 "/path",            // exactly matches base path
             };
 
-            var results = UrlNormaliser.MakeAbsolute(urls, baseUrl);
+            var results = UrlProcessor.MakeAbsolute(urls, baseUrl);
             var resultsStrings = results.Select(u => u.ToString()).ToHashSet();
 
             Assert.That(resultsStrings.Count, Is.EqualTo(6));
@@ -116,7 +116,7 @@ namespace Normalisation.Core.Tests
 
 
         [Test]
-        public void FilterBySchema_FiltersUrlsByScheme()
+        public void FilterByScheme_FiltersUrlsByScheme()
         {
             var urls = new HashSet<Uri>
             {
@@ -128,7 +128,7 @@ namespace Normalisation.Core.Tests
                 new Uri("javascript:void(0)")
             };
 
-            var filtered = UrlNormaliser.FilterBySchema(urls, new[] { "https", "ftp" });
+            var filtered = UrlProcessor.FilterByScheme(urls, new[] { "https", "ftp" });
 
             Assert.That(filtered.Count, Is.EqualTo(2));
             Assert.That(filtered.Any(u => u.Scheme == "https"), Is.True);
@@ -147,7 +147,7 @@ namespace Normalisation.Core.Tests
         };
 
             //match only URLs that contain either /products/ or /blog/
-            var filtered = UrlNormaliser.FilterByRegex(urls, ".*/(products|blog)/.*"); 
+            var filtered = UrlProcessor.FilterByRegex(urls, ".*/(products|blog)/.*"); 
 
 
             Assert.That(filtered.Count, Is.EqualTo(2));
@@ -164,7 +164,7 @@ namespace Normalisation.Core.Tests
             new Uri("https://external.com/page2")
         };
 
-            var filtered = UrlNormaliser.RemoveExternalLinks(urls, _baseUrl);
+            var filtered = UrlProcessor.RemoveExternalLinks(urls, _baseUrl);
 
             Assert.That(filtered.Count, Is.EqualTo(1));
             Assert.That(filtered.First().Host, Is.EqualTo("example.com"));
@@ -179,7 +179,7 @@ namespace Normalisation.Core.Tests
             new Uri("https://example.com/page2?search=test")
         };
 
-            var cleaned = UrlNormaliser.RemoveQueryStrings(urls);
+            var cleaned = UrlProcessor.RemoveQueryStrings(urls);
 
             Assert.That(cleaned.All(u => string.IsNullOrEmpty(u.Query)), Is.True);
         }
@@ -193,7 +193,7 @@ namespace Normalisation.Core.Tests
             new Uri("https://example.com/other")
         };
 
-            var filtered = UrlNormaliser.RemoveCyclicalLinks(urls, _baseUrl);
+            var filtered = UrlProcessor.RemoveCyclicalLinks(urls, _baseUrl);
 
             Assert.That(filtered.Contains(_baseUrl), Is.False);
             Assert.That(filtered.Count, Is.EqualTo(1));
@@ -209,7 +209,7 @@ namespace Normalisation.Core.Tests
             new Uri("https://example.com/3")
         };
 
-            var truncated = UrlNormaliser.Truncate(urls, 2);
+            var truncated = UrlProcessor.LimitLinks(urls, 2);
 
             Assert.That(truncated.Count, Is.EqualTo(2));
         }

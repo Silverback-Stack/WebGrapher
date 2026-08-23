@@ -17,7 +17,7 @@ namespace Normalisation.Core.Tests
         [TestCase("", "")]
         public void ToLowerCase_ReturnsLowerCase(string input, string expected)
         {
-            var result = TextNormaliser.ToLowerCase(input);
+            var result = TextProcessor.ToLowerCase(input);
             Assert.That(result, Is.EqualTo(expected));
         }
 
@@ -27,7 +27,7 @@ namespace Normalisation.Core.Tests
         [TestCase("!@#$%^&*()", "$^")] // $^ are not punctuation chars
         public void RemovePunctuation_RemovesPunctuation(string input, string expected)
         {
-            var result = TextNormaliser.RemovePunctuation(input);
+            var result = TextProcessor.RemovePunctuation(input);
             Assert.That(result, Is.EqualTo(expected));
         }
 
@@ -36,7 +36,7 @@ namespace Normalisation.Core.Tests
         [TestCase("", "")]
         public void RemoveSpecialCharacters_RemovesNonLetterOrDigit(string input, string expected)
         {
-            var result = TextNormaliser.RemoveSpecialCharacters(input);
+            var result = TextProcessor.RemoveSpecialCharacters(input);
             Assert.That(result, Is.EqualTo(expected));
         }
 
@@ -47,7 +47,7 @@ namespace Normalisation.Core.Tests
         [TestCase("   ", "")]
         public void CollapseWhitespace_CollapsesCorrectly(string input, string expected)
         {
-            var result = TextNormaliser.CollapseWhitespace(input);
+            var result = TextProcessor.CollapseWhitespace(input);
             Assert.That(result, Is.EqualTo(expected));
         }
 
@@ -55,7 +55,7 @@ namespace Normalisation.Core.Tests
         [TestCase("Short", 10, "Short")]
         public void Truncate_ReturnsTruncatedOrOriginal(string input, int maxLength, string expected)
         {
-            var result = TextNormaliser.Truncate(input, maxLength);
+            var result = TextProcessor.LimitTextLength(input, maxLength);
             Assert.That(result, Is.EqualTo(expected));
         }
 
@@ -65,23 +65,23 @@ namespace Normalisation.Core.Tests
         [TestCase("no duplicates here", "no duplicates here")]
         public void RemoveDuplicateWords_RemovesDuplicatesIgnoringCase(string input, string expected)
         {
-            var result = TextNormaliser.RemoveDuplicateWords(input);
+            var result = TextProcessor.RemoveDuplicateWords(input);
             Assert.That(result, Is.EqualTo(expected));
         }
 
-        [TestCase("one two three four five six seven eight nine ten", 3)]
-        [TestCase("short text", 5)] // fewer words than limit
-        public void TruncateToWords_ReturnsTheNumberOfExpectedWords(string input, int expected)
+        [TestCase("one two three four five six", 13, "one two three")]
+        [TestCase("short text", 20, "short text")]
+        [TestCase("one two three", 8, "one two")]
+        [TestCase("verylongword", 5, "veryl")]
+        public void LimitTextLength_ReturnsExpectedText(
+            string input,
+            int maxLength,
+            string expected)
         {
-            var inputWordCount = input.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+            var result = TextProcessor.LimitTextLength(input, maxLength);
 
-            var truncatedWords = TextNormaliser.TruncateToWords(input, expected);
-
-            var truncatedWordCount = truncatedWords.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-
-            Assert.That(truncatedWordCount, Is.EqualTo(Math.Min(expected, inputWordCount)));
+            Assert.That(result, Is.EqualTo(expected));
         }
-
 
     }
 }

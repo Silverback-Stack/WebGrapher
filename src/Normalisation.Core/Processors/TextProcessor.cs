@@ -4,19 +4,21 @@ using System.Text.RegularExpressions;
 
 namespace Normalisation.Core.Processors
 {
-    public static class TextNormaliser
+    public static class TextProcessor
     {
 
-        public static string DecodeHtml(string text)
-        {
-            return WebUtility.HtmlDecode(text);
-        }
-
+        /// <summary>
+        /// Converts text to lowercase consistently regardless of the system culture.
+        /// </summary>
         public static string ToLowerCase(string text)
         {
-            return text.ToLower();
+            return text.ToLowerInvariant();
         }
 
+
+        /// <summary>
+        /// Removes punctuation characters from text.
+        /// </summary>
         public static string RemovePunctuation(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -25,6 +27,10 @@ namespace Normalisation.Core.Processors
             return new string(text.Where(c => !char.IsPunctuation(c)).ToArray());
         }
 
+
+        /// <summary>
+        /// Removes all characters except letters, numbers, and whitespace from text.
+        /// </summary>
         public static string RemoveSpecialCharacters(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -33,6 +39,10 @@ namespace Normalisation.Core.Processors
             return new string(text.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c)).ToArray());
         }
 
+
+        /// <summary>
+        /// Replaces consecutive whitespace characters with a single space.
+        /// </summary>
         public static string CollapseWhitespace(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -45,30 +55,32 @@ namespace Normalisation.Core.Processors
             return collapsed.Trim();
         }
 
-        public static string Truncate(string text, int maxLength)
+
+        /// <summary>
+        /// Limits text length without truncating words.
+        /// </summary>
+        public static string LimitTextLength(string text, int maxLength)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return string.Empty;
 
-            if (text.Length < maxLength)
+            if (text.Length <= maxLength)
                 return text;
 
-            return text.Substring(0, maxLength);
+            var truncated = text.Substring(0, maxLength);
+
+            var lastSpace = truncated.LastIndexOf(' ');
+
+            if (lastSpace > 0)
+                truncated = truncated.Substring(0, lastSpace);
+
+            return truncated;
         }
 
-        public static string TruncateToWords(string text, int maxWords)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return string.Empty;
 
-            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            if (words.Length <= maxWords)
-                return text;
-
-            return string.Join(' ', words.Take(maxWords));
-        }
-
+        /// <summary>
+        /// Removes duplicate words while preserving their original order.
+        /// </summary>
         public static string RemoveDuplicateWords(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -82,19 +94,10 @@ namespace Normalisation.Core.Processors
             return string.Join(' ', distinctWords);
         }
 
-        public static string CondenseKeywords(string text, int limit)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
 
-            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            var distinctWords = words
-                .Distinct(StringComparer.OrdinalIgnoreCase);
-
-            return string.Join(' ', distinctWords);
-        }
-
+        /// <summary>
+        /// Removes words that contain only numerical values, such as IDs, counts and years.
+        /// </summary>
         public static string RemoveNumericalWords(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -107,21 +110,25 @@ namespace Normalisation.Core.Processors
             return string.Join(' ', filteredWords);
         }
 
+
+        /// <summary>
+        /// Extracts the most frequently occurring words as tags.
+        /// </summary>
         public static IEnumerable<string> ExtractTags(string text, int maxTags)
         {
             if (text == null) return Enumerable.Empty<string>();
 
-            var keywords = text
+            var words = text
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                 .Select(k => k.Trim());
 
-            var tags = keywords
+            var tags = words
                 .GroupBy(k => k, StringComparer.OrdinalIgnoreCase)
-                .Select(g => new { Keyword = g.Key, Count = g.Count() })
+                .Select(g => new { Word = g.Key, Count = g.Count() })
                 .OrderByDescending(k => k.Count)
-                .ThenBy(k => k.Keyword) // tie-breaker by alphabetical
+                .ThenBy(k => k.Word) // tie-breaker by alphabetical
                 .Take(maxTags)
-                .Select(k => k.Keyword);
+                .Select(k => k.Word);
 
             return tags;
         }

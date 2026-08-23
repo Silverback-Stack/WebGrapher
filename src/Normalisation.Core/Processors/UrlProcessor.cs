@@ -4,36 +4,12 @@ using System.Text.RegularExpressions;
 
 namespace Normalisation.Core.Processors
 {
-    public static class UrlNormaliser
+    public static class UrlProcessor
     {
 
         /// <summary>
-        /// Returns a base folder URI suitable for resolving relative URLs.
-        /// If the URL is a file (does not end with /), returns the parent folder.
-        /// If it already ends with /, returns it as-is.
+        /// Converts relative and absolute URL strings into unique absolute URLs.
         /// </summary>
-        private static Uri GetBaseFolderUri(Uri pageUrl)
-        {
-            if (pageUrl.AbsoluteUri.EndsWith("/"))
-            {
-                // Already a folder URL
-                return pageUrl;
-            }
-
-            // Last segment of path
-            var lastSegment = pageUrl.Segments.LastOrDefault() ?? "";
-
-            if (!lastSegment.Contains("."))
-            {
-                // No dot → likely a folder URL missing trailing slash, add it
-                return new Uri(pageUrl.AbsoluteUri + "/");
-            }
-
-            // Resolve relative to parent folder
-            return new Uri(pageUrl, "."); // the "." trick gives parent folder
-        }
-
-
         public static HashSet<Uri> MakeAbsolute(IEnumerable<string> urls, Uri baseUrl)
         {
             if (urls == null) return new HashSet<Uri>();
@@ -49,7 +25,7 @@ namespace Normalisation.Core.Processors
                     continue;
 
                 var trimmedUrl = url.Trim();
-                Uri absolute = null;
+                Uri? absolute = null;
 
                 // Skip javascript/mailto fragments
                 if (trimmedUrl.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
@@ -109,24 +85,20 @@ namespace Normalisation.Core.Processors
         }
 
 
-        private static Uri RemoveFragment(Uri uri)
+        /// <summary>
+        /// Filters URLs to the allowed schemes.
+        /// </summary>
+        public static HashSet<Uri> FilterByScheme(HashSet<Uri> urls, IEnumerable<string> schemes)
         {
-            if (!string.IsNullOrEmpty(uri.Fragment))
-            {
-                return new Uri(uri.GetLeftPart(UriPartial.Query));
-            }
-            return uri;
+            if (!schemes.Any()) return urls;
+
+            return urls.Where(u => schemes.Contains(u.Scheme)).ToHashSet();
         }
 
 
-        public static HashSet<Uri> FilterBySchema(HashSet<Uri> urls, IEnumerable<string> schemas)
-        {
-            if (!schemas.Any()) return urls;
-
-            return urls.Where(u => schemas.Contains(u.Scheme)).ToHashSet();
-        }
-
-
+        /// <summary>
+        /// Filters URLs using one or more regular expressions.
+        /// </summary>
         public static HashSet<Uri> FilterByRegex(HashSet<Uri> urls, string regex)
         {
             if (string.IsNullOrWhiteSpace(regex)) return urls;
@@ -173,18 +145,18 @@ namespace Normalisation.Core.Processors
         }
 
 
+        /// <summary>
+        /// Removes URLs that point to external hosts.
+        /// </summary>
         public static HashSet<Uri> RemoveExternalLinks(HashSet<Uri> urls, Uri baseUrl)
         {
             return urls.Where(url => IsInternalLink(url, baseUrl)).ToHashSet();
         }
 
 
-        private static bool IsInternalLink(Uri url, Uri baseUrl)
-        {
-            return url.Authority == baseUrl.Authority;
-        }
-
-
+        /// <summary>
+        /// Removes query strings from URLs.
+        /// </summary>
         public static HashSet<Uri> RemoveQueryStrings(HashSet<Uri> urls)
         {
             var results = new HashSet<Uri>();
@@ -202,15 +174,73 @@ namespace Normalisation.Core.Processors
         }
 
 
+        /// <summary>
+        /// Removes links that point back to the current page.
+        /// </summary>
         public static HashSet<Uri> RemoveCyclicalLinks(HashSet<Uri> urls, Uri baseUrl)
         {
             return urls.Where(u => !u.Equals(baseUrl)).ToHashSet();
         }
 
 
-        public static HashSet<Uri> Truncate(HashSet<Uri> urls, int size)
+        /// <summary>
+        /// Limits the number of links returned using a deterministic URL order.
+        /// </summary>
+        public static HashSet<Uri> LimitLinks(HashSet<Uri> urls, int size)
         {
-            return urls.Take(size).ToHashSet();
+            return urls
+                .OrderBy(url => url.AbsoluteUri, StringComparer.Ordinal)
+                .Take(size)
+                .ToHashSet();
+        }
+
+
+        /// <summary>
+        /// Returns a base folder URI suitable for resolving relative URLs.
+        /// If the URL is a file (does not end with /), returns the parent folder.
+        /// If it already ends with /, returns it as-is.
+        /// </summary>
+        private static Uri GetBaseFolderUri(Uri pageUrl)
+        {
+            if (pageUrl.AbsoluteUri.EndsWith("/"))
+            {
+                // Already a folder URL
+                return pageUrl;
+            }
+
+            // Last segment of path
+            var lastSegment = pageUrl.Segments.LastOrDefault() ?? "";
+
+            if (!lastSegment.Contains("."))
+            {
+                // No dot → likely a folder URL missing trailing slash, add it
+                return new Uri(pageUrl.AbsoluteUri + "/");
+            }
+
+            // Resolve relative to parent folder
+            return new Uri(pageUrl, "."); // the "." trick gives parent folder
+        }
+
+
+        /// <summary>
+        /// Removes the fragment from a URL.
+        /// </summary>
+        private static Uri RemoveFragment(Uri uri)
+        {
+            if (!string.IsNullOrEmpty(uri.Fragment))
+            {
+                return new Uri(uri.GetLeftPart(UriPartial.Query));
+            }
+            return uri;
+        }
+
+
+        /// <summary>
+        /// Determines whether a URL belongs to the same host as the base URL.
+        /// </summary>
+        private static bool IsInternalLink(Uri url, Uri baseUrl)
+        {
+            return url.Authority == baseUrl.Authority;
         }
 
     }

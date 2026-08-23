@@ -3,22 +3,24 @@ using System.Xml.XPath;
 
 namespace Normalisation.Core.Processors
 {
+
     /// <summary>
-    /// Evaluates an XPath expression against an HtmlDocument,
-    /// supporting both node-set and scalar expressions.
+    /// Evaluates XPath expressions against an HTML document.
+    /// Supports expressions that return HTML nodes or scalar values and returns the result as a consistent XPathResult.
+    /// Invalid or unsupported expressions return an empty result so the caller can decide how to proceed.
     /// </summary>
-    public class XPathEvaluator
+    public class XPathProcessor
     {
         private readonly HtmlDocument _htmlDocument;
 
-        public XPathEvaluator(HtmlDocument htmlDocument)
+        public XPathProcessor(HtmlDocument htmlDocument)
         {
             _htmlDocument = htmlDocument;
         }
 
+
         /// <summary>
-        /// Evaluates an XPath expression and returns either a NodeSet or a string.
-        /// Uses HtmlAgilityPack SelectNodes when possible, falls back to XPathNavigator.Evaluate otherwise.
+        /// Evaluates an XPath expression and returns a consistent XPathResult.
         /// </summary>
         public XPathResult Evaluate(string expression)
         {
@@ -27,12 +29,15 @@ namespace Normalisation.Core.Processors
             if (string.IsNullOrWhiteSpace(expression))
                 return result; // Nothing to evaluate, return empty result
 
-            // Validate XPath syntax
-            try { 
+
+            try {
+                // Validate XPath syntax
                 XPathExpression.Compile(expression); 
             }
-            catch { 
-                return result; // Invalid XPath, return empty result
+            catch {
+                // Invalid XPath cannot be evaluated.
+                // Return an empty result so the caller can decide how to proceed.
+                return result;
             }
 
             // Try using HtmlAgilityPack's SelectNodes()

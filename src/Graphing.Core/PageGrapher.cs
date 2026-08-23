@@ -242,7 +242,7 @@ namespace Graphing.Core
                 Tags = result.Tags,
                 Links = result.Links?.Select(l => l.AbsoluteUri) ?? Enumerable.Empty<string>(),
                 DetectedLanguageIso3 = result.DetectedLanguageIso3,
-                ContentFingerprint = result.ContentFingerprint
+                ContentFingerprint = result.Fingerprint
             };
         }
 

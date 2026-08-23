@@ -16,7 +16,7 @@ namespace Normalisation.Core.Tests
         public void RemoveStopWords_FromInput_RemovesCorrectly(string input, string lang, string expected)
         {
             var normalisationSetting = new NormalisationSettings();
-            var result = StopWordFilter.RemoveStopWords(input, lang, normalisationSetting);
+            var result = StopWordProcessor.RemoveStopWords(input, lang, normalisationSetting);
             Assert.That(result, Is.EqualTo(expected));
         }
 
@@ -24,7 +24,7 @@ namespace Normalisation.Core.Tests
         public void RemoveStopWords_FromNoInput_ReturnsEmpty()
         {
             var normalisationSetting = new NormalisationSettings();
-            var result = StopWordFilter.RemoveStopWords("", "en", normalisationSetting);
+            var result = StopWordProcessor.RemoveStopWords("", "en", normalisationSetting);
             Assert.That(result, Is.Empty);
         }
 
@@ -33,7 +33,7 @@ namespace Normalisation.Core.Tests
         {
             var normalisationSetting = new NormalisationSettings();
             var input = "This is a test of unknown language";
-            var result = StopWordFilter.RemoveStopWords(input, "xx", normalisationSetting); //defaults to English
+            var result = StopWordProcessor.RemoveStopWords(input, "xx", normalisationSetting); //defaults to English
             Assert.That(result, Is.EqualTo("unknown language")); //stop words removed
         }
     }
