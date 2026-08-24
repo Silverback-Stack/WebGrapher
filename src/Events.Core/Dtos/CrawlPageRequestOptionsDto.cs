@@ -10,11 +10,11 @@
         public bool ExcludeExternalLinks { get; init; }
         public bool ExcludeQueryStrings { get; init; }
         public bool ConsolidateQueryStrings { get; init; }
-        public string UrlMatchRegex { get; init; }
-        public string TitleElementXPath { get; init; }
-        public string ContentElementXPath { get; init; }
-        public string SummaryElementXPath { get; init; }
-        public string ImageElementXPath { get; init; }
-        public string RelatedLinksElementXPath { get; init; }
+        public string UrlMatchRegex { get; init; } = string.Empty;
+        public string TitleElementXPath { get; init; } = string.Empty;
+        public string ContentElementXPath { get; init; } = string.Empty;
+        public string SummaryElementXPath { get; init; } = string.Empty;
+        public string ImageElementXPath { get; init; } = string.Empty;
+        public string RelatedLinksElementXPath { get; init; } = string.Empty;
     }
 }

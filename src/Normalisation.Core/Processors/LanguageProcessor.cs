@@ -8,49 +8,47 @@ namespace Normalisation.Core.Processors
     {
         /// <summary>
         /// Detects the language of text and returns its ISO 639-3 language code.
+        /// Returns the fallback code when detection is not possible.
         /// </summary>
         public static string DetectLanguage(
             string input, 
-            NormalisationSettings normalisationSettings)
+            string fallbackIso3Code)
         {
             if (string.IsNullOrWhiteSpace(input))
-                return normalisationSettings.Processors.DefaultLanguageIso3Code;
+                return fallbackIso3Code;
 
             var detector = new LanguageDetector();
+
             detector.AddAllLanguages();
 
             try
             {
-                var result = detector.Detect(input);
-
-                if (result is null)
-                    result = normalisationSettings.Processors.DefaultLanguageIso3Code;
-
-                return result;
+                return detector.Detect(input) ?? fallbackIso3Code;
             }
             catch (Exception)
             {
-                return normalisationSettings.Processors.DefaultLanguageIso3Code;
+                return fallbackIso3Code;
             }
         }
 
 
         /// <summary>
         /// Converts an ISO 639-3 language code to its ISO 639-1 equivalent.
+        /// Returns the fallback code when conversion is not possible.
         /// </summary>
         public static string ConvertLanguageIso3ToIso2(
-            string iso3LanguageCode, 
-            NormalisationSettings normalisationSettings)
+            string iso3Code, 
+            string fallbackIso2Code)
         {
-            if (string.IsNullOrWhiteSpace(iso3LanguageCode))
-                return normalisationSettings.Processors.DefaultLanguageIso2Code;
+            if (string.IsNullOrWhiteSpace(iso3Code))
+                return fallbackIso2Code;
 
             var culture = CultureInfo
                 .GetCultures(CultureTypes.NeutralCultures)
                 .FirstOrDefault(c => c.ThreeLetterISOLanguageName.Equals(
-                    iso3LanguageCode, StringComparison.OrdinalIgnoreCase));
+                    iso3Code, StringComparison.OrdinalIgnoreCase));
 
-            return culture?.TwoLetterISOLanguageName ?? normalisationSettings.Processors.DefaultLanguageIso2Code;
+            return culture?.TwoLetterISOLanguageName ?? fallbackIso2Code;
 
         }
     }

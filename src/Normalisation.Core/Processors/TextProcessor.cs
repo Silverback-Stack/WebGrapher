@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net;
 using System.Text.RegularExpressions;
 
 namespace Normalisation.Core.Processors
@@ -57,7 +56,7 @@ namespace Normalisation.Core.Processors
 
 
         /// <summary>
-        /// Limits text length without truncating words.
+        /// Limits text length without truncating words where possible.
         /// </summary>
         public static string LimitTextLength(string text, int maxLength)
         {
@@ -68,6 +67,10 @@ namespace Normalisation.Core.Processors
                 return text;
 
             var truncated = text.Substring(0, maxLength);
+
+            // If the next character is whitespace, no word has been truncated.
+            if (char.IsWhiteSpace(text[maxLength]))
+                return truncated.TrimEnd();
 
             var lastSpace = truncated.LastIndexOf(' ');
 

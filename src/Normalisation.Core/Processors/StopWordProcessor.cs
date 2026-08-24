@@ -11,23 +11,27 @@ namespace Normalisation.Core.Processors
         public static string RemoveStopWords(
             string input, 
             string iso3LanguageCode, 
-            NormalisationSettings normalisationSettings)
+            string fallbackIso2LanguageCode)
         {
             if (string.IsNullOrEmpty(iso3LanguageCode) || string.IsNullOrEmpty(input))
                 return input;
 
-            var iso2 = LanguageProcessor.ConvertLanguageIso3ToIso2(
-                iso3LanguageCode, normalisationSettings);
+            var iso2LanguageCode = LanguageProcessor.ConvertLanguageIso3ToIso2(
+                iso3LanguageCode, fallbackIso2LanguageCode);
 
             try
             {
-                var stopWords = StopWords.GetStopWords(iso2);
+                var stopWords = StopWords.GetStopWords(iso2LanguageCode);
 
                 if (stopWords == null || stopWords.Count() == 0)
                     return input;
 
-                var words = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                var filtered = words.Where(word => !stopWords.Contains(word, StringComparer.OrdinalIgnoreCase));
+                var words = input.Split(
+                    ' ', StringSplitOptions.RemoveEmptyEntries);
+
+                var filtered = words.Where(word => 
+                    !stopWords.Contains(
+                        word, StringComparer.OrdinalIgnoreCase));
 
                 return string.Join(' ', filtered);
             }

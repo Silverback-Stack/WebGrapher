@@ -173,7 +173,7 @@ namespace Normalisation.Core
         {
             // Extract data from html page
 
-            var htmlProcessor = new HtmlProcessor(htmlPage, _normalisationSettings);
+            var htmlProcessor = new HtmlProcessor(htmlPage);
             
             var extractedTitle = htmlProcessor.ExtractTitle
                 (request.Options.TitleElementXPath);
@@ -187,8 +187,8 @@ namespace Normalisation.Core
                 "Content Container");
 
             var detectedLanguageIso3 = LanguageProcessor.DetectLanguage(
-                extractedContent,
-                _normalisationSettings);
+                extractedContent, 
+                _normalisationSettings.LanguageDetectionFallbackIso3Code);
 
             var extractedLinks = htmlProcessor.ExtractLinks(
                 request.Options.RelatedLinksElementXPath);
@@ -495,7 +495,9 @@ namespace Normalisation.Core
             if (languageIso3 != null)
             {
                 text = StopWordProcessor.RemoveStopWords(
-                    text, languageIso3, _normalisationSettings);
+                    text, 
+                    languageIso3, 
+                    _normalisationSettings.LanguageDetectionFallbackIso2Code);
             }
 
             text = TextProcessor.RemoveDuplicateWords(text);
@@ -528,7 +530,9 @@ namespace Normalisation.Core
             if (languageIso3 != null)
             {
                 text = StopWordProcessor.RemoveStopWords(
-                    text, languageIso3, _normalisationSettings);
+                    text, 
+                    languageIso3, 
+                    _normalisationSettings.LanguageDetectionFallbackIso2Code);
             }
 
             text = TextProcessor.RemoveNumericalWords(text);
