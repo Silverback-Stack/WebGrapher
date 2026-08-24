@@ -8,14 +8,17 @@ namespace Normalisation.Core.Processors
     {
         private readonly HtmlDocument _htmlDocument;
         private readonly XPathProcessor _xPathProcessor;
-        private readonly NormalisationSettings _normalisationSettings;
 
-        public HtmlProcessor(string htmlPage, NormalisationSettings normalisationSettings) {
+        private const string DefaultTitleXPath = ".//title"; // <title> elements
+        private const string DefaultLinksXPath = ".//a[@href]"; // <a> elements with an href attribute
+
+        private const string HttpUrlPattern = @"https?://\S+"; // Matches HTTP or HTTPS URLs
+
+        public HtmlProcessor(string htmlPage) {
 
             _htmlDocument = new HtmlDocument();
             _htmlDocument.OptionFixNestedTags = true;
             _htmlDocument.LoadHtml(htmlPage);
-            _normalisationSettings = normalisationSettings;
             _xPathProcessor = new XPathProcessor(_htmlDocument);
         }
 
@@ -45,7 +48,7 @@ namespace Normalisation.Core.Processors
                     switch (xPathResult.Type)
                     {
                         case XPathResultType.NodeSet:
-                            // Always get InnerText of first valid node
+                            // Return the first non-empty matching node.
                             return xPathResult.Nodes?
                                 .Select(n => n.InnerText?.Trim())
                                 .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t))
@@ -59,7 +62,7 @@ namespace Normalisation.Core.Processors
 
                 // Fallback to <title>
                 var titleNode = _htmlDocument.DocumentNode
-                    .SelectSingleNode(_normalisationSettings.Processors.TitleXPath);
+                    .SelectSingleNode(DefaultTitleXPath);
                 
                 return titleNode?.InnerText.Trim() ?? string.Empty;
             }
@@ -128,7 +131,7 @@ namespace Normalisation.Core.Processors
                     return Enumerable.Empty<string>();
 
                 return xPathResult.Nodes
-                    .SelectMany(node => node.SelectNodes(_normalisationSettings.Processors.LinksXPath)
+                    .SelectMany(node => node.SelectNodes(DefaultLinksXPath)
                         ?? Enumerable.Empty<HtmlNode>())
                     .Select(tag => DecodeHtml(
                         tag.GetAttributeValue("href", string.Empty)))
@@ -159,18 +162,15 @@ namespace Normalisation.Core.Processors
 
                 foreach (var node in xPathResult.Nodes)
                 {
-                    // Try srcset first - last image in set should be the highest resolution
+                    // Prefer srcset; the last URL is typically the highest resolution.
                     var srcset = node.GetAttributeValue("srcset", string.Empty);
                     if (!string.IsNullOrEmpty(srcset))
                     {
                         // Example srcset string:
                         // "https://example.com/image1.jpg 190w, https://example.com/image2.jpg 285w, https://example.com/image3.jpg 380w"
 
-                        // Regex to match http or https URLs
-                        var urlPattern = @"https?://\S+";
-
                         // Find all matches
-                        var urls = Regex.Matches(srcset, urlPattern)
+                        var urls = Regex.Matches(srcset, HttpUrlPattern)
                                         .Cast<Match>()
                                         .Select(m => m.Value)
                                         .ToArray();

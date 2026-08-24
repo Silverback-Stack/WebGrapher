@@ -10,30 +10,36 @@ namespace Normalisation.Core.Tests
         public void Setup() { }
 
 
-        [TestCase("I will go to the market", "en", "market")] //English
-        [TestCase("Voy al mercado mañana", "es", "Voy mercado mañana")] //Spanish
-        [TestCase("Je vais au marché demain", "fr", "vais marché demain")] //French
+        [TestCase("I will go to the market", "eng", "market")] //English
+        [TestCase("Voy al mercado mañana", "spa", "Voy mercado mañana")] //Spanish
+        [TestCase("Je vais au marché demain", "fra", "vais marché demain")] //French
         public void RemoveStopWords_FromInput_RemovesCorrectly(string input, string lang, string expected)
         {
-            var normalisationSetting = new NormalisationSettings();
-            var result = StopWordProcessor.RemoveStopWords(input, lang, normalisationSetting);
+            var normalisationSettings = new NormalisationSettings();
+
+            var result = StopWordProcessor.RemoveStopWords(
+                input, lang, normalisationSettings.LanguageDetectionFallbackIso2Code);
+
             Assert.That(result, Is.EqualTo(expected));
         }
 
         [Test]
         public void RemoveStopWords_FromNoInput_ReturnsEmpty()
         {
-            var normalisationSetting = new NormalisationSettings();
-            var result = StopWordProcessor.RemoveStopWords("", "en", normalisationSetting);
+            var result = StopWordProcessor.RemoveStopWords(
+                "", "eng", "en");
+
             Assert.That(result, Is.Empty);
         }
 
         [Test]
         public void RemoveStopWords_UnknownLanguageCode_DefaultsToEnglishAndRemovesStopWords()
         {
-            var normalisationSetting = new NormalisationSettings();
-            var input = "This is a test of unknown language";
-            var result = StopWordProcessor.RemoveStopWords(input, "xx", normalisationSetting); //defaults to English
+            var input = "This is an unknown language";
+
+            var result = StopWordProcessor.RemoveStopWords(
+                input, "xx", "en"); //defaults to English
+
             Assert.That(result, Is.EqualTo("unknown language")); //stop words removed
         }
     }

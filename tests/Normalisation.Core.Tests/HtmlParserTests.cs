@@ -22,8 +22,7 @@ namespace Normalisation.Core.Tests
                 </body>
             </html>";
 
-            var normalisationSettings = new NormalisationSettings();
-            _htmlParser = new HtmlProcessor(htmlDocument, normalisationSettings);
+            _htmlParser = new HtmlProcessor(htmlDocument);
         }
 
         [Test]

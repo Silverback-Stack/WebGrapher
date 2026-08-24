@@ -15,8 +15,9 @@ namespace Normalisation.Core
         public int MaxLinks { get; set; } = 100;
         public int MaxLinksBytes { get; set; } = 64 * 1024; // 64 KB
 
-        public string[] AllowedLinkSchemes = ["http", "https"];
+        public string[] AllowedLinkSchemes { get; set; } = ["http", "https"];
 
-        public ProcessorSettings Processors { get; set; } = new ProcessorSettings();
+        public string LanguageDetectionFallbackIso2Code { get; set; } = "en";
+        public string LanguageDetectionFallbackIso3Code { get; set; } = "eng";
     }
 }

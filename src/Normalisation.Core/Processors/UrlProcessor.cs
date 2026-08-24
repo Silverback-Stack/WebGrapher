@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Text.RegularExpressions;
 
 namespace Normalisation.Core.Processors
@@ -15,7 +14,12 @@ namespace Normalisation.Core.Processors
             if (urls == null) return new HashSet<Uri>();
 
             baseUrl = GetBaseFolderUri(baseUrl);
-            var baseUri = baseUrl.Scheme.StartsWith("http") ? baseUrl : new Uri("https://" + baseUrl.Host);
+
+            var baseUri =
+                baseUrl.Scheme == Uri.UriSchemeHttp ||
+                baseUrl.Scheme == Uri.UriSchemeHttps
+                    ? baseUrl 
+                    : new Uri("https://" + baseUrl.Host);
 
             var uniqueUrls = new HashSet<Uri>();
 
