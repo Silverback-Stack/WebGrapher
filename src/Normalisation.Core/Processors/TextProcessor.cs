@@ -136,5 +136,20 @@ namespace Normalisation.Core.Processors
             return tags;
         }
 
+
+        /// <summary>
+        /// Splits text into individual lines.
+        /// </summary>
+        public static IEnumerable<string> SplitLines(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return Enumerable.Empty<string>();
+
+            return text.Split(
+                new[] { "\r\n", "\n", "\r" },
+                StringSplitOptions.RemoveEmptyEntries |
+                StringSplitOptions.TrimEntries);
+        }
+
     }
 }

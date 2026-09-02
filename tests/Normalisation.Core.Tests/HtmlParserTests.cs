@@ -46,7 +46,7 @@ namespace Normalisation.Core.Tests
         [Test]
         public void ExtractLinks_FromHtmlDocument_ReturnsLinks()
         {
-            var links = _htmlParser?.ExtractLinks().ToList();
+            var links = _htmlParser?.ExtractLinkReferences().ToList();
 
             Assert.That(links, Has.Count.EqualTo(1));
             Assert.That(links, Does.Contain("http://www.example.com"));

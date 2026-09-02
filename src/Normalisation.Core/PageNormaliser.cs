@@ -111,131 +111,165 @@ namespace Normalisation.Core
             }
 
 
+
             try
             {
-                // Normalise page data
-                var pageData = await NormalisePageDataAsync(htmlPage, request);
+                // Extract raw page data
+                var rawPageData = ExtractPageData(
+                    htmlPage,
+                    request);
 
-                // Filter page data according to request options
-                pageData = FilterPageDataToRequestOptions(pageData, request);
+                // Standardise raw page data
+                var standardisedPageData = await StandardisePageDataAsync(
+                    rawPageData,
+                    request);
 
-                // Publish normalised data
+                // Filter standardised page data according to request options
+                standardisedPageData = FilterPageDataToRequestOptions(
+                    standardisedPageData,
+                    request);
+
+                // Publish standardised page data
                 await PublishGraphEventAsync(
                     evt,
-                    pageData);
+                    standardisedPageData);
 
             }
-            catch (NormalisationException ex) // normalisation pipeline exceptions
+            catch (HtmlProcessorException ex)
             {
-                // Log full details including inner exception
-                // Eg: "Title Container XPath is invalid; check your expression."
-                _logger.LogError(ex, "Normalisation failed: {Message}", ex.Message);
-
-                // Send friendly message to client
-                await PublishClientLogEventAsync(
-                    request.GraphId,
-                    request.CorrelationId,
-                    LogType.Error,
-                    $"Normalisation failed: {ex.Message}",
-                    "NormalisationFailed",
-                    new LogContext
-                    {
-                        Url = request.Url.AbsoluteUri
-                    });
-
+                // Data extraction exception - include friendly XPath error
+                await LogExceptionAsync(
+                    ex,
+                    request,
+                    ex.Message);
             }
-            catch (Exception ex) // unhandled exceptions
+            catch (Exception ex) 
             {
-                // Log full details
-                _logger.LogError(ex, "Normalisation failed: {Url}", request.Url);
+                // Unhandled exception
+                await LogExceptionAsync(
+                    ex,
+                    request);
+            }
+        }
 
-                // Send friendly message to client
-                await PublishClientLogEventAsync(
-                    request.GraphId,
-                    request.CorrelationId,
-                    LogType.Error,
-                    $"Normalisation failed: {request.Url}",
-                    "NormalisationFailed",
-                    new LogContext
-                    {
-                        Url = request.Url.AbsoluteUri
-                    }
-                );
+        private async Task LogExceptionAsync(
+            Exception ex, 
+            CrawlPageRequestDto request, 
+            string? xpathError = null)
+        {
+            if (xpathError != null)
+            {
+                _logger.LogError(
+                    ex, 
+                    "Normalisation failed: {PageUrl} XPathError: {xPathError}", 
+                    request.Url, 
+                    xpathError);
+            } else
+            {
+                _logger.LogError(
+                    ex,
+                    "Normalisation failed: {PageUrl}", 
+                    request.Url);
             }
 
+            // Send friendly message to client
+            var clientMessage = xpathError != null
+                ? $"Normalisation failed: {xpathError}"
+                : $"Normalisation failed: {request.Url}";
+
+
+            await PublishClientLogEventAsync(
+                request.GraphId,
+                request.CorrelationId,
+                LogType.Error,
+                clientMessage,
+                "NormalisationFailed",
+                new LogContext
+                {
+                    Url = request.Url.AbsoluteUri
+                }
+            );
         }
 
 
         /// <summary>
-        /// Extracts and standardises data from a webpage.
+        /// Extracts data from a webpage.
         /// </summary>
-        private async Task<PageData> NormalisePageDataAsync(string htmlPage, CrawlPageRequestDto request)
+        private PageDataRaw ExtractPageData(string htmlPage, CrawlPageRequestDto request)
         {
-            // Extract data from html page
+            var rawPageData = new PageDataRaw();
 
             var htmlProcessor = new HtmlProcessor(htmlPage);
-            
-            var extractedTitle = htmlProcessor.ExtractTitle
+
+            rawPageData.Title = htmlProcessor.ExtractTitle
                 (request.Options.TitleElementXPath);
 
-            var extractedSummary = htmlProcessor.ExtractContentAsPlainText(
+            rawPageData.Summary = htmlProcessor.ExtractContentAsPlainText(
                 request.Options.SummaryElementXPath,
                 "Summary Container");
 
-            var extractedContent = htmlProcessor.ExtractContentAsPlainText(
+            rawPageData.Content = htmlProcessor.ExtractContentAsPlainText(
                 request.Options.ContentElementXPath,
                 "Content Container");
 
-            var detectedLanguageIso3 = LanguageProcessor.DetectLanguage(
-                extractedContent, 
+            rawPageData.LanguageIso3 = LanguageProcessor.DetectLanguage(
+                rawPageData.Content,
                 _normalisationSettings.LanguageDetectionFallbackIso3Code);
 
-            var extractedLinks = htmlProcessor.ExtractLinks(
+            rawPageData.LinkReferences = htmlProcessor.ExtractLinkReferences(
                 request.Options.RelatedLinksElementXPath);
 
-            var extractedImageUrl = htmlProcessor.ExtractImageUrl(
+            rawPageData.ImageReference = htmlProcessor.ExtractImageReference(
                 request.Options.ImageElementXPath);
 
+            return rawPageData;
+        }
 
-            // Standardise extracted data into a PageData object
-            var pageData = new PageData();
 
-            pageData.Title = StandardiseTitle(
-                extractedTitle);
+        /// <summary>
+        /// Standardises page data.
+        /// </summary>
+        private async Task<PageDataStandardised> StandardisePageDataAsync(
+            PageDataRaw rawPageData, CrawlPageRequestDto request)
+        {
+            var standardisedPageData = new PageDataStandardised();
 
-            pageData.Summary = StandardiseSummary(
-                extractedSummary);
+            standardisedPageData.Title = StandardiseTitle(
+                rawPageData.Title);
 
-            pageData.Keywords = StandardiseContentIntoKeywords(
-                extractedContent,
-                detectedLanguageIso3);
+            standardisedPageData.Summary = StandardiseSummary(
+                rawPageData.Summary);
 
-            pageData.Tags = StandardiseContentIntoTags(
-                extractedContent,
-                detectedLanguageIso3,
+            standardisedPageData.Keywords = StandardiseTextIntoKeywords(
+                rawPageData.Content,
+                rawPageData.LanguageIso3);
+
+            standardisedPageData.Tags = StandardiseTextIntoTags(
+                rawPageData.Content,
+                rawPageData.LanguageIso3,
                 _normalisationSettings.MaxTags);
 
-            pageData.Links = StandardiseLinks(
-                extractedLinks,
+            standardisedPageData.Links = StandardiseLinks(
+                rawPageData.LinkReferences,
                 request.Url);
 
-            pageData.ImageUrl = StandardiseImageUrl(
-                extractedImageUrl,
+            standardisedPageData.ImageUrl = StandardiseImageUrl(
+                rawPageData.ImageReference,
                 request.Url);
 
-            pageData.ImageCors = await StandardiseImageCorsAsync(
-                pageData.ImageUrl,
+            standardisedPageData.ImageCors = await StandardiseImageCorsAsync(
+                standardisedPageData.ImageUrl,
                 request);
 
-            pageData.LanguageIso3 = detectedLanguageIso3;
+            standardisedPageData.LanguageIso3 = rawPageData.LanguageIso3;
 
-            return pageData;
+            return standardisedPageData;
         }
 
 
         /// <summary>
         /// Determines image CORS support, defaulting to true when it cannot be determined.
-        /// </summary>s
+        /// </summary>
         private async Task<bool> StandardiseImageCorsAsync(
             Uri? imageUrl,
             CrawlPageRequestDto request)
@@ -255,10 +289,10 @@ namespace Normalisation.Core
         /// <summary>
         /// Filters page data according to crawl page request options.
         /// </summary>
-        private PageData FilterPageDataToRequestOptions(PageData pageData, CrawlPageRequestDto request)
+        private PageDataStandardised FilterPageDataToRequestOptions(PageDataStandardised pageData, CrawlPageRequestDto request)
         {
             pageData.Links = FilterLinksToRequestOptions(
-                pageData.Links?.ToHashSet(),
+                pageData.Links,
                 request.Url,
                 request.Options.ExcludeExternalLinks,
                 request.Options.ExcludeQueryStrings,
@@ -302,7 +336,7 @@ namespace Normalisation.Core
         /// </summary>
         private async Task PublishGraphEventAsync(
             NormalisePageEvent evt,
-            PageData pageData)
+            PageDataStandardised pageData)
         {
             var request = evt.CrawlPageRequest;
             var result = evt.ScrapePageResult;
@@ -462,43 +496,28 @@ namespace Normalisation.Core
 
 
         /// <summary>
-        /// Standardises page content.
+        /// Standardises text into keywords.
         /// </summary>
-        public string StandardiseContentIntoText(string? text)
-        {
-            if (text == null) return string.Empty;
-
-            text = HtmlProcessor.DecodeHtml(text);
-
-            text = TextProcessor.CollapseWhitespace(text);
-
-            return text;
-        }
-
-
-        /// <summary>
-        /// Standardises page content into keywords.
-        /// </summary>
-        public string StandardiseContentIntoKeywords(
+        public string StandardiseTextIntoKeywords(
             string? text, string? languageIso3)
         {
             if (text == null) return string.Empty;
 
             text = HtmlProcessor.DecodeHtml(text);
 
+            if (languageIso3 != null)
+            {
+                text = StopWordProcessor.RemoveStopWords(
+                    text,
+                    languageIso3,
+                    _normalisationSettings.LanguageDetectionFallbackIso2Code);
+            }
+
             text = TextProcessor.CollapseWhitespace(text);
 
             text = TextProcessor.RemovePunctuation(text);
 
             text = TextProcessor.RemoveSpecialCharacters(text);
-
-            if (languageIso3 != null)
-            {
-                text = StopWordProcessor.RemoveStopWords(
-                    text, 
-                    languageIso3, 
-                    _normalisationSettings.LanguageDetectionFallbackIso2Code);
-            }
 
             text = TextProcessor.RemoveDuplicateWords(text);
 
@@ -512,28 +531,28 @@ namespace Normalisation.Core
 
 
         /// <summary>
-        /// Standardises page content into tags.
+        /// Standardises text into tags.
         /// </summary>
-        public IEnumerable<string> StandardiseContentIntoTags(
+        public IEnumerable<string> StandardiseTextIntoTags(
             string? text, string? languageIso3, int maxTags)
         {
             if (text == null) return Enumerable.Empty<string>();
 
             text = HtmlProcessor.DecodeHtml(text);
 
+            if (languageIso3 != null)
+            {
+                text = StopWordProcessor.RemoveStopWords(
+                    text,
+                    languageIso3,
+                    _normalisationSettings.LanguageDetectionFallbackIso2Code);
+            }
+
             text = TextProcessor.CollapseWhitespace(text);
             
             text = TextProcessor.RemovePunctuation(text);
             
             text = TextProcessor.RemoveSpecialCharacters(text);
-
-            if (languageIso3 != null)
-            {
-                text = StopWordProcessor.RemoveStopWords(
-                    text, 
-                    languageIso3, 
-                    _normalisationSettings.LanguageDetectionFallbackIso2Code);
-            }
 
             text = TextProcessor.RemoveNumericalWords(text);
 
@@ -546,22 +565,24 @@ namespace Normalisation.Core
 
 
         /// <summary>
-        /// Standardises links from a webpage.
+        /// Standardises link URI references from a webpage into absolute URLs.
         /// </summary>
         public IEnumerable<Uri> StandardiseLinks(
-            IEnumerable<string> links, Uri baseUrl)
+            IEnumerable<string>? linkUriReferences, Uri baseUrl)
         {
-            var uniqueUrls = UrlProcessor.MakeAbsolute(links, baseUrl);
+            if (linkUriReferences is null) return Enumerable.Empty<Uri>();
 
-            uniqueUrls = UrlProcessor.RemoveCyclicalLinks(uniqueUrls, baseUrl);
+            var linkUrls = UrlProcessor.MakeAbsolute(linkUriReferences, baseUrl);
+
+            linkUrls = UrlProcessor.RemoveCyclicalLinks(linkUrls, baseUrl);
 
             //NEVER REMOVE TRAILING SLASHES - always honour the sites url exactly
             //otherwise can cause unnessesary canonical redirects
             //uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
 
-            uniqueUrls = UrlProcessor.FilterByScheme(uniqueUrls, _normalisationSettings.AllowedLinkSchemes);
+            linkUrls = UrlProcessor.FilterByScheme(linkUrls, _normalisationSettings.AllowedLinkSchemes);
 
-            return uniqueUrls;
+            return linkUrls;
         }
 
 
@@ -569,51 +590,54 @@ namespace Normalisation.Core
         /// Filters links according to request options.
         /// </summary>
         public IEnumerable<Uri> FilterLinksToRequestOptions(
-            HashSet<Uri>? links,
+            IEnumerable<Uri>? linkUrls,
             Uri baseUrl,
             bool excludeExternalLinks,
             bool excludeQueryStrings,
             int maxLinks,
             string linkUrlFilterRegex)
         {
-            if (links is null)
+            if (linkUrls is null)
                 return Enumerable.Empty<Uri>();
 
-            var filteredLinks = links;
+            var filteredUrls = linkUrls.ToHashSet();
+
+            var regexPatterns = TextProcessor.SplitLines(
+                linkUrlFilterRegex);
 
             if (excludeExternalLinks)
-                filteredLinks = UrlProcessor.RemoveExternalLinks(filteredLinks, baseUrl);
+                filteredUrls = UrlProcessor.RemoveExternalLinks(filteredUrls, baseUrl);
 
             if (excludeQueryStrings)
-                filteredLinks = UrlProcessor.RemoveQueryStrings(filteredLinks);
+                filteredUrls = UrlProcessor.RemoveQueryStrings(filteredUrls);
 
-            filteredLinks = UrlProcessor.FilterByRegex(filteredLinks, linkUrlFilterRegex);
+            filteredUrls = UrlProcessor.FilterByRegex(filteredUrls, regexPatterns);
 
-            filteredLinks = UrlProcessor.LimitLinks(filteredLinks, GetLinkLimit(maxLinks));
+            filteredUrls = UrlProcessor.LimitLinks(filteredUrls, GetLinkLimit(maxLinks));
 
-            return filteredLinks;
+            return filteredUrls;
         }
 
 
         /// <summary>
-        /// Standardises an image URL from a webpage.
+        /// Standardises an image reference from a webpage.
         /// </summary>
         public Uri? StandardiseImageUrl(
-            string? imageUrl,
+            string? imageReference,
             Uri baseUrl)
         {
-            if (string.IsNullOrEmpty(imageUrl))
+            if (string.IsNullOrWhiteSpace(imageReference))
                 return null;
 
-            var uniqueUrls = UrlProcessor.MakeAbsolute(
-                new List<string> { imageUrl }, 
+            var imageUrls = UrlProcessor.MakeAbsolute(
+                new List<string> { imageReference }, 
                 baseUrl);
 
-            uniqueUrls = UrlProcessor.FilterByScheme(
-                uniqueUrls, 
+            imageUrls = UrlProcessor.FilterByScheme(
+                imageUrls, 
                 _normalisationSettings.AllowedLinkSchemes);
 
-            return uniqueUrls.FirstOrDefault();
+            return imageUrls.FirstOrDefault();
         }
 
 

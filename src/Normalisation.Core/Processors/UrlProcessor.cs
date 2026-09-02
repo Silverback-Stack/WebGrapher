@@ -7,11 +7,11 @@ namespace Normalisation.Core.Processors
     {
 
         /// <summary>
-        /// Converts relative and absolute URL strings into unique absolute URLs.
+        /// Resolves relative and absolute URI references into unique absolute URLs.
         /// </summary>
-        public static HashSet<Uri> MakeAbsolute(IEnumerable<string> urls, Uri baseUrl)
+        public static HashSet<Uri> MakeAbsolute(IEnumerable<string> uriReferences, Uri baseUrl)
         {
-            if (urls == null) return new HashSet<Uri>();
+            if (uriReferences == null) return new HashSet<Uri>();
 
             baseUrl = GetBaseFolderUri(baseUrl);
 
@@ -23,31 +23,31 @@ namespace Normalisation.Core.Processors
 
             var uniqueUrls = new HashSet<Uri>();
 
-            foreach (var url in urls)
+            foreach (var uriReference in uriReferences)
             {
-                if (string.IsNullOrWhiteSpace(url))
+                if (string.IsNullOrWhiteSpace(uriReference))
                     continue;
 
-                var trimmedUrl = url.Trim();
+                var trimmedReference = uriReference.Trim();
                 Uri? absolute = null;
 
                 // Skip javascript/mailto fragments
-                if (trimmedUrl.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
-                    trimmedUrl.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ||
-                    trimmedUrl == "#")
+                if (trimmedReference.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
+                    trimmedReference.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ||
+                    trimmedReference == "#")
                 {
                     continue;
                 }
 
                 // Protocol-relative URLs (//example.com)
-                if (trimmedUrl.StartsWith("//"))
+                if (trimmedReference.StartsWith("//"))
                 {
-                    var afterSlashes = trimmedUrl.Substring(2);
+                    var afterSlashes = trimmedReference.Substring(2);
 
                     // if looks like a real domain (contains dot)
                     if (afterSlashes.Contains('.'))
                     {
-                        var urlWithScheme = $"{baseUri.Scheme}:{trimmedUrl}";
+                        var urlWithScheme = $"{baseUri.Scheme}:{trimmedReference}";
                         if (Uri.TryCreate(urlWithScheme, UriKind.Absolute, out var abs))
                             absolute = abs;
                     }
@@ -59,18 +59,18 @@ namespace Normalisation.Core.Processors
                 }
 
                 // Relative URLs - start with "/" or "./" or no scheme
-                else if (trimmedUrl.StartsWith("/") || trimmedUrl.StartsWith("./") || !trimmedUrl.Contains("://"))
+                else if (trimmedReference.StartsWith("/") || trimmedReference.StartsWith("./") || !trimmedReference.Contains("://"))
                 {
-                    absolute = new Uri(baseUri, trimmedUrl);
+                    absolute = new Uri(baseUri, trimmedReference);
                 }
 
                 // Fully-qualified absolute URLs (http, https)
-                else if (Uri.TryCreate(trimmedUrl, UriKind.Absolute, out var abs))
+                else if (Uri.TryCreate(trimmedReference, UriKind.Absolute, out var abs))
                 {
                     // Prevent accidental "file://"
                     if (abs.Scheme == Uri.UriSchemeFile)
                     {
-                        absolute = new Uri(baseUri, trimmedUrl);
+                        absolute = new Uri(baseUri, trimmedReference);
                     }
                     else
                     {
@@ -103,25 +103,26 @@ namespace Normalisation.Core.Processors
         /// <summary>
         /// Filters URLs using one or more regular expressions.
         /// </summary>
-        public static HashSet<Uri> FilterByRegex(HashSet<Uri> urls, string regex)
+        public static HashSet<Uri> FilterByRegex(
+            HashSet<Uri> urls,
+            IEnumerable<string> regexPatterns)
         {
-            if (string.IsNullOrWhiteSpace(regex)) return urls;
-
             var patterns = new List<Regex>();
 
-            // Split form input on new lines
-            var lines = regex
-                .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
+            //// Split form input on new lines
+            //var lines = regex
+            //    .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
 
-            foreach (var line in lines)
+            foreach (var pattern in regexPatterns)
             {
-                if (string.IsNullOrWhiteSpace(line))
+                if (string.IsNullOrWhiteSpace(pattern))
                     continue;
 
                 try
                 {
                     //compile valid patterns
-                    patterns.Add(new Regex(line.Trim(), RegexOptions.Compiled));
+                    patterns.Add(
+                        new Regex(pattern.Trim(), RegexOptions.Compiled));
                 }
                 catch
                 {
@@ -129,23 +130,14 @@ namespace Normalisation.Core.Processors
                 }
             }
 
-            // If nothing valid, return original set
+            // Return original set if no patterns provided
             if (patterns.Count == 0)
                 return urls;
 
-
-            var filtered = new HashSet<Uri>();
-
-            foreach (var url in urls)
-            {
-                // Convert Url to string and try match any pattern
-                if (patterns.Any(p => p.IsMatch(url.AbsoluteUri)))
-                {
-                    filtered.Add(url);
-                }
-            }
-
-            return filtered;
+            return urls
+                .Where(url => patterns.Any(
+                    pattern => pattern.IsMatch(url.AbsoluteUri)))
+                .ToHashSet();
         }
 
 
