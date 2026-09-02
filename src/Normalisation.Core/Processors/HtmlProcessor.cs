@@ -11,6 +11,7 @@ namespace Normalisation.Core.Processors
 
         private const string DefaultTitleXPath = ".//title"; // <title> elements
         private const string DefaultLinksXPath = ".//a[@href]"; // <a> elements with an href attribute
+        private const string DefaultLanguageXPath = ".//html/@lang";
 
         private const string HttpUrlPattern = @"https?://\S+"; // Matches HTTP or HTTPS URLs
 
@@ -69,7 +70,7 @@ namespace Normalisation.Core.Processors
             catch (Exception ex)
             {
                 // Friendly message for client, include original exception internally
-                throw new NormalisationException("Title Container XPath is invalid; check your expression.", ex);
+                throw new HtmlProcessorException("Title Container XPath is invalid; check your expression.", ex);
             }
         }
 
@@ -109,17 +110,17 @@ namespace Normalisation.Core.Processors
             catch (Exception ex)
             {
                 // Friendly message for client, include original exception internally
-                throw new NormalisationException($"{containerName} XPath is invalid; check your expression.", ex);
+                throw new HtmlProcessorException($"{containerName} XPath is invalid; check your expression.", ex);
             }
 
         }
 
 
         /// <summary>
-        /// Extracts links found in elements matching the XPath expression.
+        /// Extracts link URI references from elements matching the XPath expression.
         /// Falls back to entire document if no expression is provided.
         /// </summary>
-        public IEnumerable<string> ExtractLinks(string xPathExpression = "")
+        public IEnumerable<string> ExtractLinkReferences(string xPathExpression = "")
         {
             try
             {
@@ -135,20 +136,20 @@ namespace Normalisation.Core.Processors
                         ?? Enumerable.Empty<HtmlNode>())
                     .Select(tag => DecodeHtml(
                         tag.GetAttributeValue("href", string.Empty)))
-                    .Where(href => !string.IsNullOrEmpty(href))
+                    .Where(linkReference => !string.IsNullOrEmpty(linkReference))
                     .ToHashSet();
             }
             catch (Exception ex)
             {
-                throw new NormalisationException("Related Links Container XPath is invalid; check your expression.", ex);
+                throw new HtmlProcessorException("Related Links Container XPath is invalid; check your expression.", ex);
             }
         }
 
 
         /// <summary>
-        /// Extracts the preferred image URL from elements matching the XPath expression.
+        /// Extracts the preferred image reference from elements matching the XPath expression.
         /// </summary>
-        public string ExtractImageUrl(string xPathExpression = "")
+        public string ExtractImageReference(string xPathExpression = "")
         {
             try
             {
@@ -175,10 +176,10 @@ namespace Normalisation.Core.Processors
                                         .Select(m => m.Value)
                                         .ToArray();
 
-                        // Return the last URL, which is typically the largest/highest-resolution image
-                        var largestImageUrl = urls.LastOrDefault();
-                        if (!string.IsNullOrEmpty(largestImageUrl))
-                            return largestImageUrl;
+                        // Return the last reference, which is typically the largest/highest-resolution image
+                        var preferredImageReference = urls.LastOrDefault();
+                        if (!string.IsNullOrEmpty(preferredImageReference))
+                            return preferredImageReference;
                     }
 
                     // Fallback to src
@@ -192,7 +193,7 @@ namespace Normalisation.Core.Processors
             }
             catch (Exception ex)
             {
-                throw new NormalisationException("Image Container XPath is invalid; check your expression.", ex);
+                throw new HtmlProcessorException("Image Container XPath is invalid; check your expression.", ex);
             }
         }
 

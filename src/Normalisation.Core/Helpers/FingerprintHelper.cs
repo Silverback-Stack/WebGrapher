@@ -10,7 +10,7 @@ namespace Normalisation.Core.Helpers
         /// <summary>
         /// Generates a 64-character fingerprint representing the normalised page data.
         /// </summary>
-        public static string ComputeFingerprint(PageData pageData)
+        public static string ComputeFingerprint(PageDataStandardised pageData)
         {
             var data = new
             {
@@ -21,7 +21,7 @@ namespace Normalisation.Core.Helpers
                 Links = pageData.Links?
                     .Select(x => x.AbsoluteUri)
                     .OrderBy(x => x),
-                pageData.ImageUrl,
+                pageData.ImageUrl?.AbsoluteUri,
                 pageData.ImageCors,
                 pageData.LanguageIso3
             };

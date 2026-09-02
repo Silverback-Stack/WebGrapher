@@ -147,7 +147,7 @@ namespace Normalisation.Core.Tests
         };
 
             //match only URLs that contain either /products/ or /blog/
-            var filtered = UrlProcessor.FilterByRegex(urls, ".*/(products|blog)/.*"); 
+            var filtered = UrlProcessor.FilterByRegex(urls, [ ".*/(products|blog)/.*" ]); 
 
 
             Assert.That(filtered.Count, Is.EqualTo(2));
