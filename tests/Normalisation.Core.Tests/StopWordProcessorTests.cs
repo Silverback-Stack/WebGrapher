@@ -3,7 +3,7 @@ using Normalisation.Core.Processors;
 namespace Normalisation.Core.Tests
 {
     [TestFixture]
-    public class StopWordFilterTests
+    public class StopWordProcessorTests
     {
 
         [SetUp]
@@ -23,6 +23,7 @@ namespace Normalisation.Core.Tests
             Assert.That(result, Is.EqualTo(expected));
         }
 
+
         [Test]
         public void RemoveStopWords_FromNoInput_ReturnsEmpty()
         {
@@ -31,6 +32,7 @@ namespace Normalisation.Core.Tests
 
             Assert.That(result, Is.Empty);
         }
+
 
         [Test]
         public void RemoveStopWords_UnknownLanguageCode_DefaultsToEnglishAndRemovesStopWords()

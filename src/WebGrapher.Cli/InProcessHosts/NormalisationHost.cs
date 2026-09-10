@@ -68,7 +68,11 @@ namespace WebGrapher.Cli.InProcessHosts
 
             // Create Normalisation Service
             var normalisationService = NormalisationFactory.Create(
-                logger, _eventBus, requestSender, blobCache, normalisationConfig.Settings);
+                logger, 
+                _eventBus, 
+                requestSender, 
+                blobCache, 
+                normalisationConfig.Settings);
             await normalisationService.StartAsync();
         }
     }

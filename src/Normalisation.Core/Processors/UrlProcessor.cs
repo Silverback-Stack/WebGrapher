@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Normalisation.Core.Processors
@@ -144,7 +145,9 @@ namespace Normalisation.Core.Processors
         /// <summary>
         /// Removes URLs that point to external hosts.
         /// </summary>
-        public static HashSet<Uri> RemoveExternalLinks(HashSet<Uri> urls, Uri baseUrl)
+        public static HashSet<Uri> RemoveExternalLinks(
+            HashSet<Uri> urls, 
+            Uri baseUrl)
         {
             return urls.Where(url => IsInternalLink(url, baseUrl)).ToHashSet();
         }
@@ -180,14 +183,35 @@ namespace Normalisation.Core.Processors
 
 
         /// <summary>
-        /// Limits the number of links returned using a deterministic URL order.
+        /// Limits the number and combined byte size of links returned
+        /// using a deterministic URL order.
         /// </summary>
-        public static HashSet<Uri> LimitLinks(HashSet<Uri> urls, int size)
+        public static HashSet<Uri> LimitLinks(
+            HashSet<Uri> urls, 
+            int maxLinks, 
+            int maxBytes = 0)
         {
-            return urls
-                .OrderBy(url => url.AbsoluteUri, StringComparer.Ordinal)
-                .Take(size)
-                .ToHashSet();
+            var limitedUrls = new HashSet<Uri>();
+            var totalBytes = 0;
+
+            foreach (var url in urls
+            .OrderBy(url => url.AbsoluteUri, StringComparer.Ordinal)
+            .Take(maxLinks))
+                {
+                    if (maxBytes > 0)
+                    {
+                        var urlBytes = Encoding.UTF8.GetByteCount(url.AbsoluteUri);
+
+                        if (totalBytes + urlBytes > maxBytes)
+                            break;
+
+                        totalBytes += urlBytes;
+                    }
+
+                    limitedUrls.Add(url);
+                }
+
+            return limitedUrls;
         }
 
 

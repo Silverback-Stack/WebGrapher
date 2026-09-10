@@ -15,9 +15,12 @@ namespace Normalisation.Factories
             ICache cache, 
             NormalisationSettings normalisationSettings)
         {
-            var service = new PageNormaliser(logger, eventBus, requestSender, cache, normalisationSettings);
-
-            return service;
+            return new PageNormaliser(
+                logger, 
+                eventBus, 
+                requestSender, 
+                cache, 
+                normalisationSettings);
         }
     }
 }
