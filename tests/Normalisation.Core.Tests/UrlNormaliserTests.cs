@@ -1,4 +1,5 @@
 ﻿using Normalisation.Core.Processors;
+using System.Text;
 
 namespace Normalisation.Core.Tests
 {
@@ -7,11 +8,13 @@ namespace Normalisation.Core.Tests
     {
         private Uri _baseUrl;
 
+
         [SetUp]
         public void Setup()
         {
             _baseUrl = new Uri("https://example.com/");
         }
+
 
         [Test]
         public void MakeAbsolute_FromBase_ReturnsAbsoluteUrls()
@@ -56,6 +59,7 @@ namespace Normalisation.Core.Tests
             Assert.That(resultsStrings, Has.Some.EqualTo("https://other.com/page9"));
             Assert.That(resultsStrings, Has.Some.EqualTo("https://example.com/images/page10"));
         }
+
 
         [Test]
         public void MakeAbsolute_FromPathWithTrailingSlash_ReturnsAbsoluteUrls()
@@ -135,6 +139,7 @@ namespace Normalisation.Core.Tests
             Assert.That(filtered.Any(u => u.Scheme == "ftp"), Is.True);
         }
 
+
         [Test]
         public void FilterByRegex_FiltersUrlsContainingMatchingPattern()
         {
@@ -155,6 +160,7 @@ namespace Normalisation.Core.Tests
             Assert.That(filtered.Any(u => u.AbsolutePath.Contains("blog")), Is.True);
         }
 
+
         [Test]
         public void RemoveExternalLinks_RemovesUrlsOutsideBaseAuthority()
         {
@@ -170,6 +176,7 @@ namespace Normalisation.Core.Tests
             Assert.That(filtered.First().Host, Is.EqualTo("example.com"));
         }
 
+
         [Test]
         public void RemoveQueryStrings_RemovesQueryFromUrls()
         {
@@ -183,6 +190,7 @@ namespace Normalisation.Core.Tests
 
             Assert.That(cleaned.All(u => string.IsNullOrEmpty(u.Query)), Is.True);
         }
+
 
         [Test]
         public void RemoveCyclicalLinks_RemovesBaseUrlFromSet()
@@ -199,19 +207,70 @@ namespace Normalisation.Core.Tests
             Assert.That(filtered.Count, Is.EqualTo(1));
         }
 
+
         [Test]
-        public void Truncate_ReturnsOnlySpecifiedNumberOfUrls()
+        public void LimitLinks_ReturnsOnlySpecifiedNumberOfUrls()
         {
             var urls = new HashSet<Uri>
+            {
+                new Uri("https://example.com/1"),
+                new Uri("https://example.com/2"),
+                new Uri("https://example.com/3")
+            };
+
+            var limited = UrlProcessor.LimitLinks(urls, 2);
+
+            Assert.That(limited.Count, Is.EqualTo(2));
+        }
+
+
+        [Test]
+        public void LimitLinks_ReturnsUrlsWithinSpecifiedByteLimit()
         {
-            new Uri("https://example.com/1"),
-            new Uri("https://example.com/2"),
-            new Uri("https://example.com/3")
-        };
+            var urls = new HashSet<Uri>
+            {
+                new Uri("https://example.com/1"),
+                new Uri("https://example.com/2"),
+                new Uri("https://example.com/3")
+            };
 
-            var truncated = UrlProcessor.LimitLinks(urls, 2);
+            var maxBytes = Encoding.UTF8.GetByteCount(
+                "https://example.com/1" +
+                "https://example.com/2");
 
-            Assert.That(truncated.Count, Is.EqualTo(2));
+            var limited = UrlProcessor.LimitLinks(
+                urls,
+                3,
+                maxBytes);
+
+            Assert.That(limited.Count, Is.EqualTo(2));
+        }
+
+
+        [Test]
+        public void LimitLinks_ByteLimitDoesNotClipUrls()
+        {
+            var urls = new HashSet<Uri>
+            {
+                new Uri("https://example.com/1"),
+                new Uri("https://example.com/2")
+            };
+
+            var firstUrlBytes = Encoding.UTF8.GetByteCount(
+                "https://example.com/1");
+
+            // Allow the first URL plus only part of the second URL
+            var maxBytes = firstUrlBytes + 5;
+
+            var limited = UrlProcessor.LimitLinks(
+                urls,
+                2,
+                maxBytes);
+
+            Assert.That(limited.Count, Is.EqualTo(1));
+            Assert.That(
+                limited.Single(),
+                Is.EqualTo(new Uri("https://example.com/1")));
         }
 
     }

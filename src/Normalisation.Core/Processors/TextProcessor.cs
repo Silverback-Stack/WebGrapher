@@ -99,9 +99,9 @@ namespace Normalisation.Core.Processors
 
 
         /// <summary>
-        /// Removes words that contain only numerical values, such as IDs, counts and years.
+        /// Removes strings that contain only numeric values, such as IDs, counts and years.
         /// </summary>
-        public static string RemoveNumericalWords(string text)
+        public static string RemoveNumericStrings(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return text;

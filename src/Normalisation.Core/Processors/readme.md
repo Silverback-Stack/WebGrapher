@@ -4,9 +4,9 @@ The Normalisation pipeline uses libraries such as **HtmlAgilityPack**, **Languag
 Although these are third-party libraries, they are intentionally kept in **Core**.
 
 **Reasoning:**
-- They perform **pure, in-memory transformations** (no I/O, no external resources)
+- They support **in-memory processing** without requiring external infrastructure.
 - They express **business/application logic**: how HTML content is interpreted and normalised
-- They are part of *what the service does*, not *how it integrates*
+- They are part of **what the service does**, not *how it integrates*
 
 In Clean Architecture, **Core is allowed to depend on libraries** when those libraries:
 - model domain or application behavior

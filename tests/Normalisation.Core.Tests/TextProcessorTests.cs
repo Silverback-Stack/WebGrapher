@@ -4,13 +4,14 @@ using Normalisation.Core.Processors;
 namespace Normalisation.Core.Tests
 {
     [TestFixture]
-    public class TextNormaliserTests
+    public class TextProcessorTests
     {
         [SetUp]
         public void Setup()
         {
 
         }
+
 
         [TestCase("HELLO WORLD", "hello world")]
         [TestCase("MiXeD CaSe", "mixed case")]
@@ -20,6 +21,7 @@ namespace Normalisation.Core.Tests
             var result = TextProcessor.ToLowerCase(input);
             Assert.That(result, Is.EqualTo(expected));
         }
+
 
         [TestCase("Hello, world!", "Hello world")]
         [TestCase("No punctuation", "No punctuation")]
@@ -31,6 +33,7 @@ namespace Normalisation.Core.Tests
             Assert.That(result, Is.EqualTo(expected));
         }
 
+
         [TestCase("Hello! &World@2023", "Hello World2023")]
         [TestCase("Remove_special#chars$", "Removespecialchars")]
         [TestCase("", "")]
@@ -39,6 +42,7 @@ namespace Normalisation.Core.Tests
             var result = TextProcessor.RemoveSpecialCharacters(input);
             Assert.That(result, Is.EqualTo(expected));
         }
+
 
         [TestCase("Hello    world", "Hello world")]
         [TestCase("Tabs\tand\nnewlines", "Tabs and newlines")]
@@ -51,13 +55,6 @@ namespace Normalisation.Core.Tests
             Assert.That(result, Is.EqualTo(expected));
         }
 
-        [TestCase("Hello world", 5, "Hello")]
-        [TestCase("Short", 10, "Short")]
-        public void Truncate_ReturnsTruncatedOrOriginal(string input, int maxLength, string expected)
-        {
-            var result = TextProcessor.LimitTextLength(input, maxLength);
-            Assert.That(result, Is.EqualTo(expected));
-        }
 
         [TestCase("this is is a test test", "this is a test")]
         [TestCase("hello Hello HELLO", "hello")]
@@ -68,6 +65,7 @@ namespace Normalisation.Core.Tests
             var result = TextProcessor.RemoveDuplicateWords(input);
             Assert.That(result, Is.EqualTo(expected));
         }
+
 
         [TestCase("one two three four five six", 13, "one two three")]
         [TestCase("short text", 20, "short text")]
@@ -81,6 +79,88 @@ namespace Normalisation.Core.Tests
             var result = TextProcessor.LimitTextLength(input, maxLength);
 
             Assert.That(result, Is.EqualTo(expected));
+        }
+
+
+        [TestCase("one 123 two 2024 three", "one two three")]
+        [TestCase("123 456", "")]
+        [TestCase("no numbers here", "no numbers here")]
+        [TestCase("", "")]
+        public void RemoveNumericalWords_RemovesNumericStrings(
+            string input,
+            string expected)
+        {
+            var result = TextProcessor.RemoveNumericStrings(input);
+
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
+
+        [Test]
+        public void ExtractTags_ReturnsMostFrequentWords()
+        {
+            var tags = TextProcessor.ExtractTags(
+                "apple banana apple orange banana apple", maxTags: 2)
+                .ToList();
+
+            Assert.That(tags, Is.EqualTo(new[]
+            {
+                "apple",
+                "banana"
+            }));
+        }
+
+
+        [Test]
+        public void ExtractTags_WithEqualFrequency_ReturnsAlphabetically()
+        {
+            var tags = TextProcessor.ExtractTags(
+                "orange banana apple", maxTags: 3)
+                .ToList();
+
+            Assert.That(tags, Is.EqualTo(new[]
+            {
+                "apple",
+                "banana",
+                "orange"
+            }));
+        }
+
+
+        [Test]
+        public void ExtractTags_WithNullText_ReturnsEmpty()
+        {
+            var tags = TextProcessor.ExtractTags(
+                null!, maxTags: 5);
+
+            Assert.That(tags, Is.Empty);
+        }
+
+
+        [Test]
+        public void SplitLines_ReturnsIndividualLines()
+        {
+            var lines = TextProcessor.SplitLines(
+                "First line\r\nSecond line\nThird line")
+                .ToList();
+
+            Assert.That(lines, Is.EqualTo(new[]
+            {
+                "First line",
+                "Second line",
+                "Third line"
+            }));
+        }
+
+
+        [TestCase("")]
+        [TestCase("   ")]
+        [TestCase(null)]
+        public void SplitLines_WithEmptyText_ReturnsEmpty(string? input)
+        {
+            var lines = TextProcessor.SplitLines(input);
+
+            Assert.That(lines, Is.Empty);
         }
 
     }

@@ -114,25 +114,34 @@ namespace Normalisation.Core
 
             try
             {
-                // Extract raw page data
-                var rawPageData = ExtractPageData(
+                // Extract raw data
+                PageDataRaw pageDataRaw = ExtractRawPageData(
                     htmlPage,
                     request);
 
-                // Standardise raw page data
-                var standardisedPageData = await StandardisePageDataAsync(
-                    rawPageData,
+
+                // Standardise data
+                PageDataStandardised pageDataStandardised = await StandardisePageDataAsync(
+                    pageDataRaw,
                     request);
 
-                // Filter standardised page data according to request options
-                standardisedPageData = FilterPageDataToRequestOptions(
-                    standardisedPageData,
+
+                // Filter data according to request options
+                pageDataStandardised = FilterPageDataToRequestOptions(
+                    pageDataStandardised,
                     request);
 
-                // Publish standardised page data
-                await PublishGraphEventAsync(
-                    evt,
-                    standardisedPageData);
+
+                // Create normalisation result
+                NormalisePageResultDto normalisePageResult = CreateNormalisePageResult(
+                    result,
+                    pageDataStandardised);
+
+
+                // Publish normalisation result
+                await PublishNormalisePageResultAsync(
+                    request,
+                    normalisePageResult);
 
             }
             catch (HtmlProcessorException ex)
@@ -152,6 +161,45 @@ namespace Normalisation.Core
             }
         }
 
+
+        /// <summary>
+        /// Creates the normalisation result from the scraped and standardised page data.
+        /// </summary>
+        private NormalisePageResultDto CreateNormalisePageResult(
+            ScrapePageResultDto scrapePageResult, 
+            PageDataStandardised pageDataStandardised)
+        {
+
+            // Generate a unique fingerprint representing the page data.
+            var fingerprint = FingerprintHelper.ComputeFingerprint(pageDataStandardised);
+
+            return new NormalisePageResultDto
+            {
+                CreatedAt = DateTimeOffset.UtcNow,
+
+                // Metadata
+                OriginalUrl = scrapePageResult.OriginalUrl,
+                Url = scrapePageResult.Url,
+                StatusCode = scrapePageResult.StatusCode,
+                IsRedirect = scrapePageResult.IsRedirect,
+                SourceLastModified = scrapePageResult.SourceLastModified,
+
+                // Normalised data
+                Title = pageDataStandardised.Title,
+                Summary = pageDataStandardised.Summary,
+                Keywords = pageDataStandardised.Keywords,
+                Tags = pageDataStandardised.Tags,
+                Links = pageDataStandardised.Links,
+                ImageUrl = pageDataStandardised.ImageUrl,
+                ImageCors = pageDataStandardised.ImageCors,
+                DetectedLanguageIso3 = pageDataStandardised.LanguageIso3,
+                Fingerprint = fingerprint
+            };
+        }
+
+        /// <summary>
+        /// Logs a normalisation exception with details about the failed request.
+        /// </summary>
         private async Task LogExceptionAsync(
             Exception ex, 
             CrawlPageRequestDto request, 
@@ -193,9 +241,11 @@ namespace Normalisation.Core
 
 
         /// <summary>
-        /// Extracts data from a webpage.
+        /// Extracts raw data from a webpage.
         /// </summary>
-        private PageDataRaw ExtractPageData(string htmlPage, CrawlPageRequestDto request)
+        private PageDataRaw ExtractRawPageData(
+            string htmlPage, 
+            CrawlPageRequestDto request)
         {
             var rawPageData = new PageDataRaw();
 
@@ -230,38 +280,39 @@ namespace Normalisation.Core
         /// Standardises page data.
         /// </summary>
         private async Task<PageDataStandardised> StandardisePageDataAsync(
-            PageDataRaw rawPageData, CrawlPageRequestDto request)
+            PageDataRaw pageDataRaw, 
+            CrawlPageRequestDto request)
         {
             var standardisedPageData = new PageDataStandardised();
 
             standardisedPageData.Title = StandardiseTitle(
-                rawPageData.Title);
+                pageDataRaw.Title);
 
             standardisedPageData.Summary = StandardiseSummary(
-                rawPageData.Summary);
+                pageDataRaw.Summary);
 
             standardisedPageData.Keywords = StandardiseTextIntoKeywords(
-                rawPageData.Content,
-                rawPageData.LanguageIso3);
+                pageDataRaw.Content,
+                pageDataRaw.LanguageIso3);
 
             standardisedPageData.Tags = StandardiseTextIntoTags(
-                rawPageData.Content,
-                rawPageData.LanguageIso3,
+                pageDataRaw.Content,
+                pageDataRaw.LanguageIso3,
                 _normalisationSettings.MaxTags);
 
             standardisedPageData.Links = StandardiseLinks(
-                rawPageData.LinkReferences,
+                pageDataRaw.LinkReferences,
                 request.Url);
 
             standardisedPageData.ImageUrl = StandardiseImageUrl(
-                rawPageData.ImageReference,
+                pageDataRaw.ImageReference,
                 request.Url);
 
             standardisedPageData.ImageCors = await StandardiseImageCorsAsync(
                 standardisedPageData.ImageUrl,
                 request);
 
-            standardisedPageData.LanguageIso3 = rawPageData.LanguageIso3;
+            standardisedPageData.LanguageIso3 = pageDataRaw.LanguageIso3;
 
             return standardisedPageData;
         }
@@ -289,17 +340,19 @@ namespace Normalisation.Core
         /// <summary>
         /// Filters page data according to crawl page request options.
         /// </summary>
-        private PageDataStandardised FilterPageDataToRequestOptions(PageDataStandardised pageData, CrawlPageRequestDto request)
+        private PageDataStandardised FilterPageDataToRequestOptions(
+            PageDataStandardised pageDataStandardised, 
+            CrawlPageRequestDto request)
         {
-            pageData.Links = FilterLinksToRequestOptions(
-                pageData.Links,
+            pageDataStandardised.Links = FilterLinksToRequestOptions(
+                pageDataStandardised.Links,
                 request.Url,
                 request.Options.ExcludeExternalLinks,
                 request.Options.ExcludeQueryStrings,
                 request.Options.MaxLinks,
                 request.Options.UrlMatchRegex);
 
-            return pageData;
+            return pageDataStandardised;
         }
 
 
@@ -332,41 +385,19 @@ namespace Normalisation.Core
 
 
         /// <summary>
-        /// Publishes the normalised page data.
+        /// Publishes the normalised page result.
         /// </summary>
-        private async Task PublishGraphEventAsync(
-            NormalisePageEvent evt,
-            PageDataStandardised pageData)
+        private async Task PublishNormalisePageResultAsync(
+            CrawlPageRequestDto crawlPageRequest,
+            NormalisePageResultDto normalisePageResult)
         {
-            var request = evt.CrawlPageRequest;
-            var result = evt.ScrapePageResult;
 
-            // Generate a unique fingerprint representing the page data.
-            var fingerprint = FingerprintHelper.ComputeFingerprint(pageData);
-
-            var normalisePageResult = new NormalisePageResultDto
+            // Check if only preview required
+            LogContextPreview? logPreview = null;
+            if (crawlPageRequest.Preview)
             {
-                OriginalUrl = result.OriginalUrl,
-                Url = result.Url,
-                StatusCode = result.StatusCode,
-                IsRedirect = result.IsRedirect,
-                SourceLastModified = result.SourceLastModified,
-                Title = pageData.Title,
-                Summary = pageData.Summary,
-                Keywords = pageData.Keywords,
-                Tags = pageData.Tags,
-                Links = pageData.Links,
-                ImageUrl = pageData.ImageUrl,
-                ImageCors = pageData.ImageCors,
-                DetectedLanguageIso3 = pageData.LanguageIso3,
-                Fingerprint = fingerprint,
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-
-            // Check if request is Preview of Normalised data
-            LogContextPreview? preview = null;
-            if (request.Preview) {
-                preview = new LogContextPreview
+                // Log a Preview of Normalised data
+                logPreview = new LogContextPreview
                 {
                     Title = normalisePageResult.Title,
                     Summary = normalisePageResult.Summary,
@@ -380,30 +411,30 @@ namespace Normalisation.Core
             }
             else
             {
-                // Not a Preview - continue to Publish GraphPageEvent
+                // Publish GraphPageEvent
                 await _eventBus.PublishAsync(new GraphPageEvent
                 {
-                    CrawlPageRequest = request,
+                    CrawlPageRequest = crawlPageRequest,
                     NormalisePageResult = normalisePageResult,
                     CreatedAt = DateTimeOffset.UtcNow
-                }, priority: request.Depth);
+                }, priority: crawlPageRequest.Depth);
             }
 
             _logger.LogInformation("Normalisation Completed: {Url} Links: {LinkCount} Keywords: {KeywordCount}",
-                result.Url, pageData.Links?.Count(), pageData.Keywords?.Count());
+                crawlPageRequest.Url, normalisePageResult.Links?.Count(), normalisePageResult.Keywords?.Count());
 
             await PublishClientLogEventAsync(
-                request.GraphId,
-                request.CorrelationId,
+                crawlPageRequest.GraphId,
+                crawlPageRequest.CorrelationId,
                 LogType.Information,
-                $"Normalisation Completed: {result.Url} Links: {pageData.Links?.Count()} Keywords: {pageData.Keywords?.Count()}",
+                $"Normalisation Completed: {crawlPageRequest.Url} Links: {normalisePageResult.Links?.Count()} Keywords: {normalisePageResult.Keywords?.Count()}",
                 "NormalisationSuccess",
                 new LogContext
                 {
-                    Url = request.Url.AbsoluteUri,
+                    Url = crawlPageRequest.Url.AbsoluteUri,
                     TotalLinks = normalisePageResult.Links?.Count() ?? 0,
                     TotalKeywords = normalisePageResult.Keywords?.Count() ?? 0,
-                    Preview = preview
+                    Preview = logPreview
                 });
         }
 
@@ -411,7 +442,7 @@ namespace Normalisation.Core
 
 
         /// <summary>
-        /// Retrieves a cached HTML page.
+        /// Retrieves and decodes an HTML page from the cache.
         /// </summary>
         private async Task<string?> GetCachedHtmlPageAsync(
             string blobId, 
@@ -480,7 +511,7 @@ namespace Normalisation.Core
 
 
         /// <summary>
-        /// Standardise a page summary.
+        /// Standardise summary text.
         /// </summary>
         public string StandardiseSummary(string? text)
         {
@@ -554,7 +585,7 @@ namespace Normalisation.Core
             
             text = TextProcessor.RemoveSpecialCharacters(text);
 
-            text = TextProcessor.RemoveNumericalWords(text);
+            text = TextProcessor.RemoveNumericStrings(text);
 
             text = TextProcessor.ToLowerCase(text);
 
@@ -565,20 +596,19 @@ namespace Normalisation.Core
 
 
         /// <summary>
-        /// Standardises link URI references from a webpage into absolute URLs.
+        /// Standardises link references from a webpage into absolute URLs.
         /// </summary>
         public IEnumerable<Uri> StandardiseLinks(
-            IEnumerable<string>? linkUriReferences, Uri baseUrl)
+            IEnumerable<string>? linkReferences, Uri baseUrl)
         {
-            if (linkUriReferences is null) return Enumerable.Empty<Uri>();
+            if (linkReferences is null) return Enumerable.Empty<Uri>();
 
-            var linkUrls = UrlProcessor.MakeAbsolute(linkUriReferences, baseUrl);
+            var linkUrls = UrlProcessor.MakeAbsolute(linkReferences, baseUrl);
 
             linkUrls = UrlProcessor.RemoveCyclicalLinks(linkUrls, baseUrl);
 
-            //NEVER REMOVE TRAILING SLASHES - always honour the sites url exactly
-            //otherwise can cause unnessesary canonical redirects
-            //uniqueUrls = UrlNormaliser.RemoveTrailingSlash(uniqueUrls);
+            // WARNING: DO NOT REMOVE TRAILING SLASHES
+            // always honor the sites url exactly otherwise can cause unnessesary canonical redirects
 
             linkUrls = UrlProcessor.FilterByScheme(linkUrls, _normalisationSettings.AllowedLinkSchemes);
 
@@ -595,7 +625,7 @@ namespace Normalisation.Core
             bool excludeExternalLinks,
             bool excludeQueryStrings,
             int maxLinks,
-            string linkUrlFilterRegex)
+            string urlMatchRegex)
         {
             if (linkUrls is null)
                 return Enumerable.Empty<Uri>();
@@ -603,7 +633,7 @@ namespace Normalisation.Core
             var filteredUrls = linkUrls.ToHashSet();
 
             var regexPatterns = TextProcessor.SplitLines(
-                linkUrlFilterRegex);
+                urlMatchRegex);
 
             if (excludeExternalLinks)
                 filteredUrls = UrlProcessor.RemoveExternalLinks(filteredUrls, baseUrl);
@@ -613,7 +643,10 @@ namespace Normalisation.Core
 
             filteredUrls = UrlProcessor.FilterByRegex(filteredUrls, regexPatterns);
 
-            filteredUrls = UrlProcessor.LimitLinks(filteredUrls, GetLinkLimit(maxLinks));
+            filteredUrls = UrlProcessor.LimitLinks(
+                filteredUrls, 
+                GetLinkLimit(maxLinks),
+                _normalisationSettings.MaxLinksBytes);
 
             return filteredUrls;
         }
