@@ -3,7 +3,7 @@ namespace Graphing.Core.WebGraph
 {
     public class WebGraphSettings
     {
-        public int ScheduleCrawlThrottleSeconds { get; set; } = 60;
-        public NodeEdgesUpdateMode NodeEdgesUpdateMode { get; set; } = NodeEdgesUpdateMode.Append;
+        public int NodeRefreshThrottleSeconds { get; set; } = 60;
+        public OutgoingNodesUpdateMode OutgoingNodesUpdateMode { get; set; } = OutgoingNodesUpdateMode.Append;
     }
 }

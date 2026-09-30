@@ -1,5 +1,4 @@
-﻿
-namespace Graphing.Core.WebGraph.Models
+﻿namespace Graphing.Core.WebGraph
 {
     public record PagedResult<T>(
         IEnumerable<T> Items,

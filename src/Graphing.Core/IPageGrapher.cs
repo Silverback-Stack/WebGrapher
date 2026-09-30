@@ -1,4 +1,5 @@
 ﻿using Events.Core.Dtos;
+using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Models;
 
 namespace Graphing.Core

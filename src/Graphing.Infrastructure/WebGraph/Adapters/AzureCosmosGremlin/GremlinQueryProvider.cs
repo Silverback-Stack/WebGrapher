@@ -47,11 +47,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
         {
             var query = @"
                 g.V().hasLabel('graph')
-                .where(
-                    __.values('userId').is(userId)
-                    .or()
-                    .values('userId').is('')
-                 )
+                 .has('userId', userId)
                  .order().by('createdAt', incr)
                  .range(start, end)
             ";
@@ -127,7 +123,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             {
                 ["id"] = graph.Id.ToString(),
                 ["graphId"] = graph.Id.ToString(),
-                ["userId"] = graph.UserId,
+                ["userId"] = graph.UserId ?? string.Empty,
                 ["name"] = graph.Name,
                 ["description"] = graph.Description,
                 ["url"] = graph.Url,
@@ -383,7 +379,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                  .property('popularityScore', popularityScore)
                  .property('createdAt', createdAt)
                  .property('modifiedAt', modifiedAt)
-                 .property('lastScheduledAt', lastScheduledAt)
+                 .property('allowRefreshAfter', allowRefreshAfter)
                  .property('sourceLastModified', sourceLastModified)
                  .property('contentFingerprint', contentFingerprint)";
 
@@ -403,7 +399,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                 ["popularityScore"] = node.PopularityScore,
                 ["createdAt"] = node.CreatedAt.ToString("O"),
                 ["modifiedAt"] = node.ModifiedAt.ToString("O"),
-                ["lastScheduledAt"] = node.LastScheduledAt?.ToString("O") ?? "",
+                ["allowRefreshAfter"] = node.AllowRefreshAfter?.ToString("O") ?? "",
                 ["sourceLastModified"] = node.SourceLastModified?.ToString("O") ?? "",
                 ["contentFingerprint"] = node.ContentFingerprint
             };

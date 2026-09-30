@@ -13,13 +13,18 @@
         public IEnumerable<string> Tags { get; set; } = Enumerable.Empty<string>();
         public NodeState State { get; set; }
         public string RedirectedToUrl { get; set; }
-        public HashSet<Node> OutgoingLinks { get; set; } = new();
-        public HashSet<Node> IncomingLinks { get; set; } = new();
+        public HashSet<Node> OutgoingNodes { get; set; } = new();
+        public HashSet<Node> IncomingNodes { get; set; } = new();
         public int PopularityScore { get; set; }
         public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
         public DateTimeOffset ModifiedAt { get; set; } = DateTimeOffset.UtcNow;
-        public DateTimeOffset? LastScheduledAt { get; set; }
         public DateTimeOffset? SourceLastModified { get; set; }
+
+        /// <summary>
+        /// Earliest time another refresh is permitted.
+        /// </summary>
+        public DateTimeOffset? AllowRefreshAfter { get; set; } 
+
         public string ContentFingerprint { get; set; } = string.Empty;
 
         public Node() { }
@@ -31,7 +36,7 @@
             State = state;
         }
 
-        public int OutgoingLinkCount => OutgoingLinks.Count();
-        public int IncomingLinkCount => IncomingLinks.Count();
+        public int OutgoingNodeCount => OutgoingNodes.Count();
+        public int IncomingNodeCount => IncomingNodes.Count();
     }
 }

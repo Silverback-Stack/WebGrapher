@@ -1,5 +1,4 @@
 ﻿using System;
-using Graphing.Core;
 using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Models;
 using Graphing.Infrastructure.WebGraph.Adapters.Memory;
@@ -13,64 +12,64 @@ namespace Graphing.Core.Tests
     {
         private MemoryWebGraphAdapter _adapter;
         private Mock<ILogger> _logger;
-        private bool _includeImmediateNeighborhood;
         private GraphingSettings _graphingSettings;
+
+        // Depth 0 simulates an initial crawl, bypassing refresh throttling
+        // and ensuring existing relationships are processed.
+        private const int CrawlDepth = 0;
 
         [SetUp]
         public void Setup()
         {
             _logger = new Mock<ILogger>();
             _graphingSettings = new GraphingSettings();
-            _adapter = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
-            _includeImmediateNeighborhood = true; //true when current link depth < 2
         }
 
+        /// <summary>
+        /// Returns the first populated Nodes for the initial graph payload.
+        /// </summary>
         [Test]
-        public async Task GetMostPopularNodesAsync_ReturnsTopNodesOrderedByPopularityScoreAndCreatedAt()
+        public async Task GetInitialGraphNodes_ReturnsFirstPopulatedNodesUpToTopN()
         {
-            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
+            _graphingSettings.WebGraph.OutgoingNodesUpdateMode = OutgoingNodesUpdateMode.Append;
+            _adapter = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
 
-            // Helper to create a node with N incoming and optional outgoing links
-            Node CreateNode(string url, int incomingLinks, int outgoingLinks, DateTimeOffset createdAt)
+            var graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
+
+            var node1 = new Node(graphId, "url1")
             {
-                var node = new Node(graphId, url)
-                {
-                    State = NodeState.Populated,
-                    CreatedAt = createdAt,
-                    ModifiedAt = createdAt
-                };
+                State = NodeState.Populated,
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-2)
+            };
 
-                // Populate incoming links
-                for (int i = 0; i < incomingLinks; i++)
-                    node.IncomingLinks.Add(new Node(graphId, $"{url}_incoming_{i}"));
+            var node2 = new Node(graphId, "url2")
+            {
+                State = NodeState.Populated,
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-3)
+            };
 
-                // Populate outgoing links
-                for (int i = 0; i < outgoingLinks; i++)
-                    node.OutgoingLinks.Add(new Node(graphId, $"{url}_outgoing_{i}"));
+            var node3 = new Node(graphId, "url3")
+            {
+                State = NodeState.Populated,
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-1)
+            };
 
-                // Update popularity score explicitly
-                node.PopularityScore = node.IncomingLinks.Count + node.OutgoingLinks.Count;
-
-                return node;
-            }
-
-            var node1 = CreateNode("url1", 5, 0, DateTimeOffset.UtcNow.AddHours(-2));  // score = 5
-            var node2 = CreateNode("url2", 10, 0, DateTimeOffset.UtcNow.AddHours(-3)); // score = 10
-            var node3 = CreateNode("url3", 10, 0, DateTimeOffset.UtcNow.AddHours(-1)); // score = 10
-            var node4 = CreateNode("url4", 1, 0, DateTimeOffset.UtcNow);  // score = 1
+            var node4 = new Node(graphId, "url4")
+            {
+                State = NodeState.Populated,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
 
             await _adapter.SetNodeAsync(node1);
             await _adapter.SetNodeAsync(node2);
             await _adapter.SetNodeAsync(node3);
             await _adapter.SetNodeAsync(node4);
 
-            var result = await _adapter.GetInitialGraphNodes(graphId, 2);
+            var result = (await _adapter.GetInitialGraphNodes(graphId, 2)).ToList();
 
-            Assert.That(result.Count(), Is.EqualTo(2));
-
-            // Tie on popularity score, newer ModifiedAt wins
-            Assert.That(result.ElementAt(0).Url, Is.EqualTo("url3"));
-            Assert.That(result.ElementAt(1).Url, Is.EqualTo("url2"));
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result[0].Url, Is.EqualTo("url2"));
+            Assert.That(result[1].Url, Is.EqualTo("url1"));
         }
 
 
@@ -78,6 +77,9 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task TraverseGraphAsync_TraversesGraphUpToMaxDepth()
         {
+            _graphingSettings.WebGraph.OutgoingNodesUpdateMode = OutgoingNodesUpdateMode.Append;
+            _adapter = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
+
             Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
 
             var nodeA = new Node(graphId, "A");
@@ -85,9 +87,9 @@ namespace Graphing.Core.Tests
             var nodeC = new Node(graphId, "C");
             var nodeD = new Node(graphId, "D");
 
-            nodeA.OutgoingLinks.Add(nodeB);
-            nodeB.OutgoingLinks.Add(nodeC);
-            nodeC.OutgoingLinks.Add(nodeD);
+            nodeA.OutgoingNodes.Add(nodeB);
+            nodeB.OutgoingNodes.Add(nodeC);
+            nodeC.OutgoingNodes.Add(nodeD);
 
             await _adapter.SetNodeAsync(nodeA);
             await _adapter.SetNodeAsync(nodeB);
@@ -114,6 +116,9 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task TraverseGraphAsync_StopsAtMaxNodesLimit()
         {
+            _graphingSettings.WebGraph.OutgoingNodesUpdateMode = OutgoingNodesUpdateMode.Append;
+            _adapter = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
+
             Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
 
             //create a bunch of nodes:
@@ -125,11 +130,11 @@ namespace Graphing.Core.Tests
             var nodeF = new Node(graphId, "F");
 
             // Create a star burst: A -> B,C,D,E,F
-            nodeA.OutgoingLinks.Add(nodeB);
-            nodeA.OutgoingLinks.Add(nodeC);
-            nodeA.OutgoingLinks.Add(nodeD);
-            nodeA.OutgoingLinks.Add(nodeE);
-            nodeA.OutgoingLinks.Add(nodeF);
+            nodeA.OutgoingNodes.Add(nodeB);
+            nodeA.OutgoingNodes.Add(nodeC);
+            nodeA.OutgoingNodes.Add(nodeD);
+            nodeA.OutgoingNodes.Add(nodeE);
+            nodeA.OutgoingNodes.Add(nodeF);
 
             await _adapter.SetNodeAsync(nodeA);
             await _adapter.SetNodeAsync(nodeB);
@@ -148,21 +153,21 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task UpdatingNodeOutgoingLinksAsync_AppendMode_DoesNotRemoveExistingIncomingLinks()
         {
-            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
-            var linkUpdateMode = NodeEdgesUpdateMode.Append;
+            _graphingSettings.WebGraph.OutgoingNodesUpdateMode = OutgoingNodesUpdateMode.Append;
+            _adapter = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
 
-            var webPageA = new WebPageItem
+            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
+
+            var webPageA = new PageData
             {
-                GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
                 Links = new List<string> { "B" },
                 SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1),
                 ContentFingerprint = "HASH-A"
             };
-            var webPageB = new WebPageItem
+            var webPageB = new PageData
             {
-                GraphId = graphId,
                 Url = "B",
                 OriginalUrl = "B",
                 Links = new List<string> { },
@@ -170,17 +175,17 @@ namespace Graphing.Core.Tests
                 ContentFingerprint = "HASH-B"
             };
 
-            await _adapter.AddWebPageAsync(webPageA, _includeImmediateNeighborhood, null, null, linkUpdateMode);
-            await _adapter.AddWebPageAsync(webPageB, _includeImmediateNeighborhood, null, null, linkUpdateMode);
+            // Depth 0 simulates an initial crawl, bypassing refresh throttling and processing existing relationships
+            await _adapter.MapPageAsync(graphId, webPageA, CrawlDepth, null, null);
+            await _adapter.MapPageAsync(graphId, webPageB, CrawlDepth, null, null);
 
             var nodeB = await _adapter.GetNodeAsync(graphId, "B");
-            Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
-            Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.True);
+            Assert.That(nodeB.IncomingNodeCount, Is.EqualTo(1));
+            Assert.That(nodeB.IncomingNodes.Any(n => n.Url == "A"), Is.True);
 
-            // revisit A with no links in Append mode
-            var webPageARevisited = new WebPageItem
+            // Revisit A with no outgoing relationships in Append mode
+            var webPageARevisited = new PageData
             {
-                GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
                 Links = new List<string>(),
@@ -188,32 +193,37 @@ namespace Graphing.Core.Tests
                 ContentFingerprint = "HASH-A-REVISITED"
             };
 
-            await _adapter.AddWebPageAsync(webPageARevisited, _includeImmediateNeighborhood,  null, null, linkUpdateMode);
+            await _adapter.MapPageAsync(
+                graphId, 
+                webPageARevisited,
+                CrawlDepth,  
+                null, null);
 
             nodeB = await _adapter.GetNodeAsync(graphId, "B");
-            // Append mode: old links are kept
-            Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
-            Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.True);
+
+            // Append mode: existing relationships are retained
+            Assert.That(nodeB.IncomingNodeCount, Is.EqualTo(1));
+            Assert.That(nodeB.IncomingNodes.Any(n => n.Url == "A"), Is.True);
         }
 
         [Test]
         public async Task UpdatingNodeOutgoingLinksAsync_ReplaceMode_RemovesOldIncomingLinks()
         {
-            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
-            var linkUpdateMode = NodeEdgesUpdateMode.Replace;
+            _graphingSettings.WebGraph.OutgoingNodesUpdateMode = OutgoingNodesUpdateMode.Replace;
+            _adapter = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
 
-            var webPageA = new WebPageItem
+            Guid graphId = Guid.Parse("7d0d7fea-adcc-45d3-aafa-5cbb5ce4bc1f");
+
+            var webPageA = new PageData
             {
-                GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
                 Links = new List<string> { "B" },
                 SourceLastModified = DateTimeOffset.UtcNow.AddYears(-1),
                 ContentFingerprint = "HASH-A"
             };
-            var webPageB = new WebPageItem
+            var webPageB = new PageData
             {
-                GraphId = graphId,
                 Url = "B",
                 OriginalUrl = "B",
                 Links = new List<string> { },
@@ -221,17 +231,17 @@ namespace Graphing.Core.Tests
                 ContentFingerprint = "HASH-B"
             };
 
-            await _adapter.AddWebPageAsync(webPageA, _includeImmediateNeighborhood, null, null, linkUpdateMode);
-            await _adapter.AddWebPageAsync(webPageB, _includeImmediateNeighborhood, null, null, linkUpdateMode);
+            // Depth 0 simulates an initial crawl, bypassing refresh throttling and processing existing relationships
+            await _adapter.MapPageAsync(graphId, webPageA, CrawlDepth, null, null);
+            await _adapter.MapPageAsync(graphId, webPageB, CrawlDepth, null, null);
 
             var nodeB = await _adapter.GetNodeAsync(graphId, "B");
-            Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(1));
-            Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.True);
+            Assert.That(nodeB.IncomingNodeCount, Is.EqualTo(1));
+            Assert.That(nodeB.IncomingNodes.Any(n => n.Url == "A"), Is.True);
 
-            // revisit A with no links in Replace mode
-            var webPageARevisited = new WebPageItem
+            // Revisit A with no outgoing relationships in Replace mode
+            var webPageARevisited = new PageData
             {
-                GraphId = graphId,
                 Url = "A",
                 OriginalUrl = "A",
                 Links = new List<string>(),
@@ -239,12 +249,13 @@ namespace Graphing.Core.Tests
                 ContentFingerprint = "HASH-A-REVISITED"
             };
 
-            await _adapter.AddWebPageAsync(webPageARevisited, _includeImmediateNeighborhood, null, null, linkUpdateMode);
+            await _adapter.MapPageAsync(graphId, webPageARevisited, CrawlDepth, null, null);
 
             nodeB = await _adapter.GetNodeAsync(graphId, "B");
-            // Replace mode: old links removed
-            Assert.That(nodeB.IncomingLinkCount, Is.EqualTo(0));
-            Assert.That(nodeB.IncomingLinks.Any(n => n.Url == "A"), Is.False);
+
+            // Replace mode: existing relationships are removed
+            Assert.That(nodeB.IncomingNodeCount, Is.EqualTo(0));
+            Assert.That(nodeB.IncomingNodes.Any(n => n.Url == "A"), Is.False);
         }
 
     }

@@ -69,7 +69,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             var graph = GremlinQueryHelper.HydrateGraphFromVertex(vertex);
 
             // check userId is assigned but doesnt match
-            if (graph.UserId != string.Empty && graph.UserId != userId)
+            if (graph.UserId != userId)
                 return null;
 
             return graph;
@@ -110,7 +110,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
         {
             var graph = new Graph
             {
-                Id = options.Id ?? Guid.NewGuid(),
+                Id = options.GraphId,
                 UserId = options.UserId,
                 Name = options.Name,
                 Description = options.Description,
@@ -208,21 +208,21 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
         }
 
 
-        protected async override Task<bool> AddOutgoingLinkAsync(Guid graphId, Node fromNode, Node toNode)
+        protected async override Task<bool> AddOutgoingNodeAsync(Guid graphId, Node fromNode, Node toNode)
         {
             await _gremlinQueryProvider.AddNodeVertexEdgeAsync(fromNode, toNode, graphId);
             return true;
         }
 
 
-        protected async override Task<bool> AddIncomingLinkAsync(Guid graphId, Node toNode, Node fromNode)
+        protected async override Task<bool> AddIncomingNodeAsync(Guid graphId, Node toNode, Node fromNode)
         {
             // Same as outgoing, just reversed
-            return await AddOutgoingLinkAsync(graphId, fromNode, toNode);
+            return await AddOutgoingNodeAsync(graphId, fromNode, toNode);
         }
 
 
-        protected async override Task ClearOutgoingLinksAsync(Guid graphId, Node node)
+        protected async override Task ClearOutgoingNodesAsync(Guid graphId, Node node)
         {
             await _gremlinQueryProvider.RemoveNodeVertexEdgesAsync(graphId, node);
         }
@@ -301,8 +301,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                                 if (nodeMap.TryGetValue(outV, out Node fromNode) &&
                                     nodeMap.TryGetValue(inV, out Node toNode))
                                 {
-                                    fromNode.OutgoingLinks.Add(toNode);
-                                    toNode.IncomingLinks.Add(fromNode);
+                                    fromNode.OutgoingNodes.Add(toNode);
+                                    toNode.IncomingNodes.Add(fromNode);
                                 }
                             }
                         }
@@ -343,19 +343,19 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                     sb.AppendLine($"    State: {node.State}");
                     sb.AppendLine($"    Title: {node.Title}");
                     sb.AppendLine($"    Popularity: {node.PopularityScore}");
-                    sb.AppendLine($"    Incoming: {node.IncomingLinks.Count} | Outgoing: {node.OutgoingLinks.Count}");
+                    sb.AppendLine($"    Incoming: {node.IncomingNodes.Count} | Outgoing: {node.OutgoingNodes.Count}");
 
-                    if (node.OutgoingLinks.Any())
+                    if (node.OutgoingNodes.Any())
                     {
                         sb.AppendLine("    Outgoing Links:");
-                        foreach (var outNode in node.OutgoingLinks.OrderBy(n => n.Url))
+                        foreach (var outNode in node.OutgoingNodes.OrderBy(n => n.Url))
                             sb.AppendLine($"      -> {outNode.Url} [{outNode.State}]");
                     }
 
-                    if (node.IncomingLinks.Any())
+                    if (node.IncomingNodes.Any())
                     {
                         sb.AppendLine("    Incoming Links:");
-                        foreach (var inNode in node.IncomingLinks.OrderBy(n => n.Url))
+                        foreach (var inNode in node.IncomingNodes.OrderBy(n => n.Url))
                             sb.AppendLine($"      <- {inNode.Url} [{inNode.State}]");
                     }
                 }

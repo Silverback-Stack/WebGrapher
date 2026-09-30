@@ -146,10 +146,15 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
 
             //TODO: consider using Nullable types in Node instead of default values here!
 
+
+            var userId = GetPropString(props, "userId");
+            if (string.IsNullOrEmpty(userId)) 
+                userId = null;
+
             return new Graph
             {
                 Id = Guid.Parse(vertex["id"].ToString()),
-                UserId = GetPropString(props, "userId") ?? string.Empty,
+                UserId = userId,
                 Name = GetPropString(props, "name") ?? string.Empty,
                 Description = GetPropString(props, "description") ?? string.Empty,
                 Url = GetPropString(props, "url") ?? string.Empty,
@@ -201,11 +206,11 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                 PopularityScore = GetPropInt(props, "popularityScore") ?? 0,
                 CreatedAt = GetPropDateTimeOffset(props, "createdAt") ?? DateTimeOffset.UtcNow,
                 ModifiedAt = GetPropDateTimeOffset(props, "modifiedAt") ?? DateTimeOffset.UtcNow,
-                LastScheduledAt = GetPropDateTimeOffset(props, "lastScheduledAt"),
+                AllowRefreshAfter = GetPropDateTimeOffset(props, "allowRefreshAfter"),
                 SourceLastModified = GetPropDateTimeOffset(props, "sourceLastModified"),
                 ContentFingerprint = GetPropString(props, "contentFingerprint") ?? string.Empty,
-                OutgoingLinks = new HashSet<Node>(),
-                IncomingLinks = new HashSet<Node>()
+                OutgoingNodes = new HashSet<Node>(),
+                IncomingNodes = new HashSet<Node>()
             };
         }
     }

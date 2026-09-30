@@ -1,8 +1,13 @@
-﻿namespace Graphing.Core.WebGraph.Models
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Graphing.Core.WebGraph.Models
 {
-    public class WebPageItem
+    public class PageData
     {
-        public Guid GraphId { get; set; }
         public string Url { get; set; }
         public string OriginalUrl { get; set; }
         public bool IsRedirect { get; set; }

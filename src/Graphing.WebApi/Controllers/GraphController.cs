@@ -1,7 +1,7 @@
 ﻿using Auth.WebApi;
 using Graphing.Core;
+using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Dtos;
-using Graphing.Core.WebGraph.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Graph = Graphing.Core.WebGraph.Models.Graph;

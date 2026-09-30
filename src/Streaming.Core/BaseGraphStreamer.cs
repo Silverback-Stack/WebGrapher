@@ -73,7 +73,7 @@ namespace Streaming.Core
 
                 await PublishClientLogEventAsync(
                         payload.GraphId,
-                        payload.CorrolationId,
+                        payload.CorrelationId,
                         LogType.Information,
                         $"Streaming {payload.NodeCount} nodes and {payload.EdgeCount} edges.",
                         "StreamingPayload",

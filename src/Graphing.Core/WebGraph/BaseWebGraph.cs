@@ -9,48 +9,70 @@ namespace Graphing.Core.WebGraph
         protected readonly ILogger _logger;
         protected readonly GraphingSettings _graphingSettings;
         
-        protected BaseWebGraph(ILogger logger, GraphingSettings graphingSettings)
+        protected BaseWebGraph(
+            ILogger logger, 
+            GraphingSettings graphingSettings)
         {
             _logger = logger;
             _graphingSettings = graphingSettings;
         }
 
-        public async Task AddWebPageAsync(
-            WebPageItem webPage, 
-            bool forceRefresh,
-            Func<Node, Task>? nodePopulatedCallback, 
-            Func<Node, Task>? linkDiscoveredCallback,
-            NodeEdgesUpdateMode linkUpdateMode = NodeEdgesUpdateMode.Append)
+        public async Task EnsureGraphExistsAsync(GraphOptions options)
         {
-            _logger.LogDebug("AddWebPageAsync started for {Url}", webPage.Url);
+            var graph = await GetGraphAsync(options.GraphId, options.UserId);
 
-            // Mark or promote URL as Populated
-            var node = await GetOrCreateNodeAsync(webPage.GraphId, webPage.Url, NodeState.Populated);
-
-            if (!HasPageChanged(webPage, node, forceRefresh))
+            if (graph != null)
             {
-                _logger.LogDebug("No updated required for {Url} - content has not changed.", webPage.Url);
                 return;
             }
 
-            await PopulateNodeFromWebPageAsync(node, webPage);
+            await CreateGraphAsync(options);
+        }
 
-            if (linkUpdateMode == NodeEdgesUpdateMode.Replace)
+
+        /// <summary>
+        /// Maps page data to a graph node and its outgoing relationships.
+        /// </summary>
+        /// <param name="graphId">The ID of the graph to map the page to.</param>
+        /// <param name="pageData">The page data to map.</param>
+        /// <param name="crawlDepth">The current crawl depth.</param>
+        /// <param name="nodePopulatedCallback">Callback invoked when the node has been populated.</param>
+        /// <param name="nodePopulationRequestCallback">Callback invoked when population of a node is requested.</param>
+        public async Task MapPageAsync(
+            Guid graphId,
+            PageData pageData, 
+            int crawlDepth,
+            Func<Node, Task>? nodePopulatedCallback, 
+            Func<Node, Task>? nodePopulationRequestCallback)
+        {
+            _logger.LogDebug("Mapping page for {Url}", pageData.Url);
+
+            // Mark or promote URL as Populated
+            var node = await GetOrCreateNodeAsync(graphId, pageData.Url, NodeState.Populated);
+
+            if (!ShouldUpdateNode(pageData, node, crawlDepth))
             {
-                await ClearOutgoingLinksAsync(webPage.GraphId, node);
+                _logger.LogDebug("No updated required for {Url} - content has not changed.", pageData.Url);
+                return;
             }
 
-            if (webPage.IsRedirect)
+            await PopulateNodeAsync(node, pageData);
+
+            if (_graphingSettings.WebGraph.OutgoingNodesUpdateMode == OutgoingNodesUpdateMode.Replace)
+            {
+                await ClearOutgoingNodesAsync(graphId, node);
+            }
+
+            if (pageData.IsRedirect)
             {
                 _logger.LogDebug("Handling redirect {OriginalUrl} -> {Url}",
-                    webPage.OriginalUrl, webPage.Url);
-                await SetRedirectedAsync(webPage.GraphId, webPage.OriginalUrl, webPage.Url);
+                    pageData.OriginalUrl, pageData.Url);
+                await MarkNodeAsRedirectedAsync(graphId, pageData.OriginalUrl, pageData.Url);
             }
 
-            var addedLinks = await AddLinksAsync(webPage, forceRefresh);
+            var nodesToPopulate = await AddOutgoingNodesAsync(graphId, pageData, crawlDepth);
 
-            //fetch updated node with added links from data source
-            node = await GetNodeAsync(webPage.GraphId, node.Url);
+            node = await ReloadNodeAsync(node);
             if (node is null) return;
 
             if (nodePopulatedCallback != null)
@@ -58,9 +80,9 @@ namespace Graphing.Core.WebGraph
                 await nodePopulatedCallback(node);
             }
 
-            if (linkDiscoveredCallback != null)
+            if (nodePopulationRequestCallback != null)
             {
-                await ScheduleAddedLinksAsync(addedLinks, linkDiscoveredCallback, forceRefresh);
+                await RequestNodePopulationAsync(nodesToPopulate, nodePopulationRequestCallback, crawlDepth);
             }
 
             // Uncomment to outoput graph data dump for testing only (will incure performance hit)
@@ -68,36 +90,49 @@ namespace Graphing.Core.WebGraph
             //_logger.LogInformation(dataDump);
         }
 
-        private async Task<IEnumerable<Node>> AddLinksAsync(WebPageItem webPage, bool forceRefresh)
+        private async Task<Node?> ReloadNodeAsync(Node node)
         {
-            var addedLinks = new HashSet<Node>();
+            return await GetNodeAsync(node.GraphId, node.Url);
+        }
 
-            // Add new outgoing links (if any)
-            foreach (var link in webPage.Links)
+        private async Task<IEnumerable<Node>> AddOutgoingNodesAsync(Guid graphId, PageData pageData, int crawlDepth)
+        {
+            var addedNodes = new HashSet<Node>();
+
+            // Add new outgoing nodes (if any)
+            foreach (var link in pageData.Links)
             {
-                var linkedNode = await AddLinkAsync(webPage.GraphId, webPage.Url, link, forceRefresh);
-                if (linkedNode != null)
+                var targetNode = await AddNodeRelationshipAsync(
+                    graphId,
+                    pageData.Url, 
+                    link,
+                    crawlDepth);
+
+                if (targetNode != null)
                 {
-                    addedLinks.Add(linkedNode);
+                    addedNodes.Add(targetNode);
                 }
             }
 
-            return addedLinks;
+            return addedNodes;
         }
 
-        private async Task ScheduleAddedLinksAsync(IEnumerable<Node> addedLinks, Func<Node, Task> onLinkDiscovered, bool forceRefresh)
+        private async Task RequestNodePopulationAsync(
+            IEnumerable<Node> nodes, 
+            Func<Node, Task> onNodePopulationRequest, 
+            int crawlDepth)
         {
-            foreach (var link in addedLinks)
+            foreach (var node in nodes)
             {
-                //override CanScheduleCrawl if it's a user-initiated request
-                var canScheduleCrawl = forceRefresh || CanScheduleCrawl(link);
-
-                if (canScheduleCrawl)
+                // Initial crawls bypass the Node refresh throttle
+                if (CanRefreshNode(node, crawlDepth))
                 {
-                    link.LastScheduledAt = DateTimeOffset.UtcNow;
-                    await SaveNodeAsync(link);
+                    node.AllowRefreshAfter = DateTimeOffset.UtcNow.AddSeconds(
+                        _graphingSettings.WebGraph.NodeRefreshThrottleSeconds);
 
-                    await onLinkDiscovered(link);
+                    await SaveNodeAsync(node);
+
+                    await onNodePopulationRequest(node);
                 }
             }
         }
@@ -112,6 +147,11 @@ namespace Graphing.Core.WebGraph
             var node = await GetNodeAsync(graphId, url);
             if (node == null)
             {
+                _logger.LogDebug(
+                    "Creating new node for {Url} with state {State}",
+                    url,
+                    state);
+
                 node = new Node(graphId, url, state);
                 await SaveNodeAsync(node);
             }
@@ -121,80 +161,80 @@ namespace Graphing.Core.WebGraph
                 await MarkNodeAsPopulatedAsync(node);
             }
 
-            _logger?.LogDebug($"Creating new node for {url} with state: {state}");
             return node!;
         }
 
-        protected async Task PopulateNodeFromWebPageAsync(Node node, WebPageItem webPage)
+        protected async Task PopulateNodeAsync(Node node, PageData pageData)
         {
-            node.Title = webPage.Title ?? string.Empty;
-            node.Summary = webPage.Summary ?? string.Empty;
-            node.ImageUrl = webPage.ImageUrl ?? string.Empty;
-            node.ImageCors = webPage.ImageCors;
-            node.Keywords = webPage.Keywords ?? string.Empty;
-            node.Tags = webPage.Tags ?? Enumerable.Empty<string>();
-            node.SourceLastModified = webPage.SourceLastModified;
-            node.ContentFingerprint = webPage.ContentFingerprint;
+            node.Title = pageData.Title ?? string.Empty;
+            node.Summary = pageData.Summary ?? string.Empty;
+            node.ImageUrl = pageData.ImageUrl ?? string.Empty;
+            node.ImageCors = pageData.ImageCors;
+            node.Keywords = pageData.Keywords ?? string.Empty;
+            node.Tags = pageData.Tags ?? Enumerable.Empty<string>();
+            node.SourceLastModified = pageData.SourceLastModified;
+            node.ContentFingerprint = pageData.ContentFingerprint;
             await SaveNodeAsync(node);
         }
 
         /// <summary>
-        /// Returns target Node if a link was added.
+        /// Returns target Node if a relationship was added.
         /// </summary>
-        protected async Task<Node?> AddLinkAsync(Guid graphId, string fromUrl, string toUrl, bool forceRefresh)
+        protected async Task<Node?> AddNodeRelationshipAsync(Guid graphId, string sourceUrl, string targetUrl, int crawlDepth)
         {
-            if (fromUrl == toUrl)
-                return null; //ignore circular links to self
+            if (sourceUrl == targetUrl)
+                return null; // Ignore self-referencing relationships
 
-            if (string.IsNullOrEmpty(fromUrl)) throw new ArgumentNullException(nameof(fromUrl));
-            if (string.IsNullOrEmpty(toUrl)) throw new ArgumentNullException(nameof(toUrl));
+            if (string.IsNullOrEmpty(sourceUrl)) throw new ArgumentNullException(nameof(sourceUrl));
+            if (string.IsNullOrEmpty(targetUrl)) throw new ArgumentNullException(nameof(targetUrl));
 
-            var fromNode = await GetOrCreateNodeAsync(graphId, fromUrl, NodeState.Populated);
-            var toNode = await GetOrCreateNodeAsync(graphId, toUrl, NodeState.Dummy);
+            var sourceNode = await GetOrCreateNodeAsync(graphId, sourceUrl, NodeState.Populated);
+            var targetNode = await GetOrCreateNodeAsync(graphId, targetUrl, NodeState.Dummy);
 
-            var linkAdded = await AddOutgoingLinkAsync(graphId, fromNode, toNode);
+            var relationshipAdded = await AddOutgoingNodeAsync(graphId, sourceNode, targetNode);
 
-            //if the link was added (didnt already exist)
-            //or link exists but this is a user-initiated request (forces refresh of data)
-            if (linkAdded || forceRefresh)
+            // Include new relationships, or existing relationships during an initial crawl.
+            if (relationshipAdded || crawlDepth == 0)
             {
-                _logger.LogDebug("Adding outgoing/incoming links from {Url} to {Url}",
-                    fromNode.Url, toNode.Url);
+                _logger.LogDebug("Adding outgoing/incoming nodes from {Url} to {Url}",
+                    sourceNode.Url, targetNode.Url);
 
-                await AddIncomingLinkAsync(graphId, toNode, fromNode);
+                await AddIncomingNodeAsync(graphId, targetNode, sourceNode);
 
                 // Update popularity scores
-                fromNode.PopularityScore = await GetPopularityScoreAsync(graphId, fromNode);
-                toNode.PopularityScore = await GetPopularityScoreAsync(graphId, toNode);
+                sourceNode.PopularityScore = await GetPopularityScoreAsync(graphId, sourceNode);
+                targetNode.PopularityScore = await GetPopularityScoreAsync(graphId, targetNode);
 
-                await SaveNodeAsync(fromNode);
-                await SaveNodeAsync(toNode);
+                await SaveNodeAsync(sourceNode);
+                await SaveNodeAsync(targetNode);
 
-                return toNode;
+                return targetNode;
             }
 
-            //link already exists
+            // Relationship already exists
             return null;
         }
 
         /// <summary>
-        /// Returns True if a Node can be scheduled for a crawl.
+        /// Returns True if a Node is permitted to be refreshed.
         /// </summary>
-        protected bool CanScheduleCrawl(Node node)
+        protected bool CanRefreshNode(Node node, int crawlDepth)
         {
-            var now = DateTimeOffset.UtcNow;
-            var backoff = TimeSpan.FromSeconds(_graphingSettings.WebGraph.ScheduleCrawlThrottleSeconds);
+            // Initial crawls bypass the Node refresh throttle
+            if (crawlDepth == 0) return true;
 
-            if (node.LastScheduledAt == null ||
-                now >= node.LastScheduledAt.Value + backoff)
+            // Otherwise, refresh only when the Node has no throttle or the throttle has expired
+            if (node.AllowRefreshAfter == null ||
+                DateTimeOffset.UtcNow >= node.AllowRefreshAfter.Value)
             {
                 return true;
             }
 
-            //Discard policy: node recently crawled - dont crawl again during the throttle period
-            var nextTime = node.LastScheduledAt?.AddSeconds(_graphingSettings.WebGraph.ScheduleCrawlThrottleSeconds);
-            _logger.LogDebug("Scheduled crawl for {Url} throttled. Next eligible time: {NextTime}",
-                node.Url, nextTime);
+            _logger.LogDebug(
+                "Node refresh for {Url} throttled. Next eligible time: {AllowRefreshAfter}",
+                node.Url,
+                node.AllowRefreshAfter);
+
             return false;
         }
 
@@ -207,54 +247,54 @@ namespace Graphing.Core.WebGraph
             await SaveNodeAsync(node);
         }
 
-        protected async Task SetRedirectedAsync(Guid graphId, string fromUrl, string toUrl)
+        protected async Task MarkNodeAsRedirectedAsync(Guid graphId, string sourceUrl, string targetUrl)
         {
-            if (string.IsNullOrEmpty(fromUrl)) throw new ArgumentNullException(nameof(fromUrl));
-            if (string.IsNullOrEmpty(toUrl)) throw new ArgumentNullException(nameof(toUrl));
+            if (string.IsNullOrEmpty(sourceUrl)) throw new ArgumentNullException(nameof(sourceUrl));
+            if (string.IsNullOrEmpty(targetUrl)) throw new ArgumentNullException(nameof(targetUrl));
 
-            var fromNode = await GetOrCreateNodeAsync(graphId, fromUrl);
-            var toNode = await GetOrCreateNodeAsync(graphId, toUrl);
+            var sourceNode = await GetOrCreateNodeAsync(graphId, sourceUrl);
+            var targetNode = await GetOrCreateNodeAsync(graphId, targetUrl);
 
-            if (fromNode.State == NodeState.Populated)
+            if (sourceNode.State == NodeState.Populated)
             {
-                _logger.LogDebug("Skipping redirect for {FromUrl} – already populated.", fromUrl);
+                _logger.LogDebug("Skipping redirect for {SourceUrl} – already populated.", sourceUrl);
                 return;
             }
 
             // Mark as redirected
-            fromNode.State = NodeState.Redirected;
-            fromNode.RedirectedToUrl = toUrl;
+            sourceNode.State = NodeState.Redirected;
+            sourceNode.RedirectedToUrl = targetUrl;
 
-            // Maintain incoming/outgoing links
-            var outgoingAdded = await AddOutgoingLinkAsync(graphId, fromNode, toNode);
-            var incomingAdded = await AddIncomingLinkAsync(graphId, toNode, fromNode);
+            // Maintain incoming/outgoing nodes
+            await AddOutgoingNodeAsync(graphId, sourceNode, targetNode);
+            await AddIncomingNodeAsync(graphId, targetNode, sourceNode);
 
-            _logger.LogDebug("Marked node {FromUrl} as redirected to {ToUrl} and updated links.",
-                fromUrl, toUrl);
+            _logger.LogDebug("Marked node {SourceUrl} as redirected to {TargetUrl} and updated nodes.",
+                sourceUrl, targetUrl);
 
             // Update popularity
-            fromNode.PopularityScore = await GetPopularityScoreAsync(graphId, fromNode);
-            toNode.PopularityScore = await GetPopularityScoreAsync(graphId, toNode);
+            sourceNode.PopularityScore = await GetPopularityScoreAsync(graphId, sourceNode);
+            targetNode.PopularityScore = await GetPopularityScoreAsync(graphId, targetNode);
 
-            await SaveNodeAsync(toNode);
-            await SaveNodeAsync(fromNode);
+            await SaveNodeAsync(targetNode);
+            await SaveNodeAsync(sourceNode);
         }
 
         /// <summary>
-        /// Determines whether a node needs to be updated based on the current state of the associated web page.
+        /// Determines whether a node needs to be updated based on the current state of the associated page data.
         /// </summary>
-        /// <param name="forceRefresh">
-        /// A flag indicating whether the check was triggered by an explicit user action,
-        /// which should force a refresh regardless of other conditions.
+        /// <param name="crawlDepth">
+        /// The current crawl depth. A depth of 0 represents the initial crawl
+        /// and bypasses the Node refresh throttle.
         /// </param>
-        private bool HasPageChanged(WebPageItem webPage, Node node, bool forceRefresh)
+        private bool ShouldUpdateNode(PageData pageData, Node node, int crawlDepth)
         {
             if (node == null) return true;
 
             return node.State != NodeState.Populated ||
-               forceRefresh ||
-               node.ContentFingerprint != webPage.ContentFingerprint ||
-               node.SourceLastModified != webPage.SourceLastModified;
+               crawlDepth == 0 ||
+               node.ContentFingerprint != pageData.ContentFingerprint ||
+               node.SourceLastModified != pageData.SourceLastModified;
         }
 
         /// <summary>
@@ -267,28 +307,17 @@ namespace Graphing.Core.WebGraph
         }
 
 
-        //Graph Abstrations
-        public abstract Task<Graph?> GetGraphAsync(Guid graphId, string userId);
 
-        public abstract Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId);
-
-        public abstract Task<Graph> CreateGraphAsync(GraphOptions options);
-
-        public abstract Task<Graph> UpdateGraphAsync(Graph graph, string userId);
-
-        public abstract Task<Graph?> DeleteGraphAsync(Guid graphId, string userId);
-
-
-        //Node Abstractions
+        // Node Abstractions
         public abstract Task<Node?> GetNodeAsync(Guid graphId, string url);
 
         public abstract Task<Node> SetNodeAsync(Node node);
 
-        protected abstract Task<bool> AddOutgoingLinkAsync(Guid graphId, Node fromNode, Node toNode);
+        protected abstract Task<bool> AddOutgoingNodeAsync(Guid graphId, Node sourceNode, Node targetNode);
         
-        protected abstract Task<bool> AddIncomingLinkAsync(Guid graphId, Node toNode, Node fromNode);
+        protected abstract Task<bool> AddIncomingNodeAsync(Guid graphId, Node targetNode, Node sourceNode);
         
-        protected abstract Task ClearOutgoingLinksAsync(Guid graphId, Node node);
+        protected abstract Task ClearOutgoingNodesAsync(Guid graphId, Node node);
 
         public abstract Task CleanupOrphanedNodesAsync(Guid graphId);
 
@@ -301,6 +330,20 @@ namespace Graphing.Core.WebGraph
         public abstract Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
 
         public abstract Task<string> DumpGraphContentsAsync(Guid graphId);
+
+
+
+        //Graph Abstractions
+        public abstract Task<Graph?> GetGraphAsync(Guid graphId, string? userId);
+
+        public abstract Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId);
+
+        public abstract Task<Graph> CreateGraphAsync(GraphOptions options);
+
+        public abstract Task<Graph> UpdateGraphAsync(Graph graph, string userId);
+
+        public abstract Task<Graph?> DeleteGraphAsync(Guid graphId, string userId);
+
 
     }
 }

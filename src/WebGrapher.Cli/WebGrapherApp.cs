@@ -14,6 +14,8 @@ namespace WebGrapher.Cli
 
         private IEventBus _eventBus;
 
+        private static readonly Guid DefaultGraphId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
         public WebGrapherApp(IHostEnvironment hostEnvironment) {
             _hostEnvironment = hostEnvironment;
         }
@@ -129,7 +131,7 @@ namespace WebGrapher.Cli
             var crawlPageRequest = new CrawlPageRequestDto
             {
                 Url = url,
-                GraphId = Guid.Empty, // Empty Guids are assigned to the default graph
+                GraphId = DefaultGraphId,
                 CorrelationId = Guid.NewGuid(),
                 Attempt = 1,
                 Depth = 0,

@@ -4,6 +4,17 @@ namespace Graphing.Core.WebGraph
 {
     public interface IWebGraph
     {
+        Task EnsureGraphExistsAsync(GraphOptions options);
+
+        Task MapPageAsync(
+            Guid graphId,
+            PageData pageData,
+            int crawlDepth,
+            Func<Node, Task> nodePopulatedCallback,
+            Func<Node, Task> nodePopulationRequestCallback);
+
+
+
         Task<Graph?> GetGraphAsync(Guid graphId, string userId);
 
         Task<Graph> CreateGraphAsync(GraphOptions options);
@@ -15,21 +26,12 @@ namespace Graphing.Core.WebGraph
         Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId);
 
 
-        Task AddWebPageAsync(
-            WebPageItem webPage, 
-            bool forceRefresh,
-            Func<Node, Task> nodePopulatedCallback, 
-            Func<Node, Task> linkDiscoveredCallback,
-            NodeEdgesUpdateMode linkUpdateMode = NodeEdgesUpdateMode.Append);
-
-        Task<Node?> GetNodeAsync(Guid graphId, string url);
-
-        Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
-
-        Task<long> TotalPopulatedNodesAsync(Guid graphId);
-        
+        // TODO: is this being used anymore? - maybe comment it out if not
         Task CleanupOrphanedNodesAsync(Guid graphId);
 
+
+        Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
+       
         Task<IEnumerable<Node>> GetInitialGraphNodes(Guid graphId, int topN);
 
         // IDEAS FOR FUNCTIONS:

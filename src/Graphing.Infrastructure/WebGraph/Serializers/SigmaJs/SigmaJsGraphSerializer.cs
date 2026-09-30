@@ -34,20 +34,20 @@ namespace Graphing.Infrastructure.WebGraph.Serializers.SigmaJs
             }
 
             // 1. Outgoing edges to populated nodes
-            foreach (var target in node.OutgoingLinks.Where(n => n.State == NodeState.Populated))
+            foreach (var target in node.OutgoingNodes.Where(n => n.State == NodeState.Populated))
                 AddEdge(node.Url, target.Url);
 
             // 2. Incoming edges from populated nodes
-            foreach (var source in node.IncomingLinks.Where(n => n.State == NodeState.Populated))
+            foreach (var source in node.IncomingNodes.Where(n => n.State == NodeState.Populated))
                 AddEdge(source.Url, node.Url);
 
             // 3. Incoming edges from Redirect nodes
-            foreach (var redirect in node.IncomingLinks.Where(n => n.State == NodeState.Redirected))
-                foreach (var fromNode in redirect.IncomingLinks.Where(n => n.State == NodeState.Populated))
+            foreach (var redirect in node.IncomingNodes.Where(n => n.State == NodeState.Redirected))
+                foreach (var fromNode in redirect.IncomingNodes.Where(n => n.State == NodeState.Populated))
                     AddEdge(fromNode.Url, node.Url);
 
             // 4. Outgoing edges to Redirect nodes
-            foreach (var redirect in node.OutgoingLinks.Where(n => n.State == NodeState.Redirected &&
+            foreach (var redirect in node.OutgoingNodes.Where(n => n.State == NodeState.Redirected &&
                                                                    !string.IsNullOrWhiteSpace(n.RedirectedToUrl)))
                 AddEdge(node.Url, redirect.RedirectedToUrl);
 

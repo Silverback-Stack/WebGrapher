@@ -1,17 +1,15 @@
-﻿
-namespace Graphing.Core.WebGraph.Models
+﻿namespace Graphing.Core.WebGraph
 {
     /// <summary>
-    /// Encapsulates configuration options for graph operations, 
-    /// allowing methods to receive a single object instead of multiple parameters.
+    /// Defines the options used to create and configure a Web Graph.
     /// </summary>
     public record GraphOptions
     {
         public const string DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
         public const string DEFAULT_USER_ACCEPTS = "text/html,text/plain";
 
-        public Guid? Id { get; set; } = null;
-        public string UserId { get; set; } = string.Empty;
+        public Guid GraphId { get; set; }
+        public string? UserId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public Uri? Url { get; set; } = null;

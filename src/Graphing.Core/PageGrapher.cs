@@ -7,7 +7,6 @@ using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Models;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Text.Json;
 
 namespace Graphing.Core
 {
@@ -33,42 +32,127 @@ namespace Graphing.Core
             _graphPayloadSerializer = graphPayloadSerializer;
         }
 
+
         public async Task StartAsync()
         {
-            await _eventBus.SubscribeAsync<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
+            await _eventBus.SubscribeAsync<GraphPageEvent>(
+                _graphingSettings.ServiceName, ProcessGraphPageEventAsync);
         }
+
 
         public async Task StopAsync()
         {
-            await _eventBus.UnsubscribeAsync<GraphPageEvent>(_graphingSettings.ServiceName, ProcessGraphPageEventAsync);
+            await _eventBus.UnsubscribeAsync<GraphPageEvent>(
+                _graphingSettings.ServiceName, ProcessGraphPageEventAsync);
         }
 
-        public async Task PublishClientLogEventAsync(
-            Guid graphId,
-            Guid? correlationId,
-            LogType type,
-            string message,
-            string? code = null,
-            Object? context = null)
+
+        /// <summary>
+        /// Processes a Graph Page Event and maps the normalised page and its relationships to the WebGraph.
+        /// </summary>
+        private async Task ProcessGraphPageEventAsync(GraphPageEvent evt)
         {
-            var clientLogEvent = new ClientLogEvent
+            try
             {
-                GraphId = graphId,
-                CorrelationId = correlationId,
-                Type = type,
-                Message = message,
-                Code = code,
-                Service = _graphingSettings.ServiceName,
-                Context = context
-            };
+                var request = evt.CrawlPageRequest;
+                var result = evt.NormalisePageResult;
 
-            await _eventBus.PublishAsync(clientLogEvent);
+
+                // Create the WebGraph if it does not already exist
+                await _webGraph.EnsureGraphExistsAsync(new GraphOptions
+                {
+                    GraphId = request.GraphId,
+                    Name = "Default Web Graph",
+                    Description = "Graph automatically created from a crawl request.",
+                    Url = request.Url,
+                    MaxLinks = request.Options.MaxLinks,
+                    MaxDepth = request.Options.MaxDepth,
+                    ExcludeExternalLinks = request.Options.ExcludeExternalLinks,
+                    ExcludeQueryStrings = request.Options.ExcludeQueryStrings,
+                    ConsolidateQueryStrings = request.Options.ConsolidateQueryStrings,
+                    UrlMatchRegex = request.Options.UrlMatchRegex,
+                    TitleElementXPath = request.Options.TitleElementXPath,
+                    ContentElementXPath = request.Options.ContentElementXPath,
+                    SummaryElementXPath = request.Options.SummaryElementXPath,
+                    ImageElementXPath = request.Options.ImageElementXPath,
+                    RelatedLinksElementXPath = request.Options.RelatedLinksElementXPath,
+                    UserAgent = request.Options.UserAgent,
+                    UserAccepts = request.Options.UserAccepts
+                });
+
+
+                // Map the normalised result to PageData
+                var pageData = new PageData
+                {
+                    Url = ResolvePageUrl(
+                        request.Options.ConsolidateQueryStrings,
+                        result.CanonicalUrl,
+                        result.Url),
+                    OriginalUrl = result.OriginalUrl.AbsoluteUri,
+                    IsRedirect = result.IsRedirect,
+                    SourceLastModified = result.SourceLastModified,
+                    Title = result.Title,
+                    Summary = result.Summary,
+                    ImageUrl = result.ImageUrl?.AbsoluteUri,
+                    ImageCors = result.ImageCors,
+                    Keywords = result.Keywords,
+                    Tags = result.Tags,
+                    Links = result.Links?
+                        .Select(l => l.AbsoluteUri)
+                        ?? Enumerable.Empty<string>(),
+                    DetectedLanguageIso3 = result.DetectedLanguageIso3,
+                    ContentFingerprint = result.Fingerprint
+                };
+
+
+                // Define callback delegates used by the WebGraph
+
+                // Called when a Node is populated with data
+                Func<Node, Task> nodePopulatedCallback = node =>
+                    PublishStreamNodePayloadEventAsync(request, node);
+
+                // Called when Node population is requested
+                Func<Node, Task> nodePopulationRequestCallback = node =>
+                    PublishCrawlPageEventAsync(request, node);
+
+
+                // Map the page and its relationships to the WebGraph
+                await _webGraph.MapPageAsync(
+                    request.GraphId,
+                    pageData,
+                    request.Depth,
+                    nodePopulatedCallback,
+                    nodePopulationRequestCallback);
+            }
+            catch (Exception ex)
+            {
+                // Crawling can encounter errors; failed pages may be crawled again later,
+                // so a failure does not need to interrupt further graph processing.
+                _logger.LogError(ex, "Error processing GraphPageEvent.");
+            }
         }
 
+
+        /// <summary>
+        /// Resolves the URL used to identify the page, using the canonical URL when
+        /// query strings are consolidated so different query strings map to the same Node.
+        /// </summary>
+        private string ResolvePageUrl(bool consolidateQueryStrings, Uri canonicalUrl, Uri url)
+        {
+            return consolidateQueryStrings
+                    ? canonicalUrl.AbsoluteUri
+                    : url.AbsoluteUri;
+        }
+
+
+
+        /// <summary>
+        /// Publishes a streaming payload event for a populated Node and its relationships.
+        /// </summary>
         private async Task PublishStreamNodePayloadEventAsync(CrawlPageRequestDto request, Node node)
         {
             var payload = _graphPayloadSerializer.Serialize(node);
-            payload.CorrolationId = request.CorrelationId;
+            payload.CorrelationId = request.CorrelationId;
 
             if (!payload.Nodes.Any() && !payload.Edges.Any())
                 return;
@@ -93,18 +177,15 @@ namespace Graphing.Core
                         NodeCount = payload.NodeCount,
                         EdgeCount = payload.EdgeCount
                     });
-
-            var jsonPayload = JsonSerializer.Serialize(
-                payload,
-                new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                });
         }
 
+
+        /// <summary>
+        /// Publishes a Crawl Page Event for a discovered Node at the next crawl depth.
+        /// </summary>
         private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto request, Node node)
         {
+            // Discovered Nodes are crawled one level deeper than the current page
             var depth = request.Depth + 1;
 
             var crawlPageRequest = request with
@@ -143,107 +224,34 @@ namespace Graphing.Core
                     {
                         Url = node.Url,
                         Attempt = crawlPageRequest.Attempt,
-                        EdgeCount = crawlPageRequest.Depth
+                        Depth = crawlPageRequest.Depth
                     });
         }
 
 
-        private async Task ProcessGraphPageEventAsync(GraphPageEvent evt)
+
+
+
+        public async Task PublishClientLogEventAsync(
+            Guid graphId,
+            Guid? correlationId,
+            LogType type,
+            string message,
+            string? code = null,
+            Object? context = null)
         {
-            try
+            var clientLogEvent = new ClientLogEvent
             {
-                var request = evt.CrawlPageRequest;
-
-                await EnsureDefaultGraphIfNotProvidedAsync(request);
-
-                var webPage = MapToWebPage(evt);
-
-                //Delegate : Called when Node is populated with data
-                Func<Node, Task> nodePopulatedCallback = async (node) =>
-                {
-                    await PublishStreamNodePayloadEventAsync(request, node);
-                };
-
-                //Delegate : Called when Link is discovered
-                Func<Node, Task> linkDiscoveredCallback = async (node) =>
-                {
-                    await PublishCrawlPageEventAsync(request, node);
-                };
-
-                // when Depth is 0 the request was initiated by the user
-                // user initiated requests should force update of any previously stored information
-                var forceRefresh = request.Depth == 0;
-
-                await _webGraph.AddWebPageAsync(webPage, forceRefresh, nodePopulatedCallback, linkDiscoveredCallback);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing GraphPageEvent.");
-            }
-        }
-
-        private async Task EnsureDefaultGraphIfNotProvidedAsync(CrawlPageRequestDto request)
-        {
-            if (request.GraphId == Guid.Empty)
-            {
-                //Default graph doesnt have an owner can be accessed by any user
-                var userId = string.Empty; 
-
-                //create default graph if not already exists:
-                var graph = await GetGraphByIdAsync(request.GraphId, userId);
-                if (graph == null)
-                {
-                    graph = await CreateGraphAsync(new GraphOptions
-                    {
-                        Id = request.GraphId,
-                        UserId = userId,
-                        Name = "Default Graph",
-                        Description = "Default Graph automatically created when no graph identifier is provided in the request. The Default graph and can be accessed by all users.",
-                        Url = request.Url,
-                        MaxLinks = request.Options.MaxLinks,
-                        MaxDepth = request.Options.MaxDepth,
-                        ExcludeExternalLinks = request.Options.ExcludeExternalLinks,
-                        ExcludeQueryStrings = request.Options.ExcludeQueryStrings,
-                        ConsolidateQueryStrings = request.Options.ConsolidateQueryStrings,
-                        UrlMatchRegex = request.Options.UrlMatchRegex,
-                        TitleElementXPath = request.Options.TitleElementXPath,
-                        ContentElementXPath = request.Options.ContentElementXPath,
-                        SummaryElementXPath = request.Options.SummaryElementXPath,
-                        ImageElementXPath = request.Options.ImageElementXPath,
-                        RelatedLinksElementXPath = request.Options.RelatedLinksElementXPath,
-                        UserAgent = request.Options.UserAgent,
-                        UserAccepts = request.Options.UserAccepts
-                    });
-                }
-            }
-        }
-
-        private WebPageItem MapToWebPage(GraphPageEvent evt)
-        {
-            var request = evt.CrawlPageRequest;
-            var result = evt.NormalisePageResult;
-
-            var pageUrl = request.Options.ConsolidateQueryStrings
-                ? result.CanonicalUrl.AbsoluteUri
-                : result.Url.AbsoluteUri;
-
-            return new WebPageItem
-            {
-                GraphId = request.GraphId,
-                Url = pageUrl,
-                OriginalUrl = result.OriginalUrl.AbsoluteUri,
-                IsRedirect = result.IsRedirect,
-                SourceLastModified = result.SourceLastModified,
-                Title = result.Title,
-                Summary = result.Summary,
-                ImageUrl = result.ImageUrl?.AbsoluteUri,
-                ImageCors = result.ImageCors,
-                Keywords = result.Keywords,
-                Tags = result.Tags,
-                Links = result.Links?.Select(l => l.AbsoluteUri) ?? Enumerable.Empty<string>(),
-                DetectedLanguageIso3 = result.DetectedLanguageIso3,
-                ContentFingerprint = result.Fingerprint
+                GraphId = graphId,
+                CorrelationId = correlationId,
+                Type = type,
+                Message = message,
+                Code = code,
+                Service = _graphingSettings.ServiceName,
+                Context = context
             };
+
+            await _eventBus.PublishAsync(clientLogEvent);
         }
 
         public async Task<Graph?> GetGraphByIdAsync(Guid graphId, string userId)
@@ -308,6 +316,21 @@ namespace Graphing.Core
             return crawlPageRequest;
         }
 
+
+        private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto crawlPageRequest)
+        {
+            //create a crawl page event
+            var crawlPageEvent = new CrawlPageEvent
+            {
+                CrawlPageRequest = crawlPageRequest,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            // Publish Crawl Event
+            await _eventBus.PublishAsync(crawlPageEvent);
+        }
+
+
         public async Task<SigmaGraphPayloadDto> PopulateClientGraphAsync(Guid graphId, int maxDepth, int? maxNodes = null)
         {
             //Clamp values
@@ -348,17 +371,6 @@ namespace Graphing.Core
             return _graphPayloadSerializer.Serialize(nodes, graphId);
         }
 
-        private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto crawlPageRequest)
-        {
-            //create a crawl page event
-            var crawlPageEvent = new CrawlPageEvent
-            {
-                CrawlPageRequest = crawlPageRequest,
-                CreatedAt = DateTimeOffset.UtcNow
-            };
 
-            // Publish Crawl Event
-            await _eventBus.PublishAsync(crawlPageEvent);
-        }
     }
 }
