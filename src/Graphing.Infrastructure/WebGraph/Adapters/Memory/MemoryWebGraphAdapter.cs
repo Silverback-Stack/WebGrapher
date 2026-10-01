@@ -57,12 +57,12 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
         }
 
 
-        public override Task<Graph> CreateGraphAsync(GraphOptions options)
+        public override Task<Graph> CreateGraphAsync(Guid graphId, string userId, GraphOptions options)
         {
             var graph = new Graph
             {
-                Id = options.GraphId,
-                UserId = options.UserId,
+                Id = graphId,
+                UserId = userId,
                 Name = options.Name,
                 Description = options.Description,
                 Url = options.Url?.AbsoluteUri ?? string.Empty,
@@ -164,7 +164,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
             return await Task.FromResult(node);
         }
 
-        protected override Task<bool> AddOutgoingNodeAsync(Guid graphId, Node fromNode, Node toNode)
+        protected override Task<bool> AddOutgoingRelationshipAsync(Guid graphId, Node fromNode, Node toNode)
         {
             if (fromNode.OutgoingNodes.Contains(toNode))
                 return Task.FromResult(false);
@@ -173,7 +173,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
             return Task.FromResult(true);
         }
 
-        protected override Task<bool> AddIncomingNodeAsync(Guid graphId, Node toNode, Node fromNode)
+        protected override Task<bool> AddIncomingRelationshipAsync(Guid graphId, Node toNode, Node fromNode)
         {
             if (toNode.IncomingNodes.Contains(fromNode))
                 return Task.FromResult(false);
@@ -182,7 +182,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
             return Task.FromResult(true);
         }
 
-        protected override Task ClearOutgoingNodesAsync(Guid graphId, Node node)
+        protected override Task ClearOutgoingRelationshipsAsync(Guid graphId, Node node)
         {
             foreach (var target in node.OutgoingNodes.ToList()) // copy to avoid modifying while iterating
             {
@@ -193,43 +193,6 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
             return Task.CompletedTask;
         }
 
-        public async override Task CleanupOrphanedNodesAsync(Guid graphId)
-        {
-            if (!_nodeTable.TryGetValue(graphId, out var nodes))
-            {
-                _logger.LogDebug("No nodes found to cleanup in the graph: {GraphId}", graphId);
-                return;
-            }
-
-            var referenced = new HashSet<Node>();
-
-            // Find all nodes that are referenced (have incoming edges)
-            foreach (var node in nodes.Values)
-            {
-                foreach (var target in node.OutgoingNodes)
-                {
-                    if (target.GraphId == graphId)
-                    {
-                        referenced.Add(target);
-                    }
-                }
-            }
-
-            // Find orphan nodes: Redirected or Dummy nodes not referenced by anyone
-            var orphans = nodes.Values
-                .Where(n => (n.State == NodeState.Redirected || n.State == NodeState.Dummy)
-                            && !referenced.Contains(n))
-                .ToList();
-
-            // Remove orphan nodes
-            foreach (var orphan in orphans)
-            {
-                nodes.Remove(orphan.Url);
-                Console.WriteLine($"[Cleanup] Removed orphan node: {orphan.Url} [{orphan.State}]");
-            }
-
-            await Task.CompletedTask;
-        }
 
 
         protected override Task<int> GetPopularityScoreAsync(Guid graphId, Node node)
@@ -311,60 +274,45 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
         }
 
 
-        public override async Task<string> DumpGraphContentsAsync(Guid graphId)
+
+
+        // DO NOT INCLUDE IN DEMO - WORKING BUT NOT CURRENTLY BEING USED
+        public async override Task CleanupOrphanedNodesAsync(Guid graphId)
         {
-            var sb = new System.Text.StringBuilder();
-
-            try
+            if (!_nodeTable.TryGetValue(graphId, out var nodes))
             {
-                // Get initial node (seed for traversal)
-                var initialNodes = await GetInitialGraphNodes(graphId, 1);
-                var startNode = initialNodes.FirstOrDefault();
-                if (startNode == null)
-                {
-                    sb.AppendLine($"Graph {graphId} — No nodes found.");
-                    return sb.ToString();
-                }
-
-                // Hydrate neighborhood
-                var nodes = await GetNodeNeighborhoodAsync(graphId, startNode.Url, maxDepth: 3, maxNodes: null);
-                var nodeList = nodes.ToList();
-
-                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodeList.Count}");
-                sb.AppendLine($"Neighborhood start: {startNode.Url}");
-
-                foreach (var node in nodeList.OrderBy(n => n.Url))
-                {
-                    sb.AppendLine($"  Node: {node.Url}");
-                    sb.AppendLine($"    State: {node.State}");
-                    sb.AppendLine($"    Title: {node.Title}");
-                    sb.AppendLine($"    Popularity: {node.PopularityScore}");
-                    sb.AppendLine($"    Incoming: {node.IncomingNodes.Count} | Outgoing: {node.OutgoingNodes.Count}");
-
-                    if (node.OutgoingNodes.Any())
-                    {
-                        sb.AppendLine("    Outgoing Links:");
-                        foreach (var outNode in node.OutgoingNodes.OrderBy(n => n.Url))
-                            sb.AppendLine($"      -> {outNode.Url} [{outNode.State}]");
-                    }
-
-                    if (node.IncomingNodes.Any())
-                    {
-                        sb.AppendLine("    Incoming Links:");
-                        foreach (var inNode in node.IncomingNodes.OrderBy(n => n.Url))
-                            sb.AppendLine($"      <- {inNode.Url} [{inNode.State}]");
-                    }
-                }
-
-                sb.AppendLine(new string('-', 50));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to dump graph contents for GraphId {GraphId}", graphId);
-                sb.AppendLine($"Error dumping graph {graphId}: {ex.Message}");
+                _logger.LogDebug("No nodes found to cleanup in the graph: {GraphId}", graphId);
+                return;
             }
 
-            return sb.ToString();
+            var referenced = new HashSet<Node>();
+
+            // Find all nodes that are referenced (have incoming edges)
+            foreach (var node in nodes.Values)
+            {
+                foreach (var target in node.OutgoingNodes)
+                {
+                    if (target.GraphId == graphId)
+                    {
+                        referenced.Add(target);
+                    }
+                }
+            }
+
+            // Find orphan nodes: Redirected or Dummy nodes not referenced by anyone
+            var orphans = nodes.Values
+                .Where(n => (n.State == NodeState.Redirected || n.State == NodeState.Dummy)
+                            && !referenced.Contains(n))
+                .ToList();
+
+            // Remove orphan nodes
+            foreach (var orphan in orphans)
+            {
+                nodes.Remove(orphan.Url);
+                Console.WriteLine($"[Cleanup] Removed orphan node: {orphan.Url} [{orphan.State}]");
+            }
+
+            await Task.CompletedTask;
         }
 
 

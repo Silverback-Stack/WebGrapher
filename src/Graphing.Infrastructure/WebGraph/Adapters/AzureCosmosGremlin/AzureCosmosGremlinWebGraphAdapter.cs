@@ -106,12 +106,12 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             );
         }
 
-        public override async Task<Graph> CreateGraphAsync(GraphOptions options)
+        public override async Task<Graph> CreateGraphAsync(Guid graphId, string userId, GraphOptions options)
         {
             var graph = new Graph
             {
-                Id = options.GraphId,
-                UserId = options.UserId,
+                Id = graphId,
+                UserId = userId,
                 Name = options.Name,
                 Description = options.Description,
                 Url = options.Url?.AbsoluteUri ?? string.Empty,
@@ -208,29 +208,26 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
         }
 
 
-        protected async override Task<bool> AddOutgoingNodeAsync(Guid graphId, Node fromNode, Node toNode)
+        protected async override Task<bool> AddOutgoingRelationshipAsync(Guid graphId, Node fromNode, Node toNode)
         {
             await _gremlinQueryProvider.AddNodeVertexEdgeAsync(fromNode, toNode, graphId);
             return true;
         }
 
 
-        protected async override Task<bool> AddIncomingNodeAsync(Guid graphId, Node toNode, Node fromNode)
+        protected async override Task<bool> AddIncomingRelationshipAsync(Guid graphId, Node toNode, Node fromNode)
         {
             // Same as outgoing, just reversed
-            return await AddOutgoingNodeAsync(graphId, fromNode, toNode);
+            return await AddOutgoingRelationshipAsync(graphId, fromNode, toNode);
         }
 
 
-        protected async override Task ClearOutgoingNodesAsync(Guid graphId, Node node)
+        protected async override Task ClearOutgoingRelationshipsAsync(Guid graphId, Node node)
         {
             await _gremlinQueryProvider.RemoveNodeVertexEdgesAsync(graphId, node);
         }
 
-        public override async Task CleanupOrphanedNodesAsync(Guid graphId)
-        {
-            await _gremlinQueryProvider.RemoveOrphanedNodeVerticesAsync(graphId);
-        }
+
 
 
         protected async override Task<int> GetPopularityScoreAsync(Guid graphId, Node node)
@@ -315,61 +312,12 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
         }
 
 
-        public override async Task<string> DumpGraphContentsAsync(Guid graphId)
+
+
+        // DO NOT INCLUDE IN DEMO - WORKING BUT NOT CURRENTLY BEING USED
+        public override async Task CleanupOrphanedNodesAsync(Guid graphId)
         {
-            var sb = new System.Text.StringBuilder();
-
-            try
-            {
-                // Get initial node (seed for traversal)
-                var initialNodes = await GetInitialGraphNodes(graphId, 1);
-                var startNode = initialNodes.FirstOrDefault();
-                if (startNode == null)
-                {
-                    sb.AppendLine($"Graph {graphId} — No nodes found.");
-                    return sb.ToString();
-                }
-
-                // Hydrate neighborhood
-                var nodes = await GetNodeNeighborhoodAsync(graphId, startNode.Url, maxDepth: 3, maxNodes: null);
-                var nodeList = nodes.ToList();
-
-                sb.AppendLine($"Graph {graphId} — Total Nodes: {nodeList.Count}");
-                sb.AppendLine($"Neighborhood start: {startNode.Url}");
-
-                foreach (var node in nodeList.OrderBy(n => n.Url))
-                {
-                    sb.AppendLine($"  Node: {node.Url}");
-                    sb.AppendLine($"    State: {node.State}");
-                    sb.AppendLine($"    Title: {node.Title}");
-                    sb.AppendLine($"    Popularity: {node.PopularityScore}");
-                    sb.AppendLine($"    Incoming: {node.IncomingNodes.Count} | Outgoing: {node.OutgoingNodes.Count}");
-
-                    if (node.OutgoingNodes.Any())
-                    {
-                        sb.AppendLine("    Outgoing Links:");
-                        foreach (var outNode in node.OutgoingNodes.OrderBy(n => n.Url))
-                            sb.AppendLine($"      -> {outNode.Url} [{outNode.State}]");
-                    }
-
-                    if (node.IncomingNodes.Any())
-                    {
-                        sb.AppendLine("    Incoming Links:");
-                        foreach (var inNode in node.IncomingNodes.OrderBy(n => n.Url))
-                            sb.AppendLine($"      <- {inNode.Url} [{inNode.State}]");
-                    }
-                }
-
-                sb.AppendLine(new string('-', 50));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to dump graph contents for GraphId {GraphId}", graphId);
-                sb.AppendLine($"Error dumping graph {graphId}: {ex.Message}");
-            }
-
-            return sb.ToString();
+            await _gremlinQueryProvider.RemoveOrphanedNodeVerticesAsync(graphId);
         }
-
     }
 }

@@ -11,5 +11,6 @@
         public required CrawlPageRequestOptionsDto Options { get; init; }
         public DateTimeOffset RequestedAt { get; init; }
 
+        public GraphCreationOptionsDto? GraphCreationOptions { get; init; }
     }
 }

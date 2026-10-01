@@ -10,11 +10,11 @@ namespace WebGrapher.Cli
 {
     public class WebGrapherApp
     {
-        private readonly IHostEnvironment _hostEnvironment;
-
-        private IEventBus _eventBus;
-
+        private const string DefaultUserId = "local:1";
         private static readonly Guid DefaultGraphId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+        private readonly IHostEnvironment _hostEnvironment;
+        private IEventBus _eventBus;
 
         public WebGrapherApp(IHostEnvironment hostEnvironment) {
             _hostEnvironment = hostEnvironment;
@@ -83,12 +83,20 @@ namespace WebGrapher.Cli
             while (true)
             {
                 // read input
-                Console.WriteLine("Enter URL to crawl (or type 'exit' to quit):");
+                Console.WriteLine(
+                    "Enter URL to crawl, 'graph' to dump the current WebGraph, or 'exit' to quit:");
                 var input = GetInput();
 
                 // check exit
                 if (string.Equals(input, "exit", StringComparison.OrdinalIgnoreCase))
                     break;
+
+                // check graph diagnostic command
+                if (string.Equals(input, "graph", StringComparison.OrdinalIgnoreCase))
+                {
+                    await WriteGraphToLogAsync(DefaultGraphId);
+                    continue;
+                }
 
                 // validate url
                 var url = ValidateUrl(input);
@@ -101,6 +109,21 @@ namespace WebGrapher.Cli
                 // submit url
                 await SubmitUrlAsync(url);
             }
+        }
+
+
+        /// <summary>
+        /// Requests the current WebGraph to be written to the log for inspection during development.
+        /// </summary>
+        private async Task WriteGraphToLogAsync(Guid graphId)
+        {
+            await _eventBus.PublishAsync(new GraphWriteToLogEvent
+            {
+                GraphId = graphId,
+                MaxDepth = 3,
+                MaxNodes = 10,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
         }
 
 
@@ -150,6 +173,12 @@ namespace WebGrapher.Cli
                     RelatedLinksElementXPath = "",
                     UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
                     UserAccepts = "text/html,text/plain"
+                },
+                GraphCreationOptions = new GraphCreationOptionsDto
+                {
+                    UserId = DefaultUserId,
+                    Name = "CLI Graph",
+                    Description = $"Graph created by CLI crawl requests for userId: {DefaultUserId}"
                 },
                 RequestedAt = DateTimeOffset.UtcNow
             };

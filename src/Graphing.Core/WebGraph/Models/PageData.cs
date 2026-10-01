@@ -8,8 +8,8 @@ namespace Graphing.Core.WebGraph.Models
 {
     public class PageData
     {
-        public string Url { get; set; }
-        public string OriginalUrl { get; set; }
+        public required string Url { get; set; }
+        public required string OriginalUrl { get; set; }
         public bool IsRedirect { get; set; }
         public DateTimeOffset? SourceLastModified { get; set; }
 
@@ -19,7 +19,7 @@ namespace Graphing.Core.WebGraph.Models
         public bool ImageCors { get; set; }
         public string? Keywords { get; set; }
         public IEnumerable<string>? Tags { get; set; }
-        public IEnumerable<string> Links { get; set; }
+        public required IEnumerable<string> Links { get; set; }
         public string? DetectedLanguageIso3 { get; set; }
         public required string ContentFingerprint { get; set; }
     }

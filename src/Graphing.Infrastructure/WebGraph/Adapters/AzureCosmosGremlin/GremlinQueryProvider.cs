@@ -123,7 +123,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             {
                 ["id"] = graph.Id.ToString(),
                 ["graphId"] = graph.Id.ToString(),
-                ["userId"] = graph.UserId ?? string.Empty,
+                ["userId"] = graph.UserId,
                 ["name"] = graph.Name,
                 ["description"] = graph.Description,
                 ["url"] = graph.Url,
@@ -479,32 +479,6 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             }
         }
 
-        public async Task RemoveOrphanedNodeVerticesAsync(Guid graphId)
-        {
-            var query = @"
-                g.V()
-                 .hasLabel('node')
-                 .has('graphId', graphId)
-                 .not(__.inE())
-                 .has('state', within('Redirected','Dummy'))
-                 .drop()";
-
-            var parameters = new Dictionary<string, object> { 
-                ["graphId"] = graphId.ToString() 
-            };
-
-            try
-            {
-                await ExecuteCommandAsync(query, parameters, 
-                    operationName: "RemoveOrphanedNodeVerticesAsync"
-                );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to remove orphaned nodes for graph {GraphId}", graphId);
-                throw;
-            }
-        }
 
         public async Task<int> CountNodeVertexEdgesAsync(Guid graphId, Node node)
         {
@@ -760,6 +734,38 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
             return (statusCode, subStatusCode, retryAfterMs);
         }
 
+
+
+        // DO NOT INCLUDE IN DEMO - WORKING BUT NOT CURRENTLY BEING USED
+        public async Task RemoveOrphanedNodeVerticesAsync(Guid graphId)
+        {
+            var query = @"
+                g.V()
+                 .hasLabel('node')
+                 .has('graphId', graphId)
+                 .not(__.inE())
+                 .has('state', within('Redirected','Dummy'))
+                 .drop()";
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["graphId"] = graphId.ToString()
+            };
+
+            try
+            {
+                await ExecuteCommandAsync(query, parameters,
+                    operationName: "RemoveOrphanedNodeVerticesAsync"
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to remove orphaned nodes for graph {GraphId}", graphId);
+                throw;
+            }
+        }
+
     }
+
 
 }

@@ -37,6 +37,9 @@ namespace Graphing.Core
         {
             await _eventBus.SubscribeAsync<GraphPageEvent>(
                 _graphingSettings.ServiceName, ProcessGraphPageEventAsync);
+
+            await _eventBus.SubscribeAsync<GraphWriteToLogEvent>(
+                _graphingSettings.ServiceName, ProcessGraphWriteToLogEventAsync);
         }
 
 
@@ -44,6 +47,9 @@ namespace Graphing.Core
         {
             await _eventBus.UnsubscribeAsync<GraphPageEvent>(
                 _graphingSettings.ServiceName, ProcessGraphPageEventAsync);
+
+            await _eventBus.UnsubscribeAsync<GraphWriteToLogEvent>(
+                _graphingSettings.ServiceName, ProcessGraphWriteToLogEventAsync);
         }
 
 
@@ -57,31 +63,35 @@ namespace Graphing.Core
                 var request = evt.CrawlPageRequest;
                 var result = evt.NormalisePageResult;
 
-
-                // Create the WebGraph if it does not already exist
-                await _webGraph.EnsureGraphExistsAsync(new GraphOptions
+                // If graph creation is requested, create the WebGraph if it does not already exist 
+                if (request.GraphCreationOptions != null)
                 {
-                    GraphId = request.GraphId,
-                    Name = "Default Web Graph",
-                    Description = "Graph automatically created from a crawl request.",
-                    Url = request.Url,
-                    MaxLinks = request.Options.MaxLinks,
-                    MaxDepth = request.Options.MaxDepth,
-                    ExcludeExternalLinks = request.Options.ExcludeExternalLinks,
-                    ExcludeQueryStrings = request.Options.ExcludeQueryStrings,
-                    ConsolidateQueryStrings = request.Options.ConsolidateQueryStrings,
-                    UrlMatchRegex = request.Options.UrlMatchRegex,
-                    TitleElementXPath = request.Options.TitleElementXPath,
-                    ContentElementXPath = request.Options.ContentElementXPath,
-                    SummaryElementXPath = request.Options.SummaryElementXPath,
-                    ImageElementXPath = request.Options.ImageElementXPath,
-                    RelatedLinksElementXPath = request.Options.RelatedLinksElementXPath,
-                    UserAgent = request.Options.UserAgent,
-                    UserAccepts = request.Options.UserAccepts
-                });
+                    await _webGraph.EnsureGraphExistsAsync(
+                        request.GraphId,
+                        request.GraphCreationOptions.UserId,
+                        new GraphOptions
+                        {
+                            Name = request.GraphCreationOptions.Name,
+                            Description = request.GraphCreationOptions.Description,
+                            Url = request.Url,
+                            MaxLinks = request.Options.MaxLinks,
+                            MaxDepth = request.Options.MaxDepth,
+                            ExcludeExternalLinks = request.Options.ExcludeExternalLinks,
+                            ExcludeQueryStrings = request.Options.ExcludeQueryStrings,
+                            ConsolidateQueryStrings = request.Options.ConsolidateQueryStrings,
+                            UrlMatchRegex = request.Options.UrlMatchRegex,
+                            TitleElementXPath = request.Options.TitleElementXPath,
+                            ContentElementXPath = request.Options.ContentElementXPath,
+                            SummaryElementXPath = request.Options.SummaryElementXPath,
+                            ImageElementXPath = request.Options.ImageElementXPath,
+                            RelatedLinksElementXPath = request.Options.RelatedLinksElementXPath,
+                            UserAgent = request.Options.UserAgent,
+                            UserAccepts = request.Options.UserAccepts
+                        });
+                }
 
 
-                // Map the normalised result to PageData
+                // Map the normalised page result to PageData
                 var pageData = new PageData
                 {
                     Url = ResolvePageUrl(
@@ -145,12 +155,30 @@ namespace Graphing.Core
         }
 
 
+        /// <summary>
+        /// Processes a Graph Write To Log Event and writes a diagnostic view of the current WebGraph to the log.
+        /// Used for inspection during development.
+        /// </summary>
+        private async Task ProcessGraphWriteToLogEventAsync(GraphWriteToLogEvent evt)
+        {
+            var graphSnapshot = await _webGraph.GetGraphDiagnosticViewAsync(evt.GraphId, evt.MaxDepth, evt.MaxNodes);
+            _logger.LogInformation(graphSnapshot);
+        }
+
+
 
         /// <summary>
         /// Publishes a streaming payload event for a populated Node and its relationships.
         /// </summary>
         private async Task PublishStreamNodePayloadEventAsync(CrawlPageRequestDto request, Node node)
         {
+            //TODO: INITALLY JUST LOG THEN ADD IMPLEMENTATION IN LATER CHAPTER
+            _logger.LogInformation("Streaming node payload: Not yet implemented.");
+
+
+
+
+
             var payload = _graphPayloadSerializer.Serialize(node);
             payload.CorrelationId = request.CorrelationId;
 
@@ -232,6 +260,12 @@ namespace Graphing.Core
 
 
 
+
+
+
+
+        // TO IMPLEMENT IN NEXT CHAPTER
+
         public async Task PublishClientLogEventAsync(
             Guid graphId,
             Guid? correlationId,
@@ -254,17 +288,18 @@ namespace Graphing.Core
             await _eventBus.PublishAsync(clientLogEvent);
         }
 
+
         public async Task<Graph?> GetGraphByIdAsync(Guid graphId, string userId)
         {
             return await _webGraph.GetGraphAsync(graphId, userId);
         }
 
-        public async Task<Graph?> CreateGraphAsync(GraphOptions options)
+        public async Task<Graph> CreateGraphAsync(string userId, GraphOptions options)
         {
-            return await _webGraph.CreateGraphAsync(options);
+            return await _webGraph.CreateGraphAsync(Guid.NewGuid(), userId, options);
         }
 
-        public async Task<Graph?> UpdateGraphAsync(Graph graph, string userId)
+        public async Task<Graph> UpdateGraphAsync(Graph graph, string userId)
         {
             return await _webGraph.UpdateGraphAsync(graph, userId);
         }
@@ -281,7 +316,7 @@ namespace Graphing.Core
 
 
 
-        public async Task<CrawlPageRequestDto> CrawlPageAsync(Guid graphId, GraphOptions options)
+        public async Task<CrawlPageRequestDto> CrawlPageAsync(Guid graphId, GraphOptions options, bool preview)
         {
             //create a crawl page request
             var crawlPageRequest = new CrawlPageRequestDto
@@ -291,7 +326,7 @@ namespace Graphing.Core
                 CorrelationId = Guid.NewGuid(),
                 Attempt = 1,
                 Depth = 0,
-                Preview = options.Preview,
+                Preview = preview,
                 Options = new CrawlPageRequestOptionsDto
                 {
                     MaxDepth = options.MaxDepth,

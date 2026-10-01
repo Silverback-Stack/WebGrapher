@@ -25,7 +25,6 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
         Task AddNodeVertexEdgeAsync(Node fromNode, Node toNode, Guid graphId);
 
         Task RemoveNodeVertexEdgesAsync(Guid graphId, Node node);
-        Task RemoveOrphanedNodeVerticesAsync(Guid graphId);
 
         Task<int> CountNodeVertexEdgesAsync(Guid graphId, Node node);
 
@@ -34,5 +33,9 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
         Task<long> CountNodeVerticesPopulatedAsync(Guid graphId);
 
         Task<IEnumerable<dynamic>> GetNodeVertexSubgraphAsync(Guid graphId, string vertexId, int maxDepth, int? maxNodes = null);
+
+
+        // DO NOT INCLUDE IN DEMO - WORKING BUT NOT CURRENTLY BEING USED
+        Task RemoveOrphanedNodeVerticesAsync(Guid graphId);
     }
 }

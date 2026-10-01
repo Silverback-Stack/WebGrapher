@@ -3,9 +3,9 @@ namespace Auth.WebApi.IdentityProviders.Local
 {
     public class User
     {
-        public int Id { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        public required string Id { get; set; }
+        public required string Username { get; set; }
+        public required string Password { get; set; }
         public List<string> Roles { get; set; } = new();
     }
 }

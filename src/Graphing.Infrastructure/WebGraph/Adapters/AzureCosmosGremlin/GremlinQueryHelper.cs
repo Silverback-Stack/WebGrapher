@@ -148,8 +148,8 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
 
 
             var userId = GetPropString(props, "userId");
-            if (string.IsNullOrEmpty(userId)) 
-                userId = null;
+            if (string.IsNullOrEmpty(userId))
+                throw new InvalidOperationException("Graph vertex does not contain a valid userId.");
 
             return new Graph
             {

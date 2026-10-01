@@ -4,7 +4,11 @@ namespace Graphing.Core.WebGraph
 {
     public interface IWebGraph
     {
-        Task EnsureGraphExistsAsync(GraphOptions options);
+        Task<Graph?> GetGraphAsync(Guid graphId, string userId);
+
+        Task<Graph> CreateGraphAsync(Guid graphId, string userId, GraphOptions options);
+
+        Task EnsureGraphExistsAsync(Guid graphId, string userId, GraphOptions options);
 
         Task MapPageAsync(
             Guid graphId,
@@ -13,11 +17,15 @@ namespace Graphing.Core.WebGraph
             Func<Node, Task> nodePopulatedCallback,
             Func<Node, Task> nodePopulationRequestCallback);
 
+        Task<string> GetGraphDiagnosticViewAsync(
+            Guid graphId,
+            int maxDepth,
+            int? maxNodes);
 
 
-        Task<Graph?> GetGraphAsync(Guid graphId, string userId);
 
-        Task<Graph> CreateGraphAsync(GraphOptions options);
+
+
 
         Task<Graph> UpdateGraphAsync(Graph graph, string userId);
 
@@ -25,16 +33,15 @@ namespace Graphing.Core.WebGraph
 
         Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId);
 
-
-        // TODO: is this being used anymore? - maybe comment it out if not
-        Task CleanupOrphanedNodesAsync(Guid graphId);
-
-
         Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null);
        
         Task<IEnumerable<Node>> GetInitialGraphNodes(Guid graphId, int topN);
 
-        // IDEAS FOR FUNCTIONS:
+
+        // DO NOT INCLUDE IN DEMO - WORKING BUT NOT CURRENTLY BEING USED
+        Task CleanupOrphanedNodesAsync(Guid graphId);
+
+        // FUTURE IDEAS FOR FUNCTIONS:
         // AverageLinksPerNode()
         // FindReachablePages(string fromUrl, int maxDepth)
         // GetShortestPath(string fromUrl, string toUrl) //Use BFS or Dijkstra

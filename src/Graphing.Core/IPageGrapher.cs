@@ -9,11 +9,13 @@ namespace Graphing.Core
         Task StartAsync();
         Task StopAsync();
 
+
+
         Task<Graph?> GetGraphByIdAsync(Guid graphId, string userId);
 
-        Task<Graph?> CreateGraphAsync(GraphOptions options);
+        Task<Graph> CreateGraphAsync(string userId, GraphOptions options);
 
-        Task<Graph?> UpdateGraphAsync(Graph graph, string userId);
+        Task<Graph> UpdateGraphAsync(Graph graph, string userId);
 
         Task<Graph?> DeleteGraphAsync(Guid graphId, string userId);
 
@@ -23,6 +25,6 @@ namespace Graphing.Core
 
         Task<SigmaGraphPayloadDto> GetNodeSubgraphAsync(Guid graphId, Uri nodeUrl, int maxDepth = 1, int? maxNodes = null);
 
-        Task<CrawlPageRequestDto> CrawlPageAsync(Guid graphId, GraphOptions options);
+        Task<CrawlPageRequestDto> CrawlPageAsync(Guid graphId, GraphOptions options, bool preview);
     }
 }

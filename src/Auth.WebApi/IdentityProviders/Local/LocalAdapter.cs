@@ -23,7 +23,7 @@ namespace Auth.WebApi.IdentityProviders.Local
             //map local User to Provider-Agnostic IdentityUser
             var user = new IdentityUser
             {
-                UserId = localUser.Id.ToString(),
+                UserId = localUser.Id,
                 Username = localUser.Username,
                 Roles = localUser.Roles
             };
