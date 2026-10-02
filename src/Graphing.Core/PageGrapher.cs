@@ -115,7 +115,7 @@ namespace Graphing.Core
                 };
 
 
-                // Define callback delegates used by the WebGraph
+                // Callback delegates used by the WebGraph:
 
                 // Called when a Node is populated with data
                 Func<Node, Task> nodePopulatedCallback = node =>
@@ -156,28 +156,20 @@ namespace Graphing.Core
 
 
         /// <summary>
-        /// Processes a Graph Write To Log Event and writes a diagnostic view of the current WebGraph to the log.
-        /// Used for inspection during development.
-        /// </summary>
-        private async Task ProcessGraphWriteToLogEventAsync(GraphWriteToLogEvent evt)
-        {
-            var graphSnapshot = await _webGraph.GetGraphDiagnosticViewAsync(evt.GraphId, evt.MaxDepth, evt.MaxNodes);
-            _logger.LogInformation(graphSnapshot);
-        }
-
-
-
-        /// <summary>
         /// Publishes a streaming payload event for a populated Node and its relationships.
         /// </summary>
         private async Task PublishStreamNodePayloadEventAsync(CrawlPageRequestDto request, Node node)
         {
             //TODO: INITALLY JUST LOG THEN ADD IMPLEMENTATION IN LATER CHAPTER
-            _logger.LogInformation("Streaming node payload: Not yet implemented.");
+            _logger.LogInformation(
+                "Streaming node payload for {Url}: Not yet implemented.",
+                node.Url);
 
 
 
-
+            // ########################
+            // Add below in API Chapter
+            // ########################
 
             var payload = _graphPayloadSerializer.Serialize(node);
             payload.CorrelationId = request.CorrelationId;
@@ -209,7 +201,7 @@ namespace Graphing.Core
 
 
         /// <summary>
-        /// Publishes a Crawl Page Event for a discovered Node at the next crawl depth.
+        /// Publishes a Crawl Page Event for a Node discovered through a page relationship.
         /// </summary>
         private async Task PublishCrawlPageEventAsync(CrawlPageRequestDto request, Node node)
         {
@@ -229,6 +221,8 @@ namespace Graphing.Core
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
+            // Schedule the crawl request by adding a small random delay.
+            // This helps pace requests and reduce contention caused by bursts.
             var scheduledOffset = EventScheduleHelper.AddRandomDelayTo(
                 DateTimeOffset.UtcNow,
                 _graphingSettings.ScheduleCrawlDelayMinSeconds,
@@ -239,14 +233,14 @@ namespace Graphing.Core
                 priority: depth,
                 scheduledOffset);
 
-            _logger.LogInformation("Graphing Edge Discovered: {Url} Depth {Depth} Attempt: {Attempt}",
-                node.Url, depth, crawlPageRequest.Attempt);
+            _logger.LogInformation("Graphing Edge Discovered: {Url} Depth: {Depth}",
+                node.Url, depth);
 
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
                     LogType.Information,
-                    $"Graphing Edge Discovered: {node.Url} Depth {depth} Attempt: {crawlPageRequest.Attempt}",
+                    $"Graphing Edge Discovered: {node.Url} Depth: {depth}",
                     "GraphingEdgeDiscovered",
                     new LogContext
                     {
@@ -257,14 +251,24 @@ namespace Graphing.Core
         }
 
 
+        /// <summary>
+        /// Processes a Graph Write To Log Event and writes a diagnostic view of the current WebGraph to the log.
+        /// Used for inspection during development.
+        /// </summary>
+        private async Task ProcessGraphWriteToLogEventAsync(GraphWriteToLogEvent evt)
+        {
+            var graphDiagnosticView = await _webGraph.GetGraphDiagnosticViewAsync(evt.GraphId, evt.MaxDepth, evt.MaxNodes);
+            _logger.LogInformation(graphDiagnosticView);
+        }
 
 
 
 
 
 
-
-        // TO IMPLEMENT IN NEXT CHAPTER
+        // ########################
+        // Add below in API Chapter
+        // ########################
 
         public async Task PublishClientLogEventAsync(
             Guid graphId,

@@ -11,6 +11,10 @@ namespace Graphing.Core
 
 
 
+        // ########################
+        // Add below in API Chapter
+        // ########################
+
         Task<Graph?> GetGraphByIdAsync(Guid graphId, string userId);
 
         Task<Graph> CreateGraphAsync(string userId, GraphOptions options);

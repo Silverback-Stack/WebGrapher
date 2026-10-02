@@ -573,7 +573,9 @@ namespace Graphing.Core.WebGraph
 
 
 
-        // THESE WILL BE ADDED IN THE NEXT CHAPTER FOR THE API
+        // ########################
+        // Add below in API Chapter
+        // ########################
 
         /// <summary>
         /// Retrieves the initial populated Nodes used to load a WebGraph.

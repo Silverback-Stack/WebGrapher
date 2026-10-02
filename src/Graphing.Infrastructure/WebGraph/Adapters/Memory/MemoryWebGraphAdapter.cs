@@ -7,57 +7,38 @@ using Microsoft.Extensions.Logging;
 
 namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
 {
+
+    /// <summary>
+    /// In-memory WebGraph adapter used to simulate database storage.
+    /// Data is volatile and is not persisted.
+    /// </summary>
     public class MemoryWebGraphAdapter : BaseWebGraph
     {
-        // Data holders for simulation of DB tables
+        // Data store for Graph objects, keyed by GraphId.
         private readonly Dictionary<Guid, Graph> _graphTable = new();
+
+        // Data store for Node objects.
+        // The outer dictionary is keyed by GraphId.
+        // The inner dictionary is keyed by Node URL.
         private readonly Dictionary<Guid, Dictionary<string, Node>> _nodeTable = new();
 
-        public MemoryWebGraphAdapter(ILogger logger, GraphingSettings graphingSettings) 
+        public MemoryWebGraphAdapter(
+            ILogger logger, 
+            GraphingSettings graphingSettings) 
             : base(logger, graphingSettings) { }
 
 
-        //Graph Operations
+        // #############
+        // Graph storage
+        // #############
 
-        public override Task<Graph?> GetGraphAsync(Guid graphId, string userId)
-        {
-            _graphTable.TryGetValue(graphId, out var graph);
-
-            if (graph == null)
-                return Task.FromResult<Graph?>(null);
-
-            if (graph.UserId != userId)
-                return Task.FromResult<Graph?>(null);
-
-            return Task.FromResult<Graph?>(graph);
-        }
-
-        public override Task<PagedResult<Graph>> ListGraphsAsync(int page, int pageSize, string userId)
-        {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 1;
-
-            // fetch graphs by userId
-            var filtered = _graphTable.Values
-                .Where(g => g.UserId == userId);
-
-            var items = filtered
-                .OrderBy(g => g.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var result = new PagedResult<Graph>(
-                items,
-                filtered.Count(),
-                page,
-                pageSize);
-
-            return Task.FromResult(result);
-        }
-
-
-        public override Task<Graph> CreateGraphAsync(Guid graphId, string userId, GraphOptions options)
+        /// <summary>
+        /// Creates a new Graph and initialises its Node storage.
+        /// </summary>
+        public override Task<Graph> CreateGraphAsync(
+            Guid graphId, 
+            string userId, 
+            GraphOptions options)
         {
             var graph = new Graph
             {
@@ -82,17 +63,42 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
                 UserAccepts = options.UserAccepts
             };
 
-            // Save into Graph “table”
+            // Store the Graph using its Id as the lookup key.
             _graphTable[graph.Id] = graph;
 
-            // Initialise node storage for this graph
+            // Create an empty Node store for this Graph.
             _nodeTable[graph.Id] = new Dictionary<string, Node>();
 
             return Task.FromResult(graph);
         }
 
 
-        public override Task<Graph> UpdateGraphAsync(Graph graph, string userId)
+        /// <summary>
+        /// Retrieves a Graph owned by the specified user.
+        /// </summary>
+        public override Task<Graph?> GetGraphAsync(
+            Guid graphId, 
+            string userId)
+        {
+            _graphTable.TryGetValue(graphId, out var graph);
+
+            if (graph == null)
+                return Task.FromResult<Graph?>(null);
+
+            // Treat Graphs owned by another user as not found.
+            if (graph.UserId != userId)
+                return Task.FromResult<Graph?>(null);
+
+            return Task.FromResult<Graph?>(graph);
+        }
+
+
+        /// <summary>
+        /// Updates an existing Graph owned by the specified user.
+        /// </summary>
+        public override Task<Graph> UpdateGraphAsync(
+            Graph graph, 
+            string userId)
         {
             var existingGraph = GetGraphAsync(graph.Id, userId).Result;
 
@@ -105,167 +111,279 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
         }
 
 
-        public override Task<Graph?> DeleteGraphAsync(Guid graphId, string userId)
+        /// <summary>
+        /// Deletes a Graph and its associated Nodes.
+        /// </summary>
+        public override Task<Graph?> DeleteGraphAsync(
+            Guid graphId, 
+            string userId)
         {
             var existingGraph = GetGraphAsync(graphId, userId).Result;
 
             if (existingGraph == null)
                 return Task.FromResult<Graph?>(null);
 
-            // Remove graph metadata
-            _graphTable.Remove(graphId);
-
-            // Remove associated nodes (cascade delete)
+            // Remove all Nodes associated with the Graph.
             _nodeTable.Remove(graphId);
 
+            // Remove the Graph.
+            _graphTable.Remove(graphId);
+
+            // Return the deleted Graph to the caller.
             return Task.FromResult<Graph?>(existingGraph);
         }
 
 
-        // Node Operations
-
-
-        public async override Task<Node?> GetNodeAsync(Guid graphId, string url)
+        /// <summary>
+        /// Returns a paged list of Graphs owned by the specified user.
+        /// </summary>
+        public override Task<PagedResult<Graph>> ListGraphsAsync(
+            int page, 
+            int pageSize, 
+            string userId)
         {
+            // Ensure paging values are valid.
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 1;
+
+            // Restrict results to Graphs owned by the specified user.
+            var filtered = _graphTable.Values
+                .Where(g => g.UserId == userId);
+
+            // Order the Graphs and select the requested page.
+            var items = filtered
+                .OrderBy(g => g.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            // Return the page together with the total number of matching Graphs.
+            var result = new PagedResult<Graph>(
+                items,
+                filtered.Count(),
+                page,
+                pageSize);
+
+            return Task.FromResult(result);
+        }
+
+
+
+        // #############
+        // Node Storage
+        // #############
+
+        /// <summary>
+        /// Retrieves a Node from the WebGraph.
+        /// </summary>
+        public async override Task<Node?> GetNodeAsync(
+            Guid graphId, 
+            string url)
+        {
+            // Find the Node store for the requested Graph.
             if (_nodeTable.TryGetValue(graphId, out var nodes))
             {
+                // Find the Node using its URL as the lookup key.
                 nodes.TryGetValue(url, out var node);
+
                 return await Task.FromResult(node);
             }
 
             return await Task.FromResult<Node?>(null);
         }
 
+
+        /// <summary>
+        /// Stores a Node in the WebGraph.
+        /// </summary>
         public async override Task<Node> SetNodeAsync(Node node)
         {
             var storedNode = await GetNodeAsync(node.GraphId, node.Url);
+
+            // Prevent an older version of the Node from overwriting newer data.
             if (storedNode != null &&
                 storedNode.ModifiedAt > node.ModifiedAt)
             {
-                _logger.LogDebug("SetNodeAsync skipped for URL {Url} in GraphId: {GraphId} due to stale data. Incoming ModifiedAt: {NodeModifiedAt}, Stored ModifiedAt: {StoredNodeModifiedAt}",
-                    node.Url, node.GraphId, node.ModifiedAt, storedNode.ModifiedAt);
-                // Node has been modified by another process since it was read
-                // FUTURE FEATURE: Decide on strategy:
-                //   "skip" (the current behavior)
-                //   "force" (overwrite anyway)
-                //   "merge" (not trivial, only if merging fields is feasible)
+                _logger.LogDebug(
+                    "SetNodeAsync skipped for URL {Url} in GraphId: {GraphId} due to stale data. Incoming ModifiedAt: {NodeModifiedAt}, Stored ModifiedAt: {StoredNodeModifiedAt}",
+                    node.Url,
+                    node.GraphId,
+                    node.ModifiedAt,
+                    storedNode.ModifiedAt);
+
                 return storedNode;
             }
 
-            if (!_nodeTable.TryGetValue(node.GraphId, out var nodes))
-            {
-                nodes = new Dictionary<string, Node>();
-                _nodeTable[node.GraphId] = nodes;
-            }
+            // Get a reference to this Graph's Nodes collection.
+            var nodes = _nodeTable[node.GraphId];
 
+            // Store the latest version of the Node in the collection using its URL as the lookup key.
             node.ModifiedAt = DateTimeOffset.UtcNow;
             nodes[node.Url] = node;
 
             return await Task.FromResult(node);
         }
 
-        protected override Task<bool> AddOutgoingRelationshipAsync(Guid graphId, Node fromNode, Node toNode)
+
+        /// <summary>
+        /// Adds an outgoing relationship from one Node to another.
+        /// </summary>
+        protected override Task<bool> AddOutgoingRelationshipAsync(
+            Guid graphId, 
+            Node fromNode, 
+            Node toNode)
         {
+            // Do not add the relationship if it already exists.
             if (fromNode.OutgoingNodes.Contains(toNode))
                 return Task.FromResult(false);
 
             fromNode.OutgoingNodes.Add(toNode);
+
             return Task.FromResult(true);
         }
 
-        protected override Task<bool> AddIncomingRelationshipAsync(Guid graphId, Node toNode, Node fromNode)
+
+        /// <summary>
+        /// Adds the corresponding incoming relationship to the target Node.
+        /// </summary>
+        protected override Task<bool> AddIncomingRelationshipAsync(
+            Guid graphId, 
+            Node toNode, 
+            Node fromNode)
         {
+            // Do not add the relationship if it already exists.
             if (toNode.IncomingNodes.Contains(fromNode))
                 return Task.FromResult(false);
 
             toNode.IncomingNodes.Add(fromNode);
+
             return Task.FromResult(true);
         }
 
-        protected override Task ClearOutgoingRelationshipsAsync(Guid graphId, Node node)
+
+        /// <summary>
+        /// Removes all outgoing relationships from a Node.
+        /// </summary>
+        protected override Task ClearOutgoingRelationshipsAsync(
+            Guid graphId, 
+            Node node)
         {
-            foreach (var target in node.OutgoingNodes.ToList()) // copy to avoid modifying while iterating
+            // Copy the outgoing collection so relationships can be removed safely while iterating.
+            foreach (var target in node.OutgoingNodes.ToList())
             {
+                // Remove the corresponding incoming relationship from the target Node.
                 target.IncomingNodes.Remove(node);
             }
 
+            // Remove all outgoing relationships from the source Node.
             node.OutgoingNodes.Clear();
+
             return Task.CompletedTask;
         }
 
 
-
-        protected override Task<int> GetPopularityScoreAsync(Guid graphId, Node node)
+        /// <summary>
+        /// Calculates the popularity score for a Node.
+        /// </summary>
+        protected override Task<int> GetPopularityScoreAsync(
+            Guid graphId, 
+            Node node)
         {
-            // Simple metric: sum of incoming + outgoing nodes
+            // Use the total number of incoming and outgoing relationships as the popularity score.
             var score = node.IncomingNodes.Count + node.OutgoingNodes.Count;
+
             return Task.FromResult(score);
         }
 
 
-        public override Task<IEnumerable<Node>> GetInitialGraphNodes(Guid graphId, int topN)
+
+        // #############
+        // Graph Queries
+        // #############
+
+        /// <summary>
+        /// Returns the first populated Nodes to use as starting points for graph traversal.
+        /// </summary>
+        public override Task<IEnumerable<Node>> GetInitialGraphNodes(
+            Guid graphId, 
+            int topN)
         {
+            // Get this Graph's Nodes collection,
+            // or return an empty result if it does not exist.
             if (!_nodeTable.TryGetValue(graphId, out var nodes))
                 return Task.FromResult(Enumerable.Empty<Node>());
 
-            var filteredNodes = nodes.Values
-                .Where(n => n.State == NodeState.Populated)  // only populated nodes
-                .OrderBy(n => n.CreatedAt)                   // created first
-                .Take(topN)                                  // take top N
+            // Select populated Nodes only, ordered by when they were first created.
+            var initialNodes = nodes.Values
+                .Where(n => n.State == NodeState.Populated)
+                .OrderBy(n => n.CreatedAt)
+                .Take(topN)
                 .ToList();
 
-            return Task.FromResult<IEnumerable<Node>>(filteredNodes);
+            return Task.FromResult<IEnumerable<Node>>(initialNodes);
         }
 
 
-        public override async Task<long> TotalPopulatedNodesAsync(Guid graphId)
-        {
-            if (_nodeTable.TryGetValue(graphId, out var nodes))
-            {
-                int count = nodes.Values.Count(n => n.State == NodeState.Populated);
-                return await Task.FromResult(count);
-            }
-
-            return await Task.FromResult(0);
-        }
-
-
+        /// <summary>
+        /// Traverses the WebGraph from a starting Node using breadth-first search (BFS).
+        /// Nodes are visited level by level through outgoing relationships, while
+        /// tracking visited URLs to prevent cycles and respecting depth and Node limits.
+        /// </summary>
         public override async Task<IEnumerable<Node>> GetNodeNeighborhoodAsync(Guid graphId, string startUrl, int maxDepth, int? maxNodes = null)
         {
-            if (!_nodeTable.TryGetValue(graphId, out var nodes) || !nodes.TryGetValue(startUrl, out var startNode))
+            // Get this Graph's Nodes collection and locate the starting Node.
+            if (!_nodeTable.TryGetValue(graphId, out var nodes) || 
+                !nodes.TryGetValue(startUrl, out var startNode))
             {
-                _logger.LogDebug("Graph {GraphId} or start node {StartUrl} not found.",
-                    graphId, startUrl);
+                _logger.LogDebug(
+                    "Graph {GraphId} or start node {StartUrl} not found.",
+                    graphId, 
+                    startUrl);
+
                 return Enumerable.Empty<Node>();
             }
 
+            // Track visited Nodes to prevent the traversal from revisiting the same URL.
             var visited = new HashSet<string>();
+
+            // Store the Nodes discovered during the traversal.
             var result = new List<Node>();
+
+            // Use a queue to traverse the graph breadth-first while tracking depth.
             var queue = new Queue<(Node node, int depth)>();
 
+            // Start the traversal from the requested Node at depth zero.
             queue.Enqueue((startNode, 0));
             visited.Add(startNode.Url);
 
             while (queue.Count > 0)
             {
+                // Take the next Node from the queue together with its traversal depth.
                 var (currentNode, currentDepth) = queue.Dequeue();
+
+                // Add the current Node to the traversal results.
                 result.Add(currentNode);
 
-                if (maxNodes.HasValue && result.Count >= maxNodes.Value)
+                // Stop when the requested Node limit has been reached.
+                if (maxNodes.HasValue && 
+                    result.Count >= maxNodes.Value)
                 {
                     break;
                 }
 
+                // Do not traverse beyond the requested depth.
                 if (currentDepth >= maxDepth)
                 {
                     continue;
                 }
 
+                // Add unvisited outgoing Nodes to the queue for the next depth.
                 foreach (var neighbor in currentNode.OutgoingNodes)
                 {
                     if (visited.Add(neighbor.Url))
                     {
-                        queue.Enqueue((neighbor, currentDepth + 1));
+                        queue.Enqueue(
+                            (neighbor, currentDepth + 1));
                     }
                 }
             }
@@ -274,20 +392,50 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
         }
 
 
+        /// <summary>
+        /// Returns the total number of populated Nodes in the WebGraph.
+        /// </summary>
+        public override async Task<long> TotalPopulatedNodesAsync(Guid graphId)
+        {
+            // Get this Graph's Nodes collection, or return zero if it does not exist.
+            if (_nodeTable.TryGetValue(graphId, out var nodes))
+            {
+                var count = nodes.Values.Count(
+                    n => n.State == NodeState.Populated);
+
+                return await Task.FromResult(count);
+            }
+
+            return await Task.FromResult(0);
+        }
 
 
-        // DO NOT INCLUDE IN DEMO - WORKING BUT NOT CURRENTLY BEING USED
+
+
+
+
+        // #################
+        // Graph Maintenance
+        // #################
+
+        /// <summary>
+        /// Removes unreferenced Dummy and Redirected Nodes from the WebGraph.
+        /// </summary>
         public async override Task CleanupOrphanedNodesAsync(Guid graphId)
         {
+            // Get this Graph's Nodes collection, or return if it does not exist.
             if (!_nodeTable.TryGetValue(graphId, out var nodes))
             {
-                _logger.LogDebug("No nodes found to cleanup in the graph: {GraphId}", graphId);
+                _logger.LogDebug(
+                    "No nodes found to cleanup in the graph: {GraphId}", 
+                    graphId);
+
                 return;
             }
 
+            // Track Nodes that are still referenced by an incoming relationship.
             var referenced = new HashSet<Node>();
 
-            // Find all nodes that are referenced (have incoming edges)
             foreach (var node in nodes.Values)
             {
                 foreach (var target in node.OutgoingNodes)
@@ -299,17 +447,21 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
                 }
             }
 
-            // Find orphan nodes: Redirected or Dummy nodes not referenced by anyone
+            // Find Dummy or Redirected Nodes that are no longer referenced.
             var orphans = nodes.Values
-                .Where(n => (n.State == NodeState.Redirected || n.State == NodeState.Dummy)
-                            && !referenced.Contains(n))
+                .Where(n => 
+                    (n.State == NodeState.Redirected ||
+                    n.State == NodeState.Dummy) && 
+                    !referenced.Contains(n))
                 .ToList();
 
-            // Remove orphan nodes
+            // Remove the orphaned Nodes from the Graph.
             foreach (var orphan in orphans)
             {
                 nodes.Remove(orphan.Url);
-                Console.WriteLine($"[Cleanup] Removed orphan node: {orphan.Url} [{orphan.State}]");
+
+                Console.WriteLine(
+                    $"[Cleanup] Removed orphan node: {orphan.Url} [{orphan.State}]");
             }
 
             await Task.CompletedTask;
