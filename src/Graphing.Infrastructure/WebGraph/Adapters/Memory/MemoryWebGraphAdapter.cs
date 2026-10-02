@@ -289,8 +289,15 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.Memory
             Guid graphId, 
             Node node)
         {
-            // Use the total number of incoming and outgoing relationships as the popularity score.
-            var score = node.IncomingNodes.Count + node.OutgoingNodes.Count;
+            var weight = 2;
+
+            // Calculate a weighted score.
+            // Weight incoming relationships more heavily because they indicate
+            // how often this Node is referenced by other Nodes, while outgoing
+            // relationships contribute a smaller measure of overall connectivity.
+            var score =
+                (node.IncomingNodes.Count * weight) +
+                node.OutgoingNodes.Count;
 
             return Task.FromResult(score);
         }
