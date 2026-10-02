@@ -7,7 +7,7 @@
     public record GraphOptions
     {
         // Fallback when no client browser User-Agent is provided
-        public const string DefaultUserAgent = "WebGrapher";
+        public const string DefaultUserAgent = "WebGrapher/1.0";
 
         // Crawling currently supports HTML and plain text content only
         public const string DefaultUserAccepts = "text/html,text/plain";

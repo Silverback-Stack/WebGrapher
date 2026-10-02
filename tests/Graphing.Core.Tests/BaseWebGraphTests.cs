@@ -29,10 +29,24 @@ namespace Graphing.Core.Tests
             _webGraph = new MemoryWebGraphAdapter(_logger.Object, _graphingSettings);
         }
 
+        private async Task<Guid> CreateGraphAsync()
+        {
+            var graphId = Guid.NewGuid();
+
+            await _webGraph.CreateGraphAsync(
+                graphId,
+                "test-user",
+                new GraphOptions { 
+                    Name = "Test Graph"
+                });
+
+            return graphId;
+        }
+
         [Test]
         public async Task MapPageAsync_AddingPage_IncrementsTotalPopulatedNodes()
         {
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             var pageData = new PageData()
             {
@@ -59,8 +73,8 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task MapPageAsync_DifferentGraphIds_AreIsolated()
         {
-            var graphId1 = Guid.NewGuid();
-            var graphId2 = Guid.NewGuid();
+            var graphId1 = await CreateGraphAsync();
+            var graphId2 = await CreateGraphAsync();
 
             var page1 = new PageData()
             {
@@ -106,7 +120,7 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task MapPageAsync_SelfLink_ShouldBeIgnored()
         {
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             var pageData = new PageData
             {
@@ -136,7 +150,7 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task MapPageAsync_SameUrl_UnchangedContent_NotAddedTwice()
         {
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             var now = DateTimeOffset.UtcNow;
 
@@ -171,7 +185,7 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task MapPageAsync_LinkIsAdded_TargetIsDummy()
         {
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             var pageData = new PageData
             {
@@ -205,7 +219,7 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task MapPageAsync_PageB_PromotedToPopulated()
         {
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             // Map Page A with a link to B
             var pageA = new PageData
@@ -251,7 +265,7 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task MapPageAsync_PageBRedirectsToC_RedirectBehaviorVerified()
         {
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             // Step 1: Map Page A with a link to B
             var pageA = new PageData
@@ -315,7 +329,7 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task MapPageAsync_RedirectFromAToB_ShouldCreateRedirectNodeA_AndPopulatedNodeB()
         {
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             var pageData = new PageData
             {
@@ -357,7 +371,7 @@ namespace Graphing.Core.Tests
         public async Task MapPageAsync_ExistingNodeWithinThrottle_DoesNotRequestPopulation()
         {
             // Arrange
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             var populationRequests = new List<Node>();
             Func<Node, Task> onNodePopulationRequestCallback = node =>
@@ -401,7 +415,7 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task MapPageAsync_InitialCrawl_BypassesRefreshThrottle()
         {
-            var graphId = Guid.NewGuid();
+            var graphId = await CreateGraphAsync();
 
             var populationRequests = new List<Node>();
             Func<Node, Task> onNodePopulationRequestCallback = node =>
