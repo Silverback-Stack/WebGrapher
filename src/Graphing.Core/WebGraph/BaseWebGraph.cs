@@ -112,7 +112,7 @@ namespace Graphing.Core.WebGraph
             await PopulateNodeAsync(node, pageData);
 
             // Rebuild the outgoing relationships from the latest crawl if Replace mode is set.
-            if (_graphingSettings.WebGraph.OutgoingNodesUpdateMode == OutgoingNodesUpdateMode.Replace)
+            if (_graphingSettings.WebGraph.OutgoingNodeEdgeUpdateStrategy == NodeEdgeUpdateStrategy.Replace)
             {
                 await ClearOutgoingRelationshipsAsync(graphId, node);
             }
@@ -180,7 +180,12 @@ namespace Graphing.Core.WebGraph
                     url,
                     state);
 
-                node = new Node(graphId, url, state);
+                node = new Node()
+                {
+                    GraphId = graphId,
+                    Url = url,
+                    State = state
+                };
                 await SaveNodeAsync(node);
             }
 

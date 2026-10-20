@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 using Streaming.Factories;
 using Streaming.Infrastructure.Adapters.SignalR;
 using System.Text.Json;
@@ -21,7 +22,31 @@ namespace Streaming.WebApi
 
             // --- Swagger / OpenAPI ---
             services.AddEndpointsApiExplorer();
-            services.AddSwaggerGen();
+            services.AddSwaggerGen(options =>
+            {
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    Description = "Enter your JWT access token."
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
 
             // --- Dependency Injection ---
             services.AddSingleton(streamingWebApiSettings);
@@ -163,8 +188,13 @@ namespace Streaming.WebApi
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint(streamingWebApiConfig.Swagger.EndpointUrl, streamingWebApiConfig.Swagger.EndpointName);
+                options.SwaggerEndpoint(
+                    streamingWebApiConfig.Swagger.EndpointUrl,
+                    streamingWebApiConfig.Swagger.EndpointName);
+
                 options.RoutePrefix = streamingWebApiConfig.Swagger.RoutePrefix;
+
+                options.ConfigObject.PersistAuthorization = true;
             });
 
             app.UseEndpoints(endpoints =>

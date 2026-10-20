@@ -37,7 +37,8 @@ namespace Graphing.Core.Tests
                 graphId,
                 "test-user",
                 new GraphOptions { 
-                    Name = "Test Graph"
+                    Name = "Test Graph",
+                    CrawlRequest = new GraphCrawlRequest()
                 });
 
             return graphId;

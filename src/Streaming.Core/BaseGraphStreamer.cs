@@ -25,13 +25,13 @@ namespace Streaming.Core
 
         public async Task StartAsync()
         {
-            await _eventBus.SubscribeAsync<StreamNodePayloadEvent>(_streamingSettings.ServiceName, ProcessStreamNodePayloadEventAsync);
+            await _eventBus.SubscribeAsync<StreamGraphPayloadEvent>(_streamingSettings.ServiceName, ProcessStreamGraphPayloadEventAsync);
             await _eventBus.SubscribeAsync<ClientLogEvent>(_streamingSettings.ServiceName, ProcessGraphLogEventAsync);
         }
 
         public async Task StopAsync()
         {
-            await _eventBus.UnsubscribeAsync<StreamNodePayloadEvent>(_streamingSettings.ServiceName, ProcessStreamNodePayloadEventAsync);
+            await _eventBus.UnsubscribeAsync<StreamGraphPayloadEvent>(_streamingSettings.ServiceName, ProcessStreamGraphPayloadEventAsync);
             await _eventBus.UnsubscribeAsync<ClientLogEvent>(_streamingSettings.ServiceName, ProcessGraphLogEventAsync);
         }
 
@@ -61,7 +61,7 @@ namespace Streaming.Core
 
         public abstract Task BroadcastGraphLogAsync(Guid graphId, ClientLogDto payload);
 
-        private async Task ProcessStreamNodePayloadEventAsync(StreamNodePayloadEvent evt)
+        private async Task ProcessStreamGraphPayloadEventAsync(StreamGraphPayloadEvent evt)
         {
             try
             {

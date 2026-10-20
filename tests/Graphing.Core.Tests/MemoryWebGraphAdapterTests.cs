@@ -38,7 +38,8 @@ namespace Graphing.Core.Tests
                 "test-user",
                 new GraphOptions
                 {
-                    Name = "Test Graph"
+                    Name = "Test Graph",
+                    CrawlRequest = new GraphCrawlRequest()
                 });
 
             return graphId;
@@ -46,13 +47,13 @@ namespace Graphing.Core.Tests
 
 
         /// <summary>
-        /// Preserves existing relationships when outgoing relationships are updated in Append mode.
+        /// Preserves existing relationships when outgoing relationships are updated with Append Strategy.
         /// </summary>
         [Test]
-        public async Task UpdatingNodeOutgoingLinksAsync_AppendMode_DoesNotRemoveExistingIncomingLinks()
+        public async Task MapPageAsync_AppendStrategy_PreservesExistingRelationships()
         {
-            _graphingSettings.WebGraph.OutgoingNodesUpdateMode = 
-                OutgoingNodesUpdateMode.Append;
+            _graphingSettings.WebGraph.OutgoingNodeEdgeUpdateStrategy = 
+                NodeEdgeUpdateStrategy.Append;
 
             _adapter = new MemoryWebGraphAdapter(
                 _logger.Object, 
@@ -98,7 +99,7 @@ namespace Graphing.Core.Tests
             // Verify Node B has an incoming relationship from Node A.
             var nodeB = await _adapter.GetNodeAsync(graphId, "B");
 
-            Assert.That(nodeB.IncomingNodeCount, Is.EqualTo(1));
+            Assert.That(nodeB.IncomingNodes.Count, Is.EqualTo(1));
             Assert.That(
                 nodeB.IncomingNodes.Any(n => n.Url == "A"), 
                 Is.True);
@@ -121,8 +122,8 @@ namespace Graphing.Core.Tests
 
             nodeB = await _adapter.GetNodeAsync(graphId, "B");
 
-            // Verify Append mode preserves the existing relationship A -> B.
-            Assert.That(nodeB.IncomingNodeCount, Is.EqualTo(1));
+            // Verify Append strategy preserves the existing relationship A -> B.
+            Assert.That(nodeB.IncomingNodes.Count, Is.EqualTo(1));
             Assert.That(
                 nodeB.IncomingNodes.Any(n => n.Url == "A"),
                 Is.True);
@@ -130,13 +131,13 @@ namespace Graphing.Core.Tests
 
 
         /// <summary>
-        /// Removes obsolete relationships when outgoing relationships are updated in Replace mode.
+        /// Removes obsolete relationships when outgoing relationships are updated with Replace strategy.
         /// </summary>
         [Test]
-        public async Task UpdatingNodeOutgoingLinksAsync_ReplaceMode_RemovesOldIncomingLinks()
+        public async Task MapPageAsync_ReplaceStrategy_RemovesExistingRelationships()
         {
-            _graphingSettings.WebGraph.OutgoingNodesUpdateMode = 
-                OutgoingNodesUpdateMode.Replace;
+            _graphingSettings.WebGraph.OutgoingNodeEdgeUpdateStrategy =
+                NodeEdgeUpdateStrategy.Replace;
 
             _adapter = new MemoryWebGraphAdapter(
                 _logger.Object, 
@@ -182,7 +183,7 @@ namespace Graphing.Core.Tests
             // Verify Node B has an incoming relationship from Node A.
             var nodeB = await _adapter.GetNodeAsync(graphId, "B");
 
-            Assert.That(nodeB.IncomingNodeCount, Is.EqualTo(1));
+            Assert.That(nodeB.IncomingNodes.Count, Is.EqualTo(1));
             Assert.That(
                 nodeB.IncomingNodes.Any(n => n.Url == "A"), 
                 Is.True);
@@ -197,6 +198,7 @@ namespace Graphing.Core.Tests
                 ContentFingerprint = "HASH-A-REVISITED"
             };
 
+
             await _adapter.MapPageAsync(
                 graphId, 
                 webPageARevisited, 
@@ -206,8 +208,8 @@ namespace Graphing.Core.Tests
 
             nodeB = await _adapter.GetNodeAsync(graphId, "B");
 
-            // Verify Replace mode removes the obsolete relationship A -> B.
-            Assert.That(nodeB.IncomingNodeCount, Is.EqualTo(0));
+            // Verify Replace strategy removes the obsolete relationship A -> B.
+            Assert.That(nodeB.IncomingNodes.Count, Is.EqualTo(0));
             Assert.That(
                 nodeB.IncomingNodes.Any(n => n.Url == "A"), 
                 Is.False);
@@ -227,8 +229,8 @@ namespace Graphing.Core.Tests
         public async Task GetInitialGraphNodes_ReturnsFirstPopulatedNodesUpToTopN()
         {
             // Configure the adapter before creating it.
-            _graphingSettings.WebGraph.OutgoingNodesUpdateMode =
-                OutgoingNodesUpdateMode.Append;
+            _graphingSettings.WebGraph.OutgoingNodeEdgeUpdateStrategy =
+                NodeEdgeUpdateStrategy.Append;
 
             _adapter = new MemoryWebGraphAdapter(
                 _logger.Object,
@@ -238,26 +240,34 @@ namespace Graphing.Core.Tests
 
 
             // Create populated Nodes with different creation times.
-            var node1 = new Node(graphId, "url1")
+            var node1 = new Node()
             {
+                GraphId = graphId,
+                Url = "url1",
                 State = NodeState.Populated,
                 CreatedAt = DateTimeOffset.UtcNow.AddHours(-2)
             };
 
-            var node2 = new Node(graphId, "url2")
+            var node2 = new Node()
             {
+                GraphId = graphId,
+                Url = "url2",
                 State = NodeState.Populated,
                 CreatedAt = DateTimeOffset.UtcNow.AddHours(-3)
             };
 
-            var node3 = new Node(graphId, "url3")
+            var node3 = new Node()
             {
+                GraphId = graphId,
+                Url = "url3",
                 State = NodeState.Populated,
                 CreatedAt = DateTimeOffset.UtcNow.AddHours(-1)
             };
 
-            var node4 = new Node(graphId, "url4")
+            var node4 = new Node()
             {
+                GraphId = graphId,
+                Url = "url4",
                 State = NodeState.Populated,
                 CreatedAt = DateTimeOffset.UtcNow
             };
@@ -284,8 +294,8 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task TraverseGraphAsync_TraversesGraphUpToMaxDepth()
         {
-            _graphingSettings.WebGraph.OutgoingNodesUpdateMode =
-                OutgoingNodesUpdateMode.Append;
+            _graphingSettings.WebGraph.OutgoingNodeEdgeUpdateStrategy =
+                NodeEdgeUpdateStrategy.Append;
 
             _adapter = new MemoryWebGraphAdapter(
                 _logger.Object,
@@ -294,10 +304,10 @@ namespace Graphing.Core.Tests
             Guid graphId = await CreateGraphAsync();
 
             // Create a simple chain of Nodes: A -> B -> C -> D.
-            var nodeA = new Node(graphId, "A");
-            var nodeB = new Node(graphId, "B");
-            var nodeC = new Node(graphId, "C");
-            var nodeD = new Node(graphId, "D");
+            var nodeA = new Node() { GraphId = graphId, Url = "A" };
+            var nodeB = new Node() { GraphId = graphId, Url = "B" };
+            var nodeC = new Node() { GraphId = graphId, Url = "C" };
+            var nodeD = new Node() { GraphId = graphId, Url = "D" };
 
             // Add the outgoing relationships that define the traversal path.
             nodeA.OutgoingNodes.Add(nodeB);
@@ -350,8 +360,8 @@ namespace Graphing.Core.Tests
         [Test]
         public async Task TraverseGraphAsync_StopsAtMaxNodesLimit()
         {
-            _graphingSettings.WebGraph.OutgoingNodesUpdateMode =
-                OutgoingNodesUpdateMode.Append;
+            _graphingSettings.WebGraph.OutgoingNodeEdgeUpdateStrategy =
+                NodeEdgeUpdateStrategy.Append;
 
             _adapter = new MemoryWebGraphAdapter(
                 _logger.Object,
@@ -360,12 +370,12 @@ namespace Graphing.Core.Tests
             var graphId = await CreateGraphAsync();
 
             // Create a group of Nodes for the traversal test.
-            var nodeA = new Node(graphId, "A");
-            var nodeB = new Node(graphId, "B");
-            var nodeC = new Node(graphId, "C");
-            var nodeD = new Node(graphId, "D");
-            var nodeE = new Node(graphId, "E");
-            var nodeF = new Node(graphId, "F");
+            var nodeA = new Node() { GraphId = graphId, Url = "A" };
+            var nodeB = new Node() { GraphId = graphId, Url = "B" };
+            var nodeC = new Node() { GraphId = graphId, Url = "C" };
+            var nodeD = new Node() { GraphId = graphId, Url = "D" };
+            var nodeE = new Node() { GraphId = graphId, Url = "E" };
+            var nodeF = new Node() { GraphId = graphId, Url = "F" };
 
             // Create a star-shaped graph: A -> B, C, D, E, F.
             nodeA.OutgoingNodes.Add(nodeB);

@@ -144,9 +144,6 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
 
             var props = vertex["properties"] as IDictionary<string, object>;
 
-            //TODO: consider using Nullable types in Node instead of default values here!
-
-
             var userId = GetPropString(props, "userId");
             if (string.IsNullOrEmpty(userId))
                 throw new InvalidOperationException("Graph vertex does not contain a valid userId.");
@@ -157,21 +154,25 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                 UserId = userId,
                 Name = GetPropString(props, "name") ?? string.Empty,
                 Description = GetPropString(props, "description") ?? string.Empty,
-                Url = GetPropString(props, "url") ?? string.Empty,
-                MaxDepth = GetPropInt(props, "maxDepth") ?? 1,
-                MaxLinks = GetPropInt(props, "maxLinks") ?? 1,
-                ExcludeExternalLinks = GetPropBool(props, "excludeExternalLinks") ?? true,
-                ExcludeQueryStrings = GetPropBool(props, "excludeQueryStrings") ?? true,
-                ConsolidateQueryStrings = GetPropBool(props, "consolidateQueryStrings") ?? true,
-                UrlMatchRegex = GetPropString(props, "urlMatchRegex") ?? string.Empty,
-                TitleElementXPath = GetPropString(props, "titleElementXPath") ?? string.Empty,
-                ContentElementXPath = GetPropString(props, "contentElementXPath") ?? string.Empty,
-                SummaryElementXPath = GetPropString(props, "summaryElementXPath") ?? string.Empty,
-                ImageElementXPath = GetPropString(props, "imageElementXPath") ?? string.Empty,
-                RelatedLinksElementXPath = GetPropString(props, "relatedLinksElementXPath") ?? string.Empty,
                 CreatedAt = GetPropDateTimeOffset(props, "createdAt") ?? DateTimeOffset.UtcNow,
-                UserAgent = GetPropString(props, "userAgent") ?? string.Empty,
-                UserAccepts = GetPropString(props, "userAccepts") ?? string.Empty
+
+                CrawlRequest = new GraphCrawlRequest {
+                    Url = Uri.TryCreate(
+                        GetPropString(props, "url"),
+                        UriKind.Absolute,
+                        out var uri) ? uri : null,
+                    MaxDepth = GetPropInt(props, "maxDepth") ?? 1,
+                    MaxLinks = GetPropInt(props, "maxLinks") ?? 1,
+                    ExcludeExternalLinks = GetPropBool(props, "excludeExternalLinks") ?? true,
+                    ExcludeQueryStrings = GetPropBool(props, "excludeQueryStrings") ?? true,
+                    ConsolidateQueryStrings = GetPropBool(props, "consolidateQueryStrings") ?? true,
+                    UrlMatchRegex = GetPropString(props, "urlMatchRegex") ?? string.Empty,
+                    TitleElementXPath = GetPropString(props, "titleElementXPath") ?? string.Empty,
+                    ContentElementXPath = GetPropString(props, "contentElementXPath") ?? string.Empty,
+                    SummaryElementXPath = GetPropString(props, "summaryElementXPath") ?? string.Empty,
+                    ImageElementXPath = GetPropString(props, "imageElementXPath") ?? string.Empty,
+                    RelatedLinksElementXPath = GetPropString(props, "relatedLinksElementXPath") ?? string.Empty
+                }
             };
         }
 
@@ -212,6 +213,7 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                 OutgoingNodes = new HashSet<Node>(),
                 IncomingNodes = new HashSet<Node>()
             };
+
         }
     }
 }

@@ -73,18 +73,23 @@ namespace Graphing.Core
                         {
                             Name = request.GraphCreationOptions.Name,
                             Description = request.GraphCreationOptions.Description,
-                            Url = request.Url,
-                            MaxLinks = request.Options.MaxLinks,
-                            MaxDepth = request.Options.MaxDepth,
-                            ExcludeExternalLinks = request.Options.ExcludeExternalLinks,
-                            ExcludeQueryStrings = request.Options.ExcludeQueryStrings,
-                            ConsolidateQueryStrings = request.Options.ConsolidateQueryStrings,
-                            UrlMatchRegex = request.Options.UrlMatchRegex,
-                            TitleElementXPath = request.Options.TitleElementXPath,
-                            ContentElementXPath = request.Options.ContentElementXPath,
-                            SummaryElementXPath = request.Options.SummaryElementXPath,
-                            ImageElementXPath = request.Options.ImageElementXPath,
-                            RelatedLinksElementXPath = request.Options.RelatedLinksElementXPath,
+
+                            CrawlRequest = new GraphCrawlRequest
+                            {
+                                Url = request.Url,
+                                MaxLinks = request.Options.MaxLinks,
+                                MaxDepth = request.Options.MaxDepth,
+                                ExcludeExternalLinks = request.Options.ExcludeExternalLinks,
+                                ExcludeQueryStrings = request.Options.ExcludeQueryStrings,
+                                ConsolidateQueryStrings = request.Options.ConsolidateQueryStrings,
+                                UrlMatchRegex = request.Options.UrlMatchRegex,
+                                TitleElementXPath = request.Options.TitleElementXPath,
+                                ContentElementXPath = request.Options.ContentElementXPath,
+                                SummaryElementXPath = request.Options.SummaryElementXPath,
+                                ImageElementXPath = request.Options.ImageElementXPath,
+                                RelatedLinksElementXPath = request.Options.RelatedLinksElementXPath,
+                            },
+                            
                             UserAgent = request.Options.UserAgent,
                             UserAccepts = request.Options.UserAccepts
                         });
@@ -177,19 +182,19 @@ namespace Graphing.Core
             if (!payload.Nodes.Any() && !payload.Edges.Any())
                 return;
 
-            await _eventBus.PublishAsync(new StreamNodePayloadEvent
+            await _eventBus.PublishAsync(new StreamGraphPayloadEvent
             {
                 SigmaGraphPayload = payload
             });
 
-            _logger.LogInformation("Streaming node payload: {Url} Nodes: {NodeCount} Edges: {EdgeCount}", 
+            _logger.LogInformation("Streaming Graph Payload: {Url} Nodes: {NodeCount} Edges: {EdgeCount}", 
                 node.Url, payload.NodeCount, payload.EdgeCount);
 
             await PublishClientLogEventAsync(
                     request.GraphId,
                     request.CorrelationId,
                     LogType.Information,
-                    $"Streaming node payload: {node.Url} Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}",
+                    $"Streaming Graph Payload: {node.Url} Nodes: {payload.NodeCount} Edges: {payload.EdgeCount}",
                     "GraphingNodePopulated",
                     new LogContext
                     {
@@ -325,7 +330,7 @@ namespace Graphing.Core
             //create a crawl page request
             var crawlPageRequest = new CrawlPageRequestDto
             {
-                Url = options.Url,
+                Url = options.CrawlRequest.Url!,
                 GraphId = graphId,
                 CorrelationId = Guid.NewGuid(),
                 Attempt = 1,
@@ -333,17 +338,18 @@ namespace Graphing.Core
                 Preview = preview,
                 Options = new CrawlPageRequestOptionsDto
                 {
-                    MaxDepth = options.MaxDepth,
-                    MaxLinks = options.MaxLinks,
-                    ExcludeExternalLinks = options.ExcludeExternalLinks,
-                    ExcludeQueryStrings = options.ExcludeQueryStrings,
-                    ConsolidateQueryStrings = options.ConsolidateQueryStrings,
-                    UrlMatchRegex = options.UrlMatchRegex,
-                    TitleElementXPath = options.TitleElementXPath,
-                    ContentElementXPath = options.ContentElementXPath,
-                    SummaryElementXPath = options.SummaryElementXPath,
-                    ImageElementXPath = options.ImageElementXPath,
-                    RelatedLinksElementXPath = options.RelatedLinksElementXPath,
+                    MaxDepth = options.CrawlRequest.MaxDepth,
+                    MaxLinks = options.CrawlRequest.MaxLinks,
+                    ExcludeExternalLinks = options.CrawlRequest.ExcludeExternalLinks,
+                    ExcludeQueryStrings = options.CrawlRequest.ExcludeQueryStrings,
+                    ConsolidateQueryStrings = options.CrawlRequest.ConsolidateQueryStrings,
+                    UrlMatchRegex = options.CrawlRequest.UrlMatchRegex,
+                    TitleElementXPath = options.CrawlRequest.TitleElementXPath,
+                    ContentElementXPath = options.CrawlRequest.ContentElementXPath,
+                    SummaryElementXPath = options.CrawlRequest.SummaryElementXPath,
+                    ImageElementXPath = options.CrawlRequest.ImageElementXPath,
+                    RelatedLinksElementXPath = options.CrawlRequest.RelatedLinksElementXPath,
+
                     UserAgent = options.UserAgent,
                     UserAccepts = options.UserAccepts
                 },

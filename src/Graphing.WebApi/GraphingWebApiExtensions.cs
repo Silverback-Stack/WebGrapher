@@ -2,6 +2,7 @@
 using Graphing.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 using System.Net;
 
 namespace Graphing.WebApi
@@ -20,7 +21,31 @@ namespace Graphing.WebApi
 
             // --- Swagger / OpenAPI ---
             services.AddEndpointsApiExplorer();
-            services.AddSwaggerGen();
+            services.AddSwaggerGen(options =>
+            {
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    Description = "Enter your JWT access token."
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
 
             // --- Dependency Injection ---
             services.AddSingleton(graphingWebApiConfig);
@@ -94,8 +119,13 @@ namespace Graphing.WebApi
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint(graphingWebApiConfig.Swagger.EndpointUrl, graphingWebApiConfig.Swagger.EndpointName);
+                options.SwaggerEndpoint(
+                    graphingWebApiConfig.Swagger.EndpointUrl,
+                    graphingWebApiConfig.Swagger.EndpointName);
+
                 options.RoutePrefix = graphingWebApiConfig.Swagger.RoutePrefix;
+
+                options.ConfigObject.PersistAuthorization = true;
             });
 
             app.MapControllers();

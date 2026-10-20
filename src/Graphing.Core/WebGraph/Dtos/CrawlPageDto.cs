@@ -5,19 +5,8 @@ namespace Graphing.Core.WebGraph.Dtos
 {
     public class CrawlPageDto
     {
-        [Required]
-        public required string Url { get; set; }
-        public required int MaxDepth { get; set; }
-        public required int MaxLinks { get; set; }
-        public bool ExcludeExternalLinks { get; init; } = true;
-        public bool ExcludeQueryStrings { get; init; } = true;
-        public bool ConsolidateQueryStrings { get; init; } = false;
-        public string UrlMatchRegex { get; init; } = string.Empty;
-        public string TitleElementXPath { get; init; } = string.Empty;
-        public string ContentElementXPath { get; init; } = string.Empty;
-        public string SummaryElementXPath { get; init; } = string.Empty;
-        public string ImageElementXPath { get; init; } = string.Empty;
-        public string RelatedLinksElementXPath { get; init; } = string.Empty;
+        public required CrawlRequestDto CrawlRequest { get; init; }
+
         public bool OverwriteDefaults { get; init; } = false;
         public bool Preview { get; init; } = false;
     }

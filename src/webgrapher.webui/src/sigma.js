@@ -168,20 +168,20 @@ export function getNodeAndNeighbors(sigmaGraph, nodeId) {
 
   const nodeAttributes = sigmaGraph.getNodeAttributes(nodeId);
 
-  // get incoming edges with id and title
+  // get outgoing edges with id and title
   let outgoingEdges = sigmaGraph.outNeighbors(nodeId).map(id => {
     const targetNode = sigmaGraph.getNodeAttributes(id)
     return { id, title: targetNode?.label || id }
   })
-  // sort incoming edges alphabetically by title
+  // sort outgoing edges alphabetically by title
   outgoingEdges = sortBy(outgoingEdges, "title")
 
-  // get outgoing edges with id and title
+  // get incoming edges with id and title
   let incomingEdges = sigmaGraph.inNeighbors(nodeId).map(id => {
     const sourceNode = sigmaGraph.getNodeAttributes(id)
     return { id, title: sourceNode?.label || id }
   })
-  // sort outgoing edges alphabetically by title
+  // sort incoming edges alphabetically by title
   incomingEdges = sortBy(incomingEdges, "title")
 
   return {

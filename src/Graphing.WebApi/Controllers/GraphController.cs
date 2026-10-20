@@ -2,6 +2,7 @@
 using Graphing.Core;
 using Graphing.Core.WebGraph;
 using Graphing.Core.WebGraph.Dtos;
+using Graphing.Core.WebGraph.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Graph = Graphing.Core.WebGraph.Models.Graph;
@@ -25,18 +26,87 @@ namespace Graphing.WebApi.Controllers
             _userContext = userContext;
         }
 
+
+
+        [HttpPost("{graphId}/crawl", Name = "Crawl")]
+        public async Task<IActionResult> CrawlPageAsync([FromRoute] Guid graphId, [FromBody] CrawlPageDto crawlPage)
+        {
+            if (crawlPage == null)
+                return BadRequest("Request body cannot be empty.");
+
+            if (crawlPage.CrawlRequest == null)
+                return BadRequest("Crawl request cannot be empty.");
+
+            if (!Uri.TryCreate(
+                crawlPage.CrawlRequest.Url,
+                UriKind.Absolute,
+                out _))
+            {
+                ModelState.AddModelError(
+                    nameof(CrawlRequestDto.Url),
+                    "Invalid URL. Use format https://www.example.com");
+
+                return ValidationProblem();
+            }
+
+            // Map crawl request parameters
+            var crawlRequest = MapToModel(crawlPage.CrawlRequest);
+
+
+            var existingGraph = await _pageGrapher.GetGraphByIdAsync(
+                graphId,
+                _userContext.UserId);
+
+            if (existingGraph == null)
+                return NotFound();
+
+            if (crawlPage.OverwriteDefaults && !crawlPage.Preview)
+            {
+                existingGraph.CrawlRequest = crawlRequest;
+
+                var updatedGraph = await _pageGrapher.UpdateGraphAsync(
+                    existingGraph,
+                    _userContext.UserId);
+
+                if (updatedGraph == null)
+                    return StatusCode(500, "Failed to update graph.");
+            }
+
+            // Submit crawl page request
+            var userAgent = Request.Headers["User-Agent"].FirstOrDefault();
+
+            var crawlPageRequestDto = await _pageGrapher.CrawlPageAsync(
+                graphId,
+                new GraphOptions
+                {
+                    CrawlRequest = crawlRequest,
+
+                    UserAgent = string.IsNullOrWhiteSpace(userAgent)
+                        ? GraphOptions.DefaultUserAgent
+                        : userAgent
+                },
+                crawlPage.Preview);
+
+            return Ok(crawlPageRequestDto);
+        }
+
+
+
         // GET existing graph
         [HttpGet("{graphId}", Name = "GetById")]
         public async Task<IActionResult> GetByIdAsync([FromRoute] Guid graphId)
         {
-            var useri = _userContext.UserId;
             var graph = await _pageGrapher.GetGraphByIdAsync(graphId, _userContext.UserId);
+
             if (graph == null) 
                 return NotFound();
 
             var graphDto = MapToDto(graph);
+
             return Ok(graphDto);
         }
+
+
 
         // POST create new graph
         [HttpPost("create", Name = "Create")]
@@ -57,7 +127,10 @@ namespace Graphing.WebApi.Controllers
                     {
                         Name = createGraph.Name,
                         Description = createGraph.Description,
-                        UserAgent = userAgent ?? GraphOptions.DefaultUserAgent
+                        CrawlRequest = new GraphCrawlRequest(),
+                        UserAgent = string.IsNullOrWhiteSpace(userAgent)
+                            ? GraphOptions.DefaultUserAgent
+                            : userAgent
                     });
 
                 var createdDto = MapToDto(newGraph);
@@ -75,44 +148,45 @@ namespace Graphing.WebApi.Controllers
             }
         }
 
+
+
         [HttpPut("{graphId}/update", Name = "Update")]
-        public async Task<IActionResult> UpdateGraphAsync([FromRoute] Guid graphId, [FromBody] UpdateGraphDto updateGraph)
+        public async Task<IActionResult> UpdateGraphAsync(
+            [FromRoute] Guid graphId,
+            [FromBody] UpdateGraphDto updateGraph)
         {
             try
             {
                 if (updateGraph == null)
                     return BadRequest("Request body cannot be empty.");
 
-                var existingGraph = await _pageGrapher.GetGraphByIdAsync(graphId, _userContext.UserId);
-                if (existingGraph == null)
-                    return NotFound();
+                if (updateGraph.CrawlRequest == null)
+                    return BadRequest("Crawl request cannot be empty.");
 
-                if (string.IsNullOrWhiteSpace(updateGraph.Url))
-                {
-                    return BadRequest("URL is required.");
-                }
-
-                if (!Uri.TryCreate(updateGraph.Url, UriKind.Absolute, out var validatedUrl))
+                // Validate URL if provided
+                if (!string.IsNullOrWhiteSpace(updateGraph.CrawlRequest.Url) &&
+                    !Uri.TryCreate(
+                        updateGraph.CrawlRequest.Url,
+                        UriKind.Absolute,
+                        out _))
                 {
                     return BadRequest("URL format is invalid.");
                 }
 
+                var existingGraph = await _pageGrapher.GetGraphByIdAsync(
+                    graphId,
+                    _userContext.UserId);
+
+                if (existingGraph == null)
+                    return NotFound();
+
                 existingGraph.Name = updateGraph.Name;
                 existingGraph.Description = updateGraph.Description;
-                existingGraph.Url = validatedUrl.AbsoluteUri;
-                existingGraph.MaxDepth = Math.Max(1, updateGraph.MaxDepth);
-                existingGraph.MaxLinks = Math.Max(1, updateGraph.MaxLinks);
-                existingGraph.ExcludeExternalLinks = updateGraph.ExcludeExternalLinks;
-                existingGraph.ExcludeQueryStrings = updateGraph.ExcludeQueryStrings;
-                existingGraph.ConsolidateQueryStrings = updateGraph.ConsolidateQueryStrings;
-                existingGraph.UrlMatchRegex = updateGraph.UrlMatchRegex;
-                existingGraph.TitleElementXPath = updateGraph.TitleElementXPath;
-                existingGraph.ContentElementXPath = updateGraph.ContentElementXPath;
-                existingGraph.SummaryElementXPath = updateGraph.SummaryElementXPath;
-                existingGraph.ImageElementXPath = updateGraph.ImageElementXPath;
-                existingGraph.RelatedLinksElementXPath = updateGraph.RelatedLinksElementXPath;
+                existingGraph.CrawlRequest = MapToModel(updateGraph.CrawlRequest);
 
-                var updatedGraph = await _pageGrapher.UpdateGraphAsync(existingGraph, _userContext.UserId);
+                var updatedGraph = await _pageGrapher.UpdateGraphAsync(
+                    existingGraph,
+                    _userContext.UserId);
 
                 return Ok(MapToDto(updatedGraph));
             }
@@ -122,72 +196,7 @@ namespace Graphing.WebApi.Controllers
             }
         }
 
-        
 
-        [HttpPost("{graphId}/crawl", Name = "Crawl")]
-        public async Task<IActionResult> CrawlPageAsync([FromRoute] Guid graphId, [FromBody] CrawlPageDto crawlPage)
-        {
-            if (crawlPage == null)
-                return BadRequest("Request body cannot be empty.");
-
-            if (!Uri.TryCreate(crawlPage.Url, UriKind.Absolute, out var validatedUrl))
-            {
-                ModelState.AddModelError(nameof(crawlPage.Url), "Invalid URL. Use format https://www.example.com");
-                return ValidationProblem();
-            }
-
-            if (crawlPage.OverwriteDefaults)
-            {
-                //overwrite graph defaults with new values from crawl page request
-                var existingGraph = await _pageGrapher.GetGraphByIdAsync(graphId, _userContext.UserId);
-                if (existingGraph == null)
-                    return NotFound();
-
-                existingGraph.Url = validatedUrl.AbsoluteUri;
-                existingGraph.MaxDepth = Math.Max(1, crawlPage.MaxDepth);
-                existingGraph.MaxLinks = Math.Max(1, crawlPage.MaxLinks);
-                existingGraph.ExcludeExternalLinks = crawlPage.ExcludeExternalLinks;
-                existingGraph.ExcludeQueryStrings = crawlPage.ExcludeQueryStrings;
-                existingGraph.ConsolidateQueryStrings = crawlPage.ConsolidateQueryStrings;
-                existingGraph.UrlMatchRegex = crawlPage.UrlMatchRegex;
-                existingGraph.TitleElementXPath = crawlPage.TitleElementXPath;
-                existingGraph.ContentElementXPath = crawlPage.ContentElementXPath;
-                existingGraph.SummaryElementXPath = crawlPage.SummaryElementXPath;
-                existingGraph.ImageElementXPath = crawlPage.ImageElementXPath;
-                existingGraph.RelatedLinksElementXPath = crawlPage.RelatedLinksElementXPath;
-
-                var updatedGraph = await _pageGrapher.UpdateGraphAsync(existingGraph, _userContext.UserId);
-
-                if (updatedGraph == null)
-                {
-                    return StatusCode(500, "Failed to update graph.");
-                }
-            }
-
-            //submit a crawl page request:
-            var userAgent = Request.Headers["User-Agent"].FirstOrDefault();
-
-            var crawlPageRequestDto = await _pageGrapher.CrawlPageAsync(graphId, new GraphOptions
-            {
-                Url = validatedUrl,
-                MaxDepth = Math.Max(1, crawlPage.MaxDepth),
-                MaxLinks = Math.Max(1, crawlPage.MaxLinks),
-                ExcludeExternalLinks = crawlPage.ExcludeExternalLinks,
-                ExcludeQueryStrings = crawlPage.ExcludeQueryStrings,
-                ConsolidateQueryStrings = crawlPage.ConsolidateQueryStrings,
-                UrlMatchRegex = crawlPage.UrlMatchRegex,
-                TitleElementXPath = crawlPage.TitleElementXPath,
-                ContentElementXPath = crawlPage.ContentElementXPath,
-                SummaryElementXPath = crawlPage.SummaryElementXPath,
-                ImageElementXPath = crawlPage.ImageElementXPath,
-                RelatedLinksElementXPath = crawlPage.RelatedLinksElementXPath,
-                UserAgent = string.IsNullOrEmpty(userAgent)
-                    ? GraphOptions.DefaultUserAgent
-                    : userAgent
-            }, crawlPage.Preview);
-
-            return Ok(crawlPageRequestDto);
-        }
 
 
         [HttpDelete("{graphId}/delete", Name = "Delete")]
@@ -216,7 +225,7 @@ namespace Graphing.WebApi.Controllers
                     Name = g.Name,
                     Description = g.Description,
                     CreatedAt = g.CreatedAt,
-                    Url = g.Url.ToString()
+                    Url = g.CrawlRequest.Url?.AbsoluteUri ?? string.Empty
                 }),
                 result.TotalCount,
                 result.Page,
@@ -225,6 +234,9 @@ namespace Graphing.WebApi.Controllers
 
             return Ok(dtoResult);
         }
+
+
+
 
         [HttpGet("{graphId}/populate", Name = "Populate")]
         public async Task<IActionResult> PopulateClientGraphAsync([FromRoute] Guid graphId, [FromQuery] int maxDepth, [FromQuery] int? maxNodes = null)
@@ -238,6 +250,9 @@ namespace Graphing.WebApi.Controllers
 
             return Ok(data);
         }
+
+
+
 
         [HttpPost("{graphId}/node-subgraph", Name = "NodeSubgraph")]
         public async Task<IActionResult> GetNodeSubgraphAsync([FromRoute] Guid graphId, [FromBody] SubGraphRequestDto subGraphRequest)
@@ -253,24 +268,49 @@ namespace Graphing.WebApi.Controllers
             return Ok(data);
         }
 
+
+
         private GraphDto MapToDto(Graph graph) => new GraphDto
         {
             Id = graph.Id,
             Name = graph.Name,
             Description = graph.Description,
             CreatedAt = graph.CreatedAt,
-            Url = graph.Url,
-            MaxDepth = graph.MaxDepth,
-            MaxLinks = graph.MaxLinks,
-            ExcludeExternalLinks = graph.ExcludeExternalLinks,
-            ExcludeQueryStrings = graph.ExcludeQueryStrings,
-            ConsolidateQueryStrings = graph.ConsolidateQueryStrings,
-            UrlMatchRegex = graph.UrlMatchRegex,
-            TitleElementXPath = graph.TitleElementXPath,
-            ContentElementXPath = graph.ContentElementXPath,
-            SummaryElementXPath = graph.SummaryElementXPath,
-            ImageElementXPath = graph.ImageElementXPath,
-            RelatedLinksElementXPath = graph.RelatedLinksElementXPath
+            CrawlRequest = MapToDto(graph.CrawlRequest)
+        };
+
+
+        private CrawlRequestDto MapToDto(GraphCrawlRequest request) => new CrawlRequestDto
+        {
+            Url = request.Url?.AbsoluteUri,
+            MaxDepth = request.MaxDepth,
+            MaxLinks = request.MaxLinks,
+            ExcludeExternalLinks = request.ExcludeExternalLinks,
+            ExcludeQueryStrings = request.ExcludeQueryStrings,
+            ConsolidateQueryStrings = request.ConsolidateQueryStrings,
+            UrlMatchRegex = request.UrlMatchRegex,
+            TitleElementXPath = request.TitleElementXPath,
+            ContentElementXPath = request.ContentElementXPath,
+            SummaryElementXPath = request.SummaryElementXPath,
+            ImageElementXPath = request.ImageElementXPath,
+            RelatedLinksElementXPath = request.RelatedLinksElementXPath
+        };
+
+
+        private GraphCrawlRequest MapToModel(CrawlRequestDto dto) => new GraphCrawlRequest
+        {
+            Url = Uri.TryCreate(dto.Url, UriKind.Absolute, out var uri) ? uri : null,
+            MaxDepth = Math.Max(1, dto.MaxDepth),
+            MaxLinks = Math.Max(1, dto.MaxLinks),
+            ExcludeExternalLinks = dto.ExcludeExternalLinks,
+            ExcludeQueryStrings = dto.ExcludeQueryStrings,
+            ConsolidateQueryStrings = dto.ConsolidateQueryStrings,
+            UrlMatchRegex = dto.UrlMatchRegex,
+            TitleElementXPath = dto.TitleElementXPath,
+            ContentElementXPath = dto.ContentElementXPath,
+            SummaryElementXPath = dto.SummaryElementXPath,
+            ImageElementXPath = dto.ImageElementXPath,
+            RelatedLinksElementXPath = dto.RelatedLinksElementXPath
         };
 
 

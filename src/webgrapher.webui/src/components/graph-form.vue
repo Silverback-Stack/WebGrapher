@@ -353,7 +353,8 @@
       const response = await apiClient.get(
         apiConfig.GRAPH_GET(props.graphId)
       );
-      Object.assign(form, response.data);
+      // Merge graph properties and nested crawl parameters into the form
+      Object.assign(form, response.data, response.data.crawlRequest);
 
       // If we're crawling, override just the URL after properties load
       if (props.mode === "crawl" && props.crawlUrl) {
@@ -394,9 +395,13 @@
         await router.push({ name: "Graph", params: { id: response.data.id } })
 
       } else if (props.mode === "update") {
-        response = await apiClient.put(apiConfig.GRAPH_UPDATE(props.graphId), form, {
+        response = await apiClient.put(apiConfig.GRAPH_UPDATE(props.graphId), {
+          name: form.name,
+          description: form.description,
+          crawlRequest: { ...form }
+        }, {
           headers: { "Content-Type": "application/json" },
-        })
+        });
 
         emit("confirmAction", {
           type: "update",
@@ -404,10 +409,13 @@
         });
 
       } else if (props.mode === "crawl") {
-        form.preview = preview
-        response = await apiClient.post(apiConfig.GRAPH_CRAWL(props.graphId), form, {
+        response = await apiClient.post(apiConfig.GRAPH_CRAWL(props.graphId), {
+          crawlRequest: { ...form },
+          overwriteDefaults: form.overwriteDefaults,
+          preview
+        }, {
           headers: { "Content-Type": "application/json" },
-        })
+        });
 
         emit("confirmAction", {
           type: "crawl",

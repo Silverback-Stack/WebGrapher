@@ -114,21 +114,23 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                 UserId = userId,
                 Name = options.Name,
                 Description = options.Description,
-                Url = options.Url?.AbsoluteUri ?? string.Empty,
-                MaxDepth = options.MaxDepth,
-                MaxLinks = options.MaxLinks,
-                ExcludeExternalLinks = options.ExcludeExternalLinks,
-                ExcludeQueryStrings = options.ExcludeQueryStrings,
-                ConsolidateQueryStrings = options.ConsolidateQueryStrings,
-                UrlMatchRegex = options.UrlMatchRegex,
-                TitleElementXPath = options.TitleElementXPath,
-                ContentElementXPath = options.ContentElementXPath,
-                SummaryElementXPath = options.SummaryElementXPath,
-                ImageElementXPath = options.ImageElementXPath,
-                RelatedLinksElementXPath = options.RelatedLinksElementXPath,
                 CreatedAt = DateTimeOffset.UtcNow,
-                UserAgent = options.UserAgent,
-                UserAccepts = options.UserAccepts
+
+                CrawlRequest = new GraphCrawlRequest
+                {
+                    Url = options.CrawlRequest.Url,
+                    MaxDepth = options.CrawlRequest.MaxDepth,
+                    MaxLinks = options.CrawlRequest.MaxLinks,
+                    ExcludeExternalLinks = options.CrawlRequest.ExcludeExternalLinks,
+                    ExcludeQueryStrings = options.CrawlRequest.ExcludeQueryStrings,
+                    ConsolidateQueryStrings = options.CrawlRequest.ConsolidateQueryStrings,
+                    UrlMatchRegex = options.CrawlRequest.UrlMatchRegex,
+                    TitleElementXPath = options.CrawlRequest.TitleElementXPath,
+                    ContentElementXPath = options.CrawlRequest.ContentElementXPath,
+                    SummaryElementXPath = options.CrawlRequest.SummaryElementXPath,
+                    ImageElementXPath = options.CrawlRequest.ImageElementXPath,
+                    RelatedLinksElementXPath = options.CrawlRequest.RelatedLinksElementXPath
+                }
             };
 
             var vertex = await _gremlinQueryProvider.CreateGraphVertexAsync(graph);

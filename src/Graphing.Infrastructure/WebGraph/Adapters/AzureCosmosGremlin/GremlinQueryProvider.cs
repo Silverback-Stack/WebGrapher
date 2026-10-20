@@ -126,21 +126,20 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                 ["userId"] = graph.UserId,
                 ["name"] = graph.Name,
                 ["description"] = graph.Description,
-                ["url"] = graph.Url,
-                ["maxDepth"] = graph.MaxDepth,
-                ["maxLinks"] = graph.MaxLinks,
-                ["excludeExternalLinks"] = graph.ExcludeExternalLinks,
-                ["excludeQueryStrings"] = graph.ExcludeQueryStrings,
-                ["consolidateQueryStrings"] = graph.ConsolidateQueryStrings,
-                ["urlMatchRegex"] = graph.UrlMatchRegex,
-                ["titleElementXPath"] = graph.TitleElementXPath,
-                ["contentElementXPath"] = graph.ContentElementXPath,
-                ["summaryElementXPath"] = graph.SummaryElementXPath,
-                ["imageElementXPath"] = graph.ImageElementXPath,
-                ["relatedLinksElementXPath"] = graph.RelatedLinksElementXPath,
                 ["createdAt"] = graph.CreatedAt.ToString("O"),
-                ["userAgent"] = graph.UserAgent,
-                ["userAccepts"] = graph.UserAccepts
+
+                ["url"] = graph.CrawlRequest.Url?.AbsoluteUri ?? string.Empty,
+                ["maxDepth"] = graph.CrawlRequest.MaxDepth,
+                ["maxLinks"] = graph.CrawlRequest.MaxLinks,
+                ["excludeExternalLinks"] = graph.CrawlRequest.ExcludeExternalLinks,
+                ["excludeQueryStrings"] = graph.CrawlRequest.ExcludeQueryStrings,
+                ["consolidateQueryStrings"] = graph.CrawlRequest.ConsolidateQueryStrings,
+                ["urlMatchRegex"] = graph.CrawlRequest.UrlMatchRegex,
+                ["titleElementXPath"] = graph.CrawlRequest.TitleElementXPath,
+                ["contentElementXPath"] = graph.CrawlRequest.ContentElementXPath,
+                ["summaryElementXPath"] = graph.CrawlRequest.SummaryElementXPath,
+                ["imageElementXPath"] = graph.CrawlRequest.ImageElementXPath,
+                ["relatedLinksElementXPath"] = graph.CrawlRequest.RelatedLinksElementXPath
             };
 
             try
@@ -187,21 +186,20 @@ namespace Graphing.Infrastructure.WebGraph.Adapters.AzureCosmosGremlin
                 ["graphId"] = graph.Id.ToString(),
                 ["name"] = graph.Name,
                 ["description"] = graph.Description,
-                ["url"] = graph.Url,
-                ["maxDepth"] = graph.MaxDepth,
-                ["maxLinks"] = graph.MaxLinks,
-                ["excludeExternalLinks"] = graph.ExcludeExternalLinks,
-                ["excludeQueryStrings"] = graph.ExcludeQueryStrings,
-                ["consolidateQueryStrings"] = graph.ConsolidateQueryStrings,
-                ["urlMatchRegex"] = graph.UrlMatchRegex,
-                ["titleElementXPath"] = graph.TitleElementXPath,
-                ["contentElementXPath"] = graph.ContentElementXPath,
-                ["summaryElementXPath"] = graph.SummaryElementXPath,
-                ["imageElementXPath"] = graph.ImageElementXPath,
-                ["relatedLinksElementXPath"] = graph.RelatedLinksElementXPath,
                 ["createdAt"] = graph.CreatedAt.ToString("O"),
-                ["userAgent"] = graph.UserAgent,
-                ["userAccepts"] = graph.UserAccepts
+
+                ["url"] = graph.CrawlRequest.Url?.AbsoluteUri ?? string.Empty,
+                ["maxDepth"] = graph.CrawlRequest.MaxDepth,
+                ["maxLinks"] = graph.CrawlRequest.MaxLinks,
+                ["excludeExternalLinks"] = graph.CrawlRequest.ExcludeExternalLinks,
+                ["excludeQueryStrings"] = graph.CrawlRequest.ExcludeQueryStrings,
+                ["consolidateQueryStrings"] = graph.CrawlRequest.ConsolidateQueryStrings,
+                ["urlMatchRegex"] = graph.CrawlRequest.UrlMatchRegex,
+                ["titleElementXPath"] = graph.CrawlRequest.TitleElementXPath,
+                ["contentElementXPath"] = graph.CrawlRequest.ContentElementXPath,
+                ["summaryElementXPath"] = graph.CrawlRequest.SummaryElementXPath,
+                ["imageElementXPath"] = graph.CrawlRequest.ImageElementXPath,
+                ["relatedLinksElementXPath"] = graph.CrawlRequest.RelatedLinksElementXPath
             };
 
             try
